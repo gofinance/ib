@@ -1,0 +1,110 @@
+package ibtws
+
+const (
+
+	// incoming msg ids
+
+	_TICK_PRICE               = 1
+	_TICK_SIZE                = 2
+	_ORDER_STATUS             = 3
+	_ERR_MSG                  = 4
+	_OPEN_ORDER               = 5
+	_ACCT_VALUE               = 6
+	_PORTFOLIO_VALUE          = 7
+	_ACCT_UPDATE_TIME         = 8
+	_NEXT_VALID_ID            = 9
+	_CONTRACT_DATA            = 10
+	_EXECUTION_DATA           = 11
+	_MARKET_DEPTH             = 12
+	_MARKET_DEPTH_L2          = 13
+	_NEWS_BULLETINS           = 14
+	_MANAGED_ACCTS            = 15
+	_RECEIVE_FA               = 16
+	_HISTORICAL_DATA          = 17
+	_BOND_CONTRACT_DATA       = 18
+	_SCANNER_PARAMETERS       = 19
+	_SCANNER_DATA             = 20
+	_TICK_OPTION_COMPUTATION  = 21
+	_TICK_GENERIC             = 45
+	_TICK_STRING              = 46
+	_TICK_EFP                 = 47
+	_URRENT_TIME              = 49
+	_REAL_TIME_BARS           = 50
+	_FUNDAMENTAL_DATA         = 51
+	_CONTRACT_DATA_END        = 52
+	_OPEN_ORDER_END           = 53
+	_ACCT_DOWNLOAD_END        = 54
+	_EXECUTION_DATA_END       = 55
+	_DELTA_NEUTRAL_VALIDATION = 56
+	_TICK_SNAPSHOT_END        = 57
+	_MARKET_DATA_TYPE         = 58
+
+	// outgoing message ids
+
+	_REQ_MKT_DATA                = 1
+	_CANCEL_MKT_DATA             = 2
+	_PLACE_ORDER                 = 3
+	_CANCEL_ORDER                = 4
+	_REQ_OPEN_ORDERS             = 5
+	_REQ_ACCOUNT_DATA            = 6
+	_REQ_EXECUTIONS              = 7
+	_REQ_IDS                     = 8
+	_REQ_CONTRACT_DATA           = 9
+	_REQ_MKT_DEPTH               = 10
+	_CANCEL_MKT_DEPTH            = 11
+	_REQ_NEWS_BULLETINS          = 12
+	_CANCEL_NEWS_BULLETINS       = 13
+	_SET_SERVER_LOGLEVEL         = 14
+	_REQ_AUTO_OPEN_ORDERS        = 15
+	_REQ_ALL_OPEN_ORDERS         = 16
+	_REQ_MANAGED_ACCTS           = 17
+	_REQ_FA                      = 18
+	_REPLACE_FA                  = 19
+	_REQ_HISTORICAL_DATA         = 20
+	_EXERCISE_OPTIONS            = 21
+	_REQ_SCANNER_SUBSCRIPTION    = 22
+	_CANCEL_SCANNER_SUBSCRIPTION = 23
+	_REQ_SCANNER_PARAMETERS      = 24
+	_CANCEL_HISTORICAL_DATA      = 25
+	_REQ_CURRENT_TIME            = 49
+	_REQ_REAL_TIME_BARS          = 50
+	_CANCEL_REAL_TIME_BARS       = 51
+	_REQ_FUNDAMENTAL_DATA        = 52
+	_CANCEL_FUNDAMENTAL_DATA     = 53
+	_REQ_CALC_IMPLIED_VOLAT      = 54
+	_REQ_CALC_OPTION_PRICE       = 55
+	_CANCEL_CALC_IMPLIED_VOLAT   = 56
+	_CANCEL_CALC_OPTION_PRICE    = 57
+	_REQ_GLOBAL_CANCEL           = 58
+	_REQ_MARKET_DATA_TYPE        = 59
+
+	_MIN_SERVER_VER_REAL_TIME_BARS             = 34
+	_MIN_SERVER_VER_SCALE_ORDERS               = 35
+	_MIN_SERVER_VER_SNAPSHOT_MKT_DATA          = 35
+	_MIN_SERVER_VER_SSHORT_COMBO_LEGS          = 35
+	_MIN_SERVER_VER_WHAT_IF_ORDERS             = 36
+	_MIN_SERVER_VER_CONTRACT_CONID             = 37
+	_MIN_SERVER_VER_PTA_ORDERS                 = 39
+	_MIN_SERVER_VER_FUNDAMENTAL_DATA           = 40
+	_MIN_SERVER_VER_UNDER_COMP                 = 40
+	_MIN_SERVER_VER_CONTRACT_DATA_CHAIN        = 40
+	_MIN_SERVER_VER_SCALE_ORDERS2              = 40
+	_MIN_SERVER_VER_ALGO_ORDERS                = 41
+	_MIN_SERVER_VER_EXECUTION_DATA_CHAIN       = 42
+	_MIN_SERVER_VER_NOT_HELD                   = 44
+	_MIN_SERVER_VER_SEC_ID_TYPE                = 45
+	_MIN_SERVER_VER_PLACE_ORDER_CONID          = 46
+	_MIN_SERVER_VER_REQ_MKT_DATA_CONID         = 47
+	_MIN_SERVER_VER_REQ_CALC_IMPLIED_VOLAT     = 49
+	_MIN_SERVER_VER_REQ_CALC_OPTION_PRICE      = 50
+	_MIN_SERVER_VER_CANCEL_CALC_IMPLIED_VOLAT  = 50
+	_MIN_SERVER_VER_CANCEL_CALC_OPTION_PRICE   = 50
+	_MIN_SERVER_VER_SSHORTX_OLD                = 51
+	_MIN_SERVER_VER_SSHORTX                    = 52
+	_MIN_SERVER_VER_REQ_GLOBAL_CANCEL          = 53
+	_MIN_SERVER_VER_HEDGE_ORDERS               = 54
+	_MIN_SERVER_VER_REQ_MARKET_DATA_TYPE       = 55
+	_MIN_SERVER_VER_OPT_OUT_SMART_ROUTING      = 56
+	_MIN_SERVER_VER_SMART_COMBO_ROUTING_PARAMS = 57
+	_MIN_SERVER_VER_DELTA_NEUTRAL_CONID        = 58
+)
