@@ -14,6 +14,7 @@ const (
 type Engine struct {
 	con        net.Conn
 	serverTime time.Time
+	serverVersion int
 	ch         chan interface{}
 }
 
@@ -39,15 +40,24 @@ func Make() (*Engine, error) {
 	b := bufio.NewReader(con)
 
 	// write client version
-	con.Write([]byte(encodeClientVersion(57)))
-	con.Write([]byte("\000"))
+	write(con, encodeClientVersion(57))
 
 	// read server version
-	serverVersion, err := readServerTime(b)
+	serverVersion, err := readServerVersion(b)
 	if err != nil {
 		return nil, err
 	}
 	trace("receiver: server version = ", serverVersion)
+
+	// read server time
+	serverTime, err := readServerTime(b)
+	if err != nil {
+		return nil, err
+	}
+	trace("receiver: server time = ", serverTime)
+
+	engine.serverVersion = serverVersion
+	engine.serverTime = serverTime
 
 	ch := make(chan interface{})
 
@@ -71,12 +81,36 @@ func Make() (*Engine, error) {
 	return &engine, nil
 }
 
+type packet interface {
+	encode() string
+}
+
+func (engine *Engine) Send(packet packet) (int, error) {
+	return write(engine.con, packet.encode())
+}
+
+func (engine *Engine) Receive() <-chan interface{} {
+	return engine.ch
+}
+
 func read(b *bufio.Reader) (string, error) {
 	bytes, err := b.ReadString(0)
 	if err != nil {
-		return "", err
+		return bytes, err
 	}
 	return string(bytes[:len(bytes)-1]), nil
+}
+
+func write(con net.Conn, data string) (int, error) {
+	n1, err := con.Write([]byte(data))
+	if err != nil {
+		return n1, err
+	}
+	n2, err := con.Write([]byte("\000"))
+	if err != nil {
+		return n1, err
+	}
+	return n1 + n2, nil
 }
 
 func readServerVersion(b *bufio.Reader) (int, error) {
