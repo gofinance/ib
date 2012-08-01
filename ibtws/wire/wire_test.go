@@ -3,6 +3,7 @@ package wire
 import (
 	"bytes"
 	"testing"
+	"time"
 )
 
 type intRec struct {
@@ -10,7 +11,11 @@ type intRec struct {
 }
 
 type stringRec struct {
-    S string
+	S string
+}
+
+type timeRec struct {
+	T time.Time
 }
 
 func makebuf() *bytes.Buffer {
@@ -27,10 +32,21 @@ func TestEncodeInt(t *testing.T) {
 }
 
 func TestEncodeString(t *testing.T) {
-    v := &stringRec{S:"foobar" }
-    b := makebuf()
-    encode(b, 0, v)
-    if b.String() != "foobar\000" {
-        t.Errorf("encode(%v) = %s, want %s", v, b.String(), "foobar")
-    }
+	v := &stringRec{S: "foobar"}
+	b := makebuf()
+	encode(b, 0, v)
+	if b.String() != "foobar\000" {
+		t.Errorf("encode(%v) = %s, want %s", v, b.String(), "foobar")
+	}
+}
+
+func TestEncodeTime(t *testing.T) {
+	ts := time.Now()
+	s := ts.Format(ibTimeFormat) + "\000"
+	v := &timeRec{T: ts}
+	b := makebuf()
+	encode(b, 0, v)
+	if b.String() != s {
+		t.Errorf("encode(%v) = %s, want %s", v, b.String(), s)
+	}
 }

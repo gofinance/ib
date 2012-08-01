@@ -6,10 +6,9 @@ import (
 	"runtime"
 	"strconv"
 	"time"
-	//"bufio"
 )
 
-const ibTime = "20060102 15:04:05 MST"
+const ibTimeFormat = "20060102 15:04:05 MST"
 const maxInt = int(^uint(0) >> 1)
 
 type TickType int
@@ -50,6 +49,18 @@ func unpanic() (err error) {
 	return nil
 }
 
+func decodeServerTime(data string) (time.Time, error) {
+	return time.Parse(ibTimeFormat, data)
+}
+
+type EncodeError struct {
+    Type  reflect.Type 
+}
+  
+func (e *EncodeError) Error() string {
+    return "ibtws: cannot encode type " + e.Type.String()
+}
+
 func encode(buf *bytes.Buffer, tag int, v interface{}) error {
 	val := reflect.ValueOf(v)
 
@@ -60,7 +71,7 @@ func encode(buf *bytes.Buffer, tag int, v interface{}) error {
 	buf.Reset()
 
 	if val.Kind() != reflect.Struct {
-		panic("Value given to decode is not a structure")
+		panic("ibtws: value given to decode is not a structure")
 	}
 
 	for i := 0; i < val.NumField(); i++ {
@@ -79,6 +90,16 @@ func encode(buf *bytes.Buffer, tag int, v interface{}) error {
 			} else {
 				buf.WriteString("0")
 			}
+        case reflect.Struct:
+            switch f.Interface().(type) {
+            case time.Time:
+                var t time.Time = f.Interface().(time.Time)
+                buf.WriteString(t.Format(ibTimeFormat))
+            default:
+                return &EncodeError{Type: f.Type()}
+            }
+        default:
+            return &EncodeError{Type: f.Type()}
 		}
 		buf.WriteByte(0)
 	}
