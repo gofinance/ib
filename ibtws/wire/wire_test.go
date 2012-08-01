@@ -2,8 +2,9 @@ package wire
 
 import (
 	"bytes"
+    "time"
+    "strconv"
 	"testing"
-	"time"
 )
 
 type intRec struct {
@@ -16,6 +17,10 @@ type stringRec struct {
 
 type timeRec struct {
 	T time.Time
+}
+
+type floatRec struct {
+    F float64
 }
 
 func makebuf() *bytes.Buffer {
@@ -50,3 +55,15 @@ func TestEncodeTime(t *testing.T) {
 		t.Errorf("encode(%v) = %s, want %s", v, b.String(), s)
 	}
 }
+
+func TestEncodeFloat(t *testing.T) {
+    f := 0.535
+    v := &floatRec{F: f}
+    s := strconv.FormatFloat(f, 'g', 10, 64) + "\000"
+    b := makebuf()
+    encode(b, 0, v)
+    if b.String() != s {
+        t.Errorf("encode(%v) = %s, want %s", v, b.String(), s)
+    }
+}
+
