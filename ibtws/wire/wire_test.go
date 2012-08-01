@@ -6,7 +6,7 @@ import (
 )
 
 type intRec struct {
-	I int
+	I int64
 }
 
 func makebuf() *bytes.Buffer {

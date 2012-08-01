@@ -66,7 +66,7 @@ func encode(buf *bytes.Buffer, tag int, v interface{}) error {
 	for i := 0; i < val.NumField(); i++ {
 		f := val.Field(i)
 		switch f.Type().Kind() {
-		case reflect.Int:
+		case reflect.Int64:
 			buf.WriteString(strconv.FormatInt(f.Int(), 10))
 		case reflect.Float64:
 			buf.WriteString(strconv.FormatFloat(f.Float(), 'g', 10, 64))
