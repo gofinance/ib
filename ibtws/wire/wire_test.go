@@ -1,0 +1,23 @@
+package wire
+
+import (
+	"bytes"
+	"testing"
+)
+
+type intRec struct {
+	I int
+}
+
+func makebuf() *bytes.Buffer {
+	return bytes.NewBuffer(make([]byte, 0, 1024))
+}
+
+func TestEncodeInt(t *testing.T) {
+	v := &intRec{I: 57}
+	b := makebuf()
+	encode(b, 0, v)
+	if b.String() != "57\000" {
+		t.Errorf("encode(%v) = %s, want %s", v, b.String(), "57")
+	}
+}
