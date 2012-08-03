@@ -1,9 +1,9 @@
 package wire
 
 import (
+	"fmt"
 	"bufio"
 	"bytes"
-	"fmt"
 	"reflect"
 	"runtime"
 	"strconv"
@@ -11,36 +11,6 @@ import (
 )
 
 const ibTimeFormat = "20060102 15:04:05.000000 MST"
-
-const maxInt = int(^uint(0) >> 1)
-
-type TickType int
-
-const (
-	bid  TickType = 1
-	Ask           = 2
-	Last          = 4
-)
-
-type serverVersion struct {
-	Version int
-}
-
-type clientVersion struct {
-	Version int
-}
-
-type serverTime struct {
-	Time time.Time
-}
-
-type Tick struct {
-	TickerId       int
-	Type           int
-	Price          float64
-	Size           int
-	CanAutoExecute bool
-}
 
 func unpanic() (err error) {
 	if r := recover(); r != nil {
@@ -71,54 +41,64 @@ func failEncode(n string, v interface{}, t reflect.Type) error {
 	}
 }
 
-func encode(buf *bytes.Buffer, tag int, v interface{}) error {
-	val := reflect.ValueOf(v)
+func encode(buf *bytes.Buffer, tag int, x interface{}) error {
+	v := reflect.ValueOf(x)
 
-	if val.Kind() == reflect.Ptr {
-		val = val.Elem()
-	}
-
-	buf.Reset()
-
-	if val.Kind() != reflect.Struct {
-		panic("ibtws: value given to encode is not a structure")
+	if v.Kind() == reflect.Ptr {
+		v = v.Elem()
 	}
 
 	var s string
 
-	for i := 0; i < val.NumField(); i++ {
-		f := val.Field(i)
-		switch f.Type().Kind() {
-		case reflect.Int64:
-			s = strconv.FormatInt(f.Int(), 10)
-		case reflect.Float64:
-			s = strconv.FormatFloat(f.Float(), 'g', 10, 64)
-		case reflect.String:
-			s = string(f.String())
-		case reflect.Bool:
-			if f.Int() > 0 {
-				s = "1"
-			} else {
-				s = "0"
+	switch v.Type().Kind() {
+	case reflect.Int, reflect.Int64:
+		s = strconv.FormatInt(v.Int(), 10)
+	case reflect.Float64:
+		s = strconv.FormatFloat(v.Float(), 'g', 10, 64)
+	case reflect.String:
+		s = string(v.String())
+	case reflect.Bool:
+		if v.Int() > 0 {
+			s = "1"
+		} else {
+			s = "0"
+		}
+	case reflect.Slice:
+		// encode size
+		if err := encode(buf, 0, v.Len()); err != nil {
+			return err
+		}
+		// encode elements
+		for i := 0; i < v.Len(); i++ {
+			if err := encode(buf, 0, v.Index(i).Interface()); err != nil {
+				return err
 			}
-		case reflect.Struct:
-			switch f.Interface().(type) {
-			case time.Time:
-				var t time.Time = f.Interface().(time.Time)
-				s = t.Format(ibTimeFormat)
-			default:
+		}
+		return nil
+	case reflect.Struct:
+		switch v.Interface().(type) {
+		// custom encoding for time
+		case time.Time:
+			var t time.Time = v.Interface().(time.Time)
+			s = t.Format(ibTimeFormat)
+		default:
+			// encode fields
+			for i := 0; i < v.NumField(); i++ {
+				f := v.Field(i)
 				if err := encode(buf, 0, f.Interface()); err != nil {
 					return err
 				}
-				continue
 			}
-		default:
-			return failEncode(f.Type().Field(i).Name, f.Interface(), f.Type())
 		}
+		if s == "" {
+			return nil
+		}
+	default:
+		return failEncode(v.Type().Name(), v.Interface(), v.Type())
+	}
 
-		if _, err := buf.WriteString(s + "\000"); err != nil {
-			return err
-		}
+	if _, err := buf.WriteString(s + "\000"); err != nil {
+		return err
 	}
 
 	return nil
@@ -131,8 +111,8 @@ type DecodeError struct {
 }
 
 func (e *DecodeError) Error() string {
-        return fmt.Sprintf("ibtws: cannot decode '%v' into field %s of type %v",
-        e.Data, e.Name, e.Type)
+	return fmt.Sprintf("ibtws: cannot decode '%v' into field %s of type %v",
+		e.Data, e.Name, e.Type)
 }
 
 func failDecode(d string, n string, t reflect.Type) error {
@@ -186,11 +166,7 @@ func decode(b *bufio.Reader, v interface{}) error {
 			if x, err := strconv.ParseInt(s, 10, 64); err != nil {
 				return failDecode(s, f.Type().Field(i).Name, f.Type())
 			} else {
-				if x > 0 {
-					f.SetBool(true)
-				} else {
-					f.SetBool(false)
-				}
+				f.SetBool(x > 0)
 			}
 		case reflect.Struct:
 			switch f.Interface().(type) {

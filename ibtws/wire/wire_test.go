@@ -8,8 +8,14 @@ import (
 	"time"
 )
 
+type long int64
+
 type intRec struct {
 	I int64
+}
+
+type longRec struct {
+	L long
 }
 
 type stringRec struct {
@@ -24,71 +30,74 @@ type floatRec struct {
 	F float64
 }
 
+type item struct {
+	S string
+}
+
+type sliceRec struct {
+	Items []item
+}
+
 func makebuf() *bytes.Buffer {
 	return bytes.NewBuffer(make([]byte, 0, 1024))
 }
 
-func TestEncodeInt(t *testing.T) {
-	v := &intRec{I: 57}
+func testEncode(t *testing.T, v interface{}, s string) {
 	b := makebuf()
 
 	if err := encode(b, 0, v); err != nil {
 		t.Fatal(err)
 	}
 
-	if b.String() != "57\000" {
-		t.Fatalf("encode(%v) = %s, want %s", v, b.String(), "57")
+	if b.String() != s+"\000" {
+		t.Fatalf("encode(%v) = %s, want %s", v, b.String(), s)
 	}
+}
+
+
+func TestEncodeInt(t *testing.T) {
+	v := &intRec{I: 57}
+	testEncode(t, v, "57")
+}
+
+func TestEncodeLong(t *testing.T) {
+	v := &longRec{L: 57}
+	testEncode(t, v, "57")
 }
 
 func TestEncodeString(t *testing.T) {
 	v := &stringRec{S: "foobar"}
-	b := makebuf()
-
-	if err := encode(b, 0, v); err != nil {
-		t.Fatal(err)
-	}
-
-	if b.String() != "foobar\000" {
-		t.Fatalf("encode(%v) = %s, want %s", v, b.String(), "foobar")
-	}
+	testEncode(t, v, "foobar")
 }
 
 func TestEncodeTime(t *testing.T) {
 	ts := time.Now()
-	s := ts.Format(ibTimeFormat) + "\000"
 	v := &timeRec{T: ts}
-	b := makebuf()
-
-	if err := encode(b, 0, v); err != nil {
-		t.Fatal(err)
-	}
-
-	if b.String() != s {
-		t.Fatalf("encode(%v) = %s, want %s", v, b.String(), s)
-	}
+	testEncode(t, v, ts.Format(ibTimeFormat))
 }
 
 func TestEncodeFloat(t *testing.T) {
 	f := 0.535
 	v := &floatRec{F: f}
-	s := strconv.FormatFloat(f, 'g', 10, 64) + "\000"
-	b := makebuf()
+	testEncode(t, v, strconv.FormatFloat(f, 'g', 10, 64))
+}
 
-	if err := encode(b, 0, v); err != nil {
-		t.Fatal(err)
-	}
+func TestEncodeEmptySlice(t *testing.T) {
+	v := sliceRec{}
+	testEncode(t, v, "0")
+}
 
-	if b.String() != s {
-		t.Fatalf("encode(%v) = %s, want %s", v, b.String(), s)
-	}
+
+func TestEncodeSlice(t *testing.T) {
+	v := sliceRec{Items: []item{{"foo"}, {"bar"}}}
+	testEncode(t, v, "2\000foo\000bar")
 }
 
 func testDecode(t *testing.T, src interface{}, dst interface{}) {
 	b := makebuf()
 
 	if err := encode(b, 0, src); err != nil {
-        t.Fatal(err)
+		t.Fatal(err)
 	}
 
 	r := bufio.NewReader(bytes.NewReader(b.Bytes()))
@@ -141,3 +150,4 @@ func TestDecodeFloat(t *testing.T) {
 		t.Fatalf("decode got %v, want %v", v2, v1)
 	}
 }
+
