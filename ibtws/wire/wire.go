@@ -63,7 +63,11 @@ func encode(buf *bytes.Buffer, tag int, v reflect.Value) error {
 		}
 	case reflect.Slice:
 		// encode size
-		if err := encode(buf, 0, reflect.ValueOf(v.Len())); err != nil {
+		type size struct {
+			N int64
+		}
+		sz := size{int64(v.Len())}
+		if err := encode(buf, 0, reflect.ValueOf(&sz)); err != nil {
 			return err
 		}
 		// encode elements
@@ -132,20 +136,28 @@ func decode(b *bufio.Reader, v reflect.Value) error {
 
 	switch kind {
 	case reflect.Slice:
-		/*		
-			case reflect.Slice:
-				// encode size
-				if err := encode(buf, 0, v.Len()); err != nil {
-					return err
-				}
-				// encode elements
-				for i := 0; i < v.Len(); i++ {
-					if err := encode(buf, 0, v.Index(i).Interface()); err != nil {
-						return err
-					}
-				}
-				return nil
-		*/	case reflect.Struct:
+		type size struct {
+			N int64
+		}
+
+		sz := size{}
+
+		if err := decode(b, reflect.ValueOf(&sz)); err != nil {
+			return err
+		}
+
+		n := int(sz.N)
+		v.Set(reflect.MakeSlice(v.Type(), n, n))
+
+		// decode elements
+		for i := 0; i < n; i++ {
+			if err := decode(b, v.Index(i)); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	case reflect.Struct:
 		switch v.Interface().(type) {
 		case time.Time:
 			// do nothing

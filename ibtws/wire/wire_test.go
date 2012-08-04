@@ -83,12 +83,12 @@ func TestEncodeFloat(t *testing.T) {
 }
 
 func TestEncodeEmptySlice(t *testing.T) {
-	v := sliceRec{}
+	v := &sliceRec{}
 	testEncode(t, v, "0")
 }
 
 func TestEncodeSlice(t *testing.T) {
-	v := sliceRec{Items: []item{{"foo"}, {"bar"}}}
+	v := &sliceRec{Items: []item{{"foo"}, {"bar"}}}
 	testEncode(t, v, "2\000foo\000bar")
 }
 
@@ -146,6 +146,32 @@ func TestDecodeFloat(t *testing.T) {
 	testDecode(t, v1, v2)
 
 	if *v1 != *v2 {
+		t.Fatalf("decode got %v, want %v", v2, v1)
+	}
+}
+
+func TestDecodeEmptySlice(t *testing.T) {
+	v1 := &sliceRec{}
+	v2 := &sliceRec{}
+
+	testDecode(t, v1, v2)
+
+	if len(v2.Items) != 0 {
+		t.Fatalf("decode got %v, want %v", v2, v1)
+	}
+}
+
+func TestDecodeSlice(t *testing.T) {
+	v1 := &sliceRec{Items: []item{{"foo"}, {"bar"}}}
+	v2 := &sliceRec{}
+
+	testDecode(t, v1, v2)
+
+	if len(v2.Items) != 2 {
+		t.Fatalf("decode got %v, want %v", v2, v1)
+	}
+
+	if v2.Items[0] != v1.Items[0] || v2.Items[1] != v1.Items[1] {
 		t.Fatalf("decode got %v, want %v", v2, v1)
 	}
 }
