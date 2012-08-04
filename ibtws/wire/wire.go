@@ -41,9 +41,7 @@ func failEncode(n string, v interface{}, t reflect.Type) error {
 	}
 }
 
-func encode(buf *bytes.Buffer, tag int, vv interface{}) error {
-	v := reflect.ValueOf(vv)
-
+func encode(buf *bytes.Buffer, tag int, v reflect.Value) error {
 	if v.Kind() == reflect.Ptr {
 		v = v.Elem()
 	}
@@ -65,12 +63,12 @@ func encode(buf *bytes.Buffer, tag int, vv interface{}) error {
 		}
 	case reflect.Slice:
 		// encode size
-		if err := encode(buf, 0, v.Len()); err != nil {
+		if err := encode(buf, 0, reflect.ValueOf(v.Len())); err != nil {
 			return err
 		}
 		// encode elements
 		for i := 0; i < v.Len(); i++ {
-			if err := encode(buf, 0, v.Index(i).Interface()); err != nil {
+			if err := encode(buf, 0, v.Index(i)); err != nil {
 				return err
 			}
 		}
@@ -85,7 +83,7 @@ func encode(buf *bytes.Buffer, tag int, vv interface{}) error {
 			// encode fields
 			for i := 0; i < v.NumField(); i++ {
 				f := v.Field(i)
-				if err := encode(buf, 0, f.Interface()); err != nil {
+				if err := encode(buf, 0, f); err != nil {
 					return err
 				}
 			}
@@ -124,8 +122,6 @@ func failDecode(d string, n string, t reflect.Type) error {
 }
 
 func decode(b *bufio.Reader, v reflect.Value) error {
-	//v := reflect.ValueOf(vv)
-
 	if v.Kind() == reflect.Ptr {
 		v = v.Elem()
 	}

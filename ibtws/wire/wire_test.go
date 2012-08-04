@@ -46,7 +46,7 @@ func makebuf() *bytes.Buffer {
 func testEncode(t *testing.T, v interface{}, s string) {
 	b := makebuf()
 
-	if err := encode(b, 0, v); err != nil {
+	if err := encode(b, 0, reflect.ValueOf(v)); err != nil {
 		t.Fatal(err)
 	}
 
@@ -95,7 +95,7 @@ func TestEncodeSlice(t *testing.T) {
 func testDecode(t *testing.T, src interface{}, dst interface{}) {
 	b := makebuf()
 
-	if err := encode(b, 0, src); err != nil {
+	if err := encode(b, 0, reflect.ValueOf(src)); err != nil {
 		t.Fatal(err)
 	}
 
