@@ -1,9 +1,9 @@
 package wire
 
 import (
-	"fmt"
 	"bufio"
 	"bytes"
+	"fmt"
 	"reflect"
 	"runtime"
 	"strconv"
@@ -41,8 +41,8 @@ func failEncode(n string, v interface{}, t reflect.Type) error {
 	}
 }
 
-func encode(buf *bytes.Buffer, tag int, x interface{}) error {
-	v := reflect.ValueOf(x)
+func encode(buf *bytes.Buffer, tag int, vv interface{}) error {
+	v := reflect.ValueOf(vv)
 
 	if v.Kind() == reflect.Ptr {
 		v = v.Elem()
@@ -123,67 +123,91 @@ func failDecode(d string, n string, t reflect.Type) error {
 	}
 }
 
-func decode(b *bufio.Reader, v interface{}) error {
-	val := reflect.ValueOf(v)
+func decode(b *bufio.Reader, v reflect.Value) error {
+	//v := reflect.ValueOf(vv)
 
-	if val.Kind() == reflect.Ptr {
-		val = val.Elem()
+	if v.Kind() == reflect.Ptr {
+		v = v.Elem()
 	}
 
-	if val.Kind() != reflect.Struct {
-		panic("ibtws: value given to decode is not a structure")
-	}
+	kind := v.Type().Kind()
 
-	// parse and set field
+	// special processing for struct and slice
 
-	var s string
-
-	for i := 0; i < val.NumField(); i++ {
-		f := val.Field(i)
-
-		if data, err := b.ReadString(0); err != nil {
-			return err
-		} else {
-			// don't want the trailing \000
-			s = string(data[:len(data)-1])
-		}
-		switch f.Type().Kind() {
-		case reflect.Int64:
-			if x, err := strconv.ParseInt(s, 10, 64); err != nil {
-				return failDecode(s, f.Type().Field(i).Name, f.Type())
-			} else {
-				f.SetInt(x)
-			}
-		case reflect.Float64:
-			if x, err := strconv.ParseFloat(s, 64); err != nil {
-				return failDecode(s, f.Type().Field(i).Name, f.Type())
-			} else {
-				f.SetFloat(x)
-			}
-		case reflect.String:
-			f.SetString(s)
-		case reflect.Bool:
-			if x, err := strconv.ParseInt(s, 10, 64); err != nil {
-				return failDecode(s, f.Type().Field(i).Name, f.Type())
-			} else {
-				f.SetBool(x > 0)
-			}
-		case reflect.Struct:
-			switch f.Interface().(type) {
-			case time.Time:
-				if x, err := time.Parse(ibTimeFormat, s); err != nil {
-					return failDecode(s, f.Type().Field(i).Name, f.Type())
-				} else {
-					f.Set(reflect.ValueOf(x))
+	switch kind {
+	case reflect.Slice:
+		/*		
+			case reflect.Slice:
+				// encode size
+				if err := encode(buf, 0, v.Len()); err != nil {
+					return err
 				}
-			default:
-				if err := decode(b, f.Interface()); err != nil {
+				// encode elements
+				for i := 0; i < v.Len(); i++ {
+					if err := encode(buf, 0, v.Index(i).Interface()); err != nil {
+						return err
+					}
+				}
+				return nil
+		*/	case reflect.Struct:
+		switch v.Interface().(type) {
+		case time.Time:
+			// do nothing
+		default:
+			// decode fields
+			for i := 0; i < v.NumField(); i++ {
+				f := v.Field(i)
+				if err := decode(b, f); err != nil {
 					return err
 				}
 			}
-		default:
-			failDecode(s, f.Type().Field(i).Name, f.Type())
+
+			return nil
 		}
+	}
+
+	var s string
+
+	if data, err := b.ReadString(0); err != nil {
+		return err
+	} else {
+		s = string(data[:len(data)-1]) // trim \000
+	}
+
+	switch kind {
+	case reflect.Int64:
+		if x, err := strconv.ParseInt(s, 10, 64); err != nil {
+			return failDecode(s, v.Type().Name(), v.Type())
+		} else {
+			v.SetInt(x)
+		}
+	case reflect.Float64:
+		if x, err := strconv.ParseFloat(s, 64); err != nil {
+			return failDecode(s, v.Type().Name(), v.Type())
+		} else {
+			v.SetFloat(x)
+		}
+	case reflect.String:
+		v.SetString(s)
+	case reflect.Bool:
+		if x, err := strconv.ParseInt(s, 10, 64); err != nil {
+			return failDecode(s, v.Type().Name(), v.Type())
+		} else {
+			v.SetBool(x > 0)
+		}
+	case reflect.Struct:
+		switch v.Interface().(type) {
+		case time.Time:
+			if x, err := time.Parse(ibTimeFormat, s); err != nil {
+				return failDecode(s, v.Type().Name(), v.Type())
+			} else {
+				v.Set(reflect.ValueOf(x))
+			}
+		default:
+			return failDecode(s, v.Type().Name(), v.Type())
+		}
+	default:
+		return failDecode(s, v.Type().Name(), v.Type())
 	}
 
 	return nil

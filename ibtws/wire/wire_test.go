@@ -3,6 +3,7 @@ package wire
 import (
 	"bufio"
 	"bytes"
+	"reflect"
 	"strconv"
 	"testing"
 	"time"
@@ -54,7 +55,6 @@ func testEncode(t *testing.T, v interface{}, s string) {
 	}
 }
 
-
 func TestEncodeInt(t *testing.T) {
 	v := &intRec{I: 57}
 	testEncode(t, v, "57")
@@ -87,7 +87,6 @@ func TestEncodeEmptySlice(t *testing.T) {
 	testEncode(t, v, "0")
 }
 
-
 func TestEncodeSlice(t *testing.T) {
 	v := sliceRec{Items: []item{{"foo"}, {"bar"}}}
 	testEncode(t, v, "2\000foo\000bar")
@@ -102,7 +101,7 @@ func testDecode(t *testing.T, src interface{}, dst interface{}) {
 
 	r := bufio.NewReader(bytes.NewReader(b.Bytes()))
 
-	if err := decode(r, dst); err != nil {
+	if err := decode(r, reflect.ValueOf(dst)); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -150,4 +149,3 @@ func TestDecodeFloat(t *testing.T) {
 		t.Fatalf("decode got %v, want %v", v2, v1)
 	}
 }
-
