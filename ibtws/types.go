@@ -4,107 +4,747 @@ const (
 
 	// incoming msg ids
 
-	_TICK_PRICE               = 1
-	_TICK_SIZE                = 2
-	_ORDER_STATUS             = 3
-	_ERR_MSG                  = 4
-	_OPEN_ORDER               = 5
-	_ACCT_VALUE               = 6
-	_PORTFOLIO_VALUE          = 7
-	_ACCT_UPDATE_TIME         = 8
-	_NEXT_VALID_ID            = 9
-	_CONTRACT_DATA            = 10
-	_EXECUTION_DATA           = 11
-	_MARKET_DEPTH             = 12
-	_MARKET_DEPTH_L2          = 13
-	_NEWS_BULLETINS           = 14
-	_MANAGED_ACCTS            = 15
-	_RECEIVE_FA               = 16
-	_HISTORICAL_DATA          = 17
-	_BOND_CONTRACT_DATA       = 18
-	_SCANNER_PARAMETERS       = 19
-	_SCANNER_DATA             = 20
-	_TICK_OPTION_COMPUTATION  = 21
-	_TICK_GENERIC             = 45
-	_TICK_STRING              = 46
-	_TICK_EFP                 = 47
-	_URRENT_TIME              = 49
-	_REAL_TIME_BARS           = 50
-	_FUNDAMENTAL_DATA         = 51
-	_CONTRACT_DATA_END        = 52
-	_OPEN_ORDER_END           = 53
-	_ACCT_DOWNLOAD_END        = 54
-	_EXECUTION_DATA_END       = 55
-	_DELTA_NEUTRAL_VALIDATION = 56
-	_TICK_SNAPSHOT_END        = 57
-	_MARKET_DATA_TYPE         = 58
+	mTickPrice              = 1
+	mTickSize               = 2
+	mOrderStatus            = 3
+	mErrorMessage           = 4
+	mOpenOrder              = 5
+	mAccountValue           = 6
+	mPortfolioValue         = 7
+	mAcctUpdateTime         = 8
+	mNextValidId            = 9
+	mContractData           = 10
+	mExecutionData          = 11
+	mMarketDepth            = 12
+	mMarketDepthL2          = 13
+	mNewsBulletins          = 14
+	mManagedAccounts        = 15
+	mReceiveFA              = 16
+	mHistoricalData         = 17
+	mBondContractData       = 18
+	mScannerParameters      = 19
+	mScannerData            = 20
+	mTickOptionComputation  = 21
+	mTickGeneric            = 45
+	mTickString             = 46
+	mTickEFP                = 47
+	mCurrentTime            = 49
+	mRealtimeBars           = 50
+	mFundamentalData        = 51
+	mContractDataEnd        = 52
+	mOpenOrderEnd           = 53
+	mAccountDownloadEnd     = 54
+	mExecutionDataEnd       = 55
+	mDeltaNeutralValidation = 56
+	mTickSnapshotEnd        = 57
+	mMarketDataType         = 58
 
 	// outgoing message ids
 
-	_REQ_MKT_DATA                = 1
-	_CANCEL_MKT_DATA             = 2
-	_PLACE_ORDER                 = 3
-	_CANCEL_ORDER                = 4
-	_REQ_OPEN_ORDERS             = 5
-	_REQ_ACCOUNT_DATA            = 6
-	_REQ_EXECUTIONS              = 7
-	_REQ_IDS                     = 8
-	_REQ_CONTRACT_DATA           = 9
-	_REQ_MKT_DEPTH               = 10
-	_CANCEL_MKT_DEPTH            = 11
-	_REQ_NEWS_BULLETINS          = 12
-	_CANCEL_NEWS_BULLETINS       = 13
-	_SET_SERVER_LOGLEVEL         = 14
-	_REQ_AUTO_OPEN_ORDERS        = 15
-	_REQ_ALL_OPEN_ORDERS         = 16
-	_REQ_MANAGED_ACCTS           = 17
-	_REQ_FA                      = 18
-	_REPLACE_FA                  = 19
-	_REQ_HISTORICAL_DATA         = 20
-	_EXERCISE_OPTIONS            = 21
-	_REQ_SCANNER_SUBSCRIPTION    = 22
-	_CANCEL_SCANNER_SUBSCRIPTION = 23
-	_REQ_SCANNER_PARAMETERS      = 24
-	_CANCEL_HISTORICAL_DATA      = 25
-	_REQ_CURRENT_TIME            = 49
-	_REQ_REAL_TIME_BARS          = 50
-	_CANCEL_REAL_TIME_BARS       = 51
-	_REQ_FUNDAMENTAL_DATA        = 52
-	_CANCEL_FUNDAMENTAL_DATA     = 53
-	_REQ_CALC_IMPLIED_VOLAT      = 54
-	_REQ_CALC_OPTION_PRICE       = 55
-	_CANCEL_CALC_IMPLIED_VOLAT   = 56
-	_CANCEL_CALC_OPTION_PRICE    = 57
-	_REQ_GLOBAL_CANCEL           = 58
-	_REQ_MARKET_DATA_TYPE        = 59
-
-	_MIN_SERVER_VER_REAL_TIME_BARS             = 34
-	_MIN_SERVER_VER_SCALE_ORDERS               = 35
-	_MIN_SERVER_VER_SNAPSHOT_MKT_DATA          = 35
-	_MIN_SERVER_VER_SSHORT_COMBO_LEGS          = 35
-	_MIN_SERVER_VER_WHAT_IF_ORDERS             = 36
-	_MIN_SERVER_VER_CONTRACT_CONID             = 37
-	_MIN_SERVER_VER_PTA_ORDERS                 = 39
-	_MIN_SERVER_VER_FUNDAMENTAL_DATA           = 40
-	_MIN_SERVER_VER_UNDER_COMP                 = 40
-	_MIN_SERVER_VER_CONTRACT_DATA_CHAIN        = 40
-	_MIN_SERVER_VER_SCALE_ORDERS2              = 40
-	_MIN_SERVER_VER_ALGO_ORDERS                = 41
-	_MIN_SERVER_VER_EXECUTION_DATA_CHAIN       = 42
-	_MIN_SERVER_VER_NOT_HELD                   = 44
-	_MIN_SERVER_VER_SEC_ID_TYPE                = 45
-	_MIN_SERVER_VER_PLACE_ORDER_CONID          = 46
-	_MIN_SERVER_VER_REQ_MKT_DATA_CONID         = 47
-	_MIN_SERVER_VER_REQ_CALC_IMPLIED_VOLAT     = 49
-	_MIN_SERVER_VER_REQ_CALC_OPTION_PRICE      = 50
-	_MIN_SERVER_VER_CANCEL_CALC_IMPLIED_VOLAT  = 50
-	_MIN_SERVER_VER_CANCEL_CALC_OPTION_PRICE   = 50
-	_MIN_SERVER_VER_SSHORTX_OLD                = 51
-	_MIN_SERVER_VER_SSHORTX                    = 52
-	_MIN_SERVER_VER_REQ_GLOBAL_CANCEL          = 53
-	_MIN_SERVER_VER_HEDGE_ORDERS               = 54
-	_MIN_SERVER_VER_REQ_MARKET_DATA_TYPE       = 55
-	_MIN_SERVER_VER_OPT_OUT_SMART_ROUTING      = 56
-	_MIN_SERVER_VER_SMART_COMBO_ROUTING_PARAMS = 57
-	_MIN_SERVER_VER_DELTA_NEUTRAL_CONID        = 58
+	mRequestMarketData          = 1
+	mCancelMarketData           = 2
+	mPlaceOrder                 = 3
+	mCancelOrder                = 4
+	mRequestOpenOrders          = 5
+	mRequestACcountData         = 6
+	mRequestExecutions          = 7
+	mRequestIds                 = 8
+	mRequestContractData        = 9
+	mRequestMarketDepth         = 10
+	mCancelMarketDepth          = 11
+	mRequestNewsBulletins       = 12
+	mCancelNewsBulletins        = 13
+	mSetServerLogLevel          = 14
+	mRequestAutoOpenOrders      = 15
+	mRequestAllOpenOrders       = 16
+	mRequestManagedAccounts     = 17
+	mRequestFA                  = 18
+	mReplaceFA                  = 19
+	mRequestHistoricalData      = 20
+	mExerciseOptions            = 21
+	mRequestScannerSubscription = 22
+	mCancelScannerSubscription  = 23
+	mRequestScannerParameters   = 24
+	mCancelHistoricalData       = 25
+	mRequestCurrentTime         = 49
+	mRequestRealtimeBars        = 50
+	mCancelRealtimeBars         = 51
+	mRequestFundamentalData     = 52
+	mCancelFundamentalData      = 53
+	mRequestCalcImpliedVol      = 54
+	mRequestCalcOptionPrice     = 55
+	mCancelCalcImpliedVol       = 56
+	mCancelCalcOptionPrice      = 57
+	mRequestGlobalCancel        = 58
+	mRequestMarketDataType      = 59
 )
+
+const maxInt = int(^uint(0) >> 1)
+
+type (
+	double   float64
+	long     int64
+	TickType long
+	TickSize long
+	TickerId long
+)
+
+const (
+	kBidSize = iota
+	kBid
+	kAsk
+	kAskSize
+	kLast
+	kLastSize
+	kHigh
+	kLow
+	kVolume
+	kClose
+	kBidOptionComputation
+	kAskOptionComputation
+	kLastOptionComputation
+	kModelOption
+	kOpen
+	kLow13Week
+	kHigh13Week
+	kLow26Week
+	kHigh26Week
+	kLow52Week
+	kHigh52Week
+	kAverageVolume
+	kOpenInterest
+	kOptionHistoricalVol
+	kOptionImpliedVol
+	kOptionBidExch
+	kOptionAskExch
+	kOptionCallOpenInt
+	kOptionPutOpenInt
+	kOptionCallVolume
+	kOptionPutVolume
+	kIndexFuturePremium
+	kBidExch
+	kAskExch
+	kAuctionVolume
+	kAuctionPrice
+	kAuctionImbalance
+	kMarkPrice
+	kBidEFPComputation
+	kAskEFPComputation
+	kLastEFPComputation
+	kOpenEFPComputation
+	kHighEFPComputation
+	kLowEFPComputation
+	kCloseEFPComputation
+	kLastTimestamp
+	kShortable
+	kFundamentalRations
+	kRTVolume
+	kHalted
+	kBidYield
+	kAskYield
+	kLastYield
+	kCustOptionComputation
+	kTradeCount
+	kTradeRate
+	kVolumeRate
+	kLastRTHTrade
+	kNotSet
+)
+
+var packets = map[int]interface{}{
+	mTickPrice:              &TickPrice{},
+	mTickSize:               &TickSize{},
+	mTickOptionComputation:  &TickOptionComputation{},
+	mTickGeneric:            &TickGeneric{},
+	mTickString:             &TickString{},
+	mTickEFP:                &TickEFP{},
+	mOrderStatus:            &OrderStatus{},
+	mAccountValue:           &AccountValue{},
+	mPortfolioValue:         &PortfolioValue{},
+	mAccountUpdateTime:      &AccountUpdateTime{},
+	mErrorMessage:           &ErrorMessage{},
+	mOpenOrder:              &OpenOrder{},
+	mNextValidId:            &NextValidId{},
+	mScannerData:            &ScannerData{},
+	mContractData:           &ContractData{},
+	mBondContractData:       &BondContractData{},
+	mExecutionData:          &ExecutionData{},
+	mMarketDepth:            &MarketDepth{},
+	mMarketDepthL2:          &MarketDepthL2{},
+	mNewsBulletins:          &NewsBulletins{},
+	mManagedAccounts:        &ManagedAccounts{},
+	mReceiveFA:              &ReceiveFA{},
+	mHistoricalData:         &HistoricalData{},
+	mScannerParameters:      &ScannerParameters{},
+	mCurrentTime:            &CurrentTime{},
+	mRealtimeBars:           &RealtimeBars{},
+	mFundamentalData:        &FundamentalData{},
+	mContractDataEnd:        &ContractDataEnd{},
+	mOpenOrderEnd:           &OpenOrderEnd{},
+	mAccountDownloadEnd:     &AccountDownloadEnd{},
+	mExecutionDataEnd:       &ExecutionDataEnd{},
+	mDeltaNeutralValidation: &DataNeutralValidation{},
+	mTickSnapshotEnd:        &TickSnapshotEnd{},
+	mMarketDataType:         &MarketDataType{},
+}
+
+type serverVersion struct {
+	version long
+}
+
+type clientVersion struct {
+	version long
+}
+
+type serverTime struct {
+	time time.Time
+}
+
+// Contract
+
+type LegOpenClose int64
+
+const (
+	kPosSame LegOpenClose = 0
+	kPosOpen
+	kPosClose
+	kPosUnknown
+)
+
+type ComboLeg struct {
+	ContractId long
+	Ratio      long
+	Action     string
+	Exchange   string
+	OpenClose  LegOpenClose
+	// for stock legs when doing short sale
+	ShortSaleSlot      long // 1 = clearing broker, 2 = third party
+	DesignatedLocation string
+	ExemptCode         long // -1
+}
+
+type UnderComp struct {
+	ContractId long
+	Delta      double
+	Price      double
+}
+
+type Contract struct {
+	ContractId      long
+	Symbol          string
+	SecurityType    string
+	Expiry          string
+	Strike          double
+	Right           string
+	Multiplier      string
+	Exchange        string
+	PrimaryExchange string
+	Currency        string
+	LocalSymbol     string
+	IncludeExpired  bool
+	SecurityIdType  string
+	SecurityId      string
+	// COMBOS
+	ComboLegsDescr string // received in open order 14 and up for all combos
+	ComboLegs      []ComboLeg
+	// delta neutral
+	Comp UnderComp
+}
+
+type ContractDetails struct {
+	Summary        Contract
+	MarketName     string
+	TradingClass   string
+	MinTick        double
+	OrderTypes     string
+	ValidExchanges string
+	PriceMagnifier long
+	UnderConId     long
+	IntName        string
+	ContractMonth  string
+	Industry       string
+	Category       string
+	Subcategory    string
+	TimeZoneId     string
+	TradingHours   string
+	LiquidHours    string
+	// BOND values
+	Cusip             string
+	Ratings           string
+	DescAppend        string
+	BondType          string
+	CouponType        string
+	Callable          bool
+	Putable           bool
+	Coupon            double
+	Convertible       bool
+	Maturity          string
+	IssueDate         string
+	NextOptionDate    string
+	NextOptionType    string
+	NextOptionPartial bool
+	notes             string
+}
+
+// Ticks, etc.
+
+type TickHeader struct {
+}
+
+type TickPrice struct {
+	TickHeader
+	Id             TickerId
+	Type           TickType
+	Price          double
+	Size           TickSize
+	CanAutoExecute bool
+}
+
+type TickSize struct {
+	TickHeader
+	Id   TickerId
+	Type TickType
+	Size TickSize
+}
+
+type TickOptionComputation struct {
+	TickHeader
+	Id         TickerId
+	Type       TickType
+	ImpliedVol double // > 0
+	Delta      double // 0 <= delta <= 1	
+	OptPrice   double
+	PvDividend double
+	Gamma      double
+	Vega       double
+	Theta      double
+	SpotPrice  double
+}
+
+type TickGeneric struct {
+	TickHeader
+	Id    TickerId
+	Type  TickType
+	Value double
+}
+
+type TickString struct {
+	TickHeader
+	Id    TickerId
+	Type  TickType
+	Value string
+}
+
+type TickEFP struct {
+	TickHeader
+	Id                   TickerId
+	Type                 TickType
+	BasisPoints          double
+	FormattedBasisPoints string
+	ImpliedFuturesPrice  double
+	HoldDays             long
+	FuturesExpiry        string
+	DividendImpact       double
+	DividendsToExpiry    double
+}
+
+type OrderStatus struct {
+	Id               long
+	Status           string
+	Filled           long
+	Remaining        long
+	AverageFillPrice double
+	PermId           long
+	ParentId         long
+	LastFillPrice    double
+	ClientId         long
+	WhyHeld          string
+}
+
+type AccountValue struct {
+	Key         string
+	Value       string
+	Current     string
+	AccountName string
+}
+
+type PortfolioValue struct {
+	ContractId       long
+	Symbol           string
+	SecType          string
+	Expiry           string
+	Strike           double
+	Right            string
+	Multiplier       string
+	PrimaryExchange  string
+	Currency         string
+	LocalSymbol      string
+	Position         long
+	MarketPrice      double
+	MarketValue      double
+	AverageCost      double
+	UnrealizedPNL    double
+	RealizedPNL      double
+	AccountName      string
+	PrimaryExchange1 string
+}
+
+type AccountUpdateTime struct {
+	Timestamp string
+}
+
+type ErrorMessage struct {
+	Id      long
+	Code    long
+	Message string
+}
+
+type AlgoParams struct {
+	AlgoParams []TagValue
+}
+
+type DeltaNeutralData struct {
+	ContractId      long
+	ClearingBroker  string
+	ClearingAccount string
+	ClearingIntent  string
+}
+
+type TagValue struct {
+	Tag   string
+	Value string
+}
+
+type HedgeParam struct {
+	Param string
+}
+
+type OpenOrder struct {
+	OrderId long
+	// contract
+	ContractId  long
+	Symbol      string
+	SecType     string
+	Expiry      string
+	Strike      double
+	Right       string
+	Exchange    string
+	Currency    string
+	LocalSymbol string
+	// order
+	Action                  string
+	TotalQty                long
+	OrderType               string
+	LimitPrice              double
+	AuxPrice                double
+	TIF                     string
+	OCAGroup                string
+	Account                 string
+	OpenClose               string
+	Origin                  long
+	OrderRef                string
+	ClientId                long
+	PermId                  long
+	OutsideRTH              bool
+	Hidden                  bool
+	DiscretionaryAmount     double
+	GoodAfterTime           string
+	SharesAllocation        string // deprecated
+	FAGroup                 string
+	FAMethod                string
+	FAPercentage            string
+	FAProfile               string
+	GoodTillDate            string
+	Rule80A                 string
+	PercentOffset           double
+	ClearingBroker          string
+	ShortSaleSlot           long
+	DesignatedLocation      string
+	ExemptCode              long
+	AuctionStrategy         long
+	StartingPrice           double
+	StockRefPrice           double
+	Delta                   double
+	StockRangeLower         double
+	StockRangeUpper         double
+	DisplaySize             long
+	BlockOrder              bool
+	SweepToFill             bool
+	AllOrNone               bool
+	MinQty                  long
+	OCAType                 long
+	ETradeOnly              long
+	FirmQuoteOnly           bool
+	NBBOPriceCap            double
+	ParentId                long
+	TriggerMethod           long
+	Volatility              double
+	VolatilityType          long
+	DeltaNeutralOrderType   string
+	DeltaNeutralAuxPrice    double
+	DeltaNeutral            DeltaNeutralData `when:"DeltaNeutralOrderType"`
+	ContinuousUpdate        long
+	ReferencePriceType      long
+	TrailingStopPrice       double
+	BasisPoints             double
+	BasisPointsType         long
+	ComboLegsDescription    string
+	SmartComboRoutingParams []TagValue
+	ScaleInitLevelSize      long   // max
+	ScaleSubsLevelSize      long   // max
+	ScalePriceIncrement     double // max
+	HedgeType               string
+	HedgeParam              HedgeParam `when:"HedgeType"`
+	OptOutSmartRouting      bool
+	ClearingAccount         string
+	ClearingIntent          string
+	NotHeld                 bool
+	HaveUnderComp           bool
+	UnderComp               UnderComp `when:"HaveUnderComp"`
+	AlgoStrategy            string
+	AlgoParams              AlgoParams `when:"AlgoStrategy"`
+	OrderState              OrderState
+}
+
+type OrderState struct {
+	WhatIf             bool
+	Status             string
+	InitialMargin      string
+	MaintenanceMargin  string
+	EquityWithLoan     string
+	Commission         double // max
+	MinCommission      double // max
+	MaxCommission      double // max
+	CommissionCurrency string
+	WarningText        string
+}
+
+type NextValidId struct {
+	OrderId long
+}
+
+type ScannerData struct {
+	TickerId      long
+	ScannerDetail []ScannerDetail
+}
+
+type ScannerDetail struct {
+	Rank long
+	// ContractDetails
+	ContractId   long
+	Symbol       string
+	SecType      string
+	Expiry       string
+	Strike       double
+	Right        string
+	Exchange     string
+	Currency     string
+	LocalSymbol  string
+	MarketName   string
+	TradingClass string
+	// 
+	Distance   string
+	Benchmark  string
+	Projection string
+	Legs       string
+}
+
+type ContractData struct {
+	RequestId long
+	// ContractDetails
+	Symbol          string
+	SecType         string
+	Expiry          string
+	Strike          double
+	Right           string
+	Exchange        string
+	Currency        string
+	LocalSymbol     string
+	MarketName      string
+	TradingClass    string
+	ContractId      long
+	MinTick         double
+	Multiplier      string
+	OrderTypes      string
+	ValidExchanges  string
+	PriceMagnifier  long
+	UnderContractId long
+	LongName        string
+	PrimaryExchange string
+	ContractMonth   string
+	Industry        string
+	Category        string
+	Subcategory     string
+	TimezoneId      string
+	TradingHours    string
+	LiquidHours     string
+}
+
+type BondContractData struct {
+	RequestId         long
+	Symbol            string
+	SecType           string
+	Cusip             string
+	Coupon            double
+	Maturity          string
+	IssueDate         string
+	Ratings           string
+	BondType          string
+	CouponType        string
+	Convertible       bool
+	Callable          bool
+	Putable           bool
+	DescAppend        string
+	Exchange          string
+	Currency          string
+	MarketName        string
+	TradingClass      string
+	ContractId        long
+	MinTick           double
+	OrderTypes        string
+	ValidExchanges    string
+	NextOptionDate    string
+	NextOptionType    string
+	NextOptionPartial bool
+	Notes             string
+	LongName          string
+}
+
+type ExecutionData struct {
+	RequestId long
+	OrderId   long
+	// Contract
+	ContractId  long
+	Symbol      string
+	SecType     string
+	Expiry      string
+	Strike      double
+	Right       string
+	Exchange    string
+	Currency    string
+	LocalSymbol string
+	// Execution
+	ExecutionId       string
+	Time              string
+	Account           string
+	ExecutionExchange string
+	Side              string
+	Shares            long
+	Price             double
+	PermId            long
+	ClientId          long
+	Liquidation       long
+	CumQty            long
+	AveragePrice      double
+	OrderRef          string
+}
+
+type MarketDepth struct {
+	Id        long
+	Position  long
+	Operation long
+	Side      long
+	Price     double
+	Size      long
+}
+
+type MarketDepthL2 struct {
+	Id          long
+	Position    long
+	MarketMaker string
+	Operation   long
+	Side        long
+	Price       double
+	Size        long
+}
+
+type NewsBulletins struct {
+	Id       long
+	Type     long
+	Message  string
+	Exchange string
+}
+
+type ManagedAccounts struct {
+	AccountsList string
+}
+
+type ReceiveFA struct {
+	Type long
+	XML  string
+}
+
+type HistoricalData struct {
+	RequestId long
+	StartDate string
+	EndDate   string
+	Data      []HistoricalDataItem
+}
+
+type HistoricalDataItem struct {
+	Date     string
+	Open     double
+	High     double
+	Low      double
+	Close    double
+	Volume   long
+	WAP      double
+	HasGaps  string
+	BarCount long
+}
+
+type ScannerParameters struct {
+	XML string
+}
+
+type CurrentTime struct {
+	Time long
+}
+
+type RealtimeBars struct {
+	RequestId long
+	Time      long
+	Open      double
+	High      double
+	Low       double
+	Close     double
+	Volume    double
+	WAP       double
+	Count     long
+}
+
+type FundamentalData struct {
+	RequestId long
+	Data      string
+}
+
+type ContractDataEnd struct {
+	RequestId long
+}
+
+type OpenOrderEnd struct {
+}
+
+type AccountDownloadEnd struct {
+	Account string
+}
+
+type ExecutionDataEnd struct {
+	RequestId long
+}
+
+type DeltaNeutralValidation struct {
+	RequestId  long
+	ContractId long
+	Delta      double
+	Price      double
+}
+
+type TickSnapshotEnd struct {
+	RequestId long
+}
+
+type MarketDataType struct {
+	RequestId long
+	Type      long
+}
