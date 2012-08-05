@@ -67,7 +67,11 @@ func skipField(v reflect.Value, f reflect.StructField) bool {
 	return true
 }
 
-func encode(buf *bytes.Buffer, tag int, v reflect.Value) error {
+func Encode(buf *bytes.Buffer, v interface{}) error {
+	return encode(buf, reflect.ValueOf(v))
+}
+
+func encode(buf *bytes.Buffer, v reflect.Value) error {
 	if v.Kind() == reflect.Ptr {
 		v = v.Elem()
 	}
@@ -93,12 +97,12 @@ func encode(buf *bytes.Buffer, tag int, v reflect.Value) error {
 			N int64
 		}
 		sz := size{int64(v.Len())}
-		if err := encode(buf, 0, reflect.ValueOf(&sz)); err != nil {
+		if err := encode(buf, reflect.ValueOf(&sz)); err != nil {
 			return err
 		}
 		// encode elements
 		for i := 0; i < v.Len(); i++ {
-			if err := encode(buf, 0, v.Index(i)); err != nil {
+			if err := encode(buf, v.Index(i)); err != nil {
 				return err
 			}
 		}
@@ -117,7 +121,7 @@ func encode(buf *bytes.Buffer, tag int, v reflect.Value) error {
 					// string field we depend on is empty
 					continue
 				}
-				if err := encode(buf, 0, f); err != nil {
+				if err := encode(buf, f); err != nil {
 					return err
 				}
 			}
@@ -153,6 +157,10 @@ func failDecode(d string, n string, t reflect.Type) error {
 		Name: n,
 		Type: t,
 	}
+}
+
+func Decode(b *bufio.Reader, v interface{}) error {
+	return decode(b, reflect.ValueOf(v))
 }
 
 func decode(b *bufio.Reader, v reflect.Value) error {
