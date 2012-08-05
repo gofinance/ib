@@ -41,6 +41,32 @@ func failEncode(n string, v interface{}, t reflect.Type) error {
 	}
 }
 
+func skipField(v reflect.Value, f reflect.StructField) bool {
+	// no tag on the structure field
+	name := f.Tag.Get("when")
+	if name == "" {
+		return false
+	}
+	// invalid field in tag
+	f1 := v.FieldByName(name)
+	if !f1.IsValid() {
+		return false
+	}
+
+	// not a string
+	if f1.Type().Kind() != reflect.String {
+		return false
+	}
+
+	// string is empty
+	if f1.String() != "" {
+		return false
+	}
+
+	// skip this field
+	return true
+}
+
 func encode(buf *bytes.Buffer, tag int, v reflect.Value) error {
 	if v.Kind() == reflect.Ptr {
 		v = v.Elem()
@@ -87,6 +113,10 @@ func encode(buf *bytes.Buffer, tag int, v reflect.Value) error {
 			// encode fields
 			for i := 0; i < v.NumField(); i++ {
 				f := v.Field(i)
+				if skipField(v, v.Type().Field(i)) {
+					// string field we depend on is empty
+					continue
+				}
 				if err := encode(buf, 0, f); err != nil {
 					return err
 				}
@@ -165,6 +195,10 @@ func decode(b *bufio.Reader, v reflect.Value) error {
 			// decode fields
 			for i := 0; i < v.NumField(); i++ {
 				f := v.Field(i)
+				if skipField(v, v.Type().Field(i)) {
+					// string field we depend on is empty
+					continue
+				}
 				if err := decode(b, f); err != nil {
 					return err
 				}

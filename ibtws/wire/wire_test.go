@@ -39,6 +39,11 @@ type sliceRec struct {
 	Items []item
 }
 
+type tagRec struct {
+	S string
+	I long `when:"S"`
+}
+
 func makebuf() *bytes.Buffer {
 	return bytes.NewBuffer(make([]byte, 0, 1024))
 }
@@ -90,6 +95,16 @@ func TestEncodeEmptySlice(t *testing.T) {
 func TestEncodeSlice(t *testing.T) {
 	v := &sliceRec{Items: []item{{"foo"}, {"bar"}}}
 	testEncode(t, v, "2\000foo\000bar")
+}
+
+func TestNotEncodeTag(t *testing.T) {
+	v := &tagRec{I: 10}
+	testEncode(t, v, "")
+}
+
+func TestEncodeTag(t *testing.T) {
+	v := &tagRec{S: "yes!", I: 10}
+	testEncode(t, v, "yes!\00010")
 }
 
 func testDecode(t *testing.T, src interface{}, dst interface{}) {
@@ -175,3 +190,26 @@ func TestDecodeSlice(t *testing.T) {
 		t.Fatalf("decode got %v, want %v", v2, v1)
 	}
 }
+
+func TestNotDecodeTag(t *testing.T) {
+	v1 := &tagRec{I: 10}
+	v2 := &tagRec{}
+
+	testDecode(t, v1, v2)
+
+	if v2.S != "" || v2.I != 0 {
+		t.Fatalf("decode got %v, want %v", v2, v1)
+	}
+}
+
+func TestDecodeTag(t *testing.T) {
+	v1 := &tagRec{S: "yes!", I: 10}
+	v2 := &tagRec{}
+
+	testDecode(t, v1, v2)
+
+	if *v1 != *v2 {
+		t.Fatalf("decode got %v, want %v", v2, v1)
+	}
+}
+
