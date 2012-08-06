@@ -1,5 +1,9 @@
 package ibtws
 
+import (
+	"time"
+)
+
 const (
 
 	// incoming msg ids
@@ -11,7 +15,7 @@ const (
 	mOpenOrder              = 5
 	mAccountValue           = 6
 	mPortfolioValue         = 7
-	mAcctUpdateTime         = 8
+	mAccountUpdateTime      = 8
 	mNextValidId            = 9
 	mContractData           = 10
 	mExecutionData          = 11
@@ -85,7 +89,6 @@ type (
 	double   float64
 	long     int64
 	TickType long
-	TickSize long
 	TickerId long
 )
 
@@ -151,53 +154,166 @@ const (
 	kNotSet
 )
 
-var packets = map[int]interface{}{
-	mTickPrice:              &TickPrice{},
-	mTickSize:               &TickSize{},
-	mTickOptionComputation:  &TickOptionComputation{},
-	mTickGeneric:            &TickGeneric{},
-	mTickString:             &TickString{},
-	mTickEFP:                &TickEFP{},
-	mOrderStatus:            &OrderStatus{},
-	mAccountValue:           &AccountValue{},
-	mPortfolioValue:         &PortfolioValue{},
-	mAccountUpdateTime:      &AccountUpdateTime{},
-	mErrorMessage:           &ErrorMessage{},
-	mOpenOrder:              &OpenOrder{},
-	mNextValidId:            &NextValidId{},
-	mScannerData:            &ScannerData{},
-	mContractData:           &ContractData{},
-	mBondContractData:       &BondContractData{},
-	mExecutionData:          &ExecutionData{},
-	mMarketDepth:            &MarketDepth{},
-	mMarketDepthL2:          &MarketDepthL2{},
-	mNewsBulletins:          &NewsBulletins{},
-	mManagedAccounts:        &ManagedAccounts{},
-	mReceiveFA:              &ReceiveFA{},
-	mHistoricalData:         &HistoricalData{},
-	mScannerParameters:      &ScannerParameters{},
-	mCurrentTime:            &CurrentTime{},
-	mRealtimeBars:           &RealtimeBars{},
-	mFundamentalData:        &FundamentalData{},
-	mContractDataEnd:        &ContractDataEnd{},
-	mOpenOrderEnd:           &OpenOrderEnd{},
-	mAccountDownloadEnd:     &AccountDownloadEnd{},
-	mExecutionDataEnd:       &ExecutionDataEnd{},
-	mDeltaNeutralValidation: &DataNeutralValidation{},
-	mTickSnapshotEnd:        &TickSnapshotEnd{},
-	mMarketDataType:         &MarketDataType{},
+func code2Msg(code long) interface{} {
+	switch code {
+	case mTickPrice:
+		return &TickPrice{}
+	case mTickSize:
+		return &TickSize{}
+	case mTickOptionComputation:
+		return &TickOptionComputation{}
+	case mTickGeneric:
+		return &TickGeneric{}
+	case mTickString:
+		return &TickString{}
+	case mTickEFP:
+		return &TickEFP{}
+	case mOrderStatus:
+		return &OrderStatus{}
+	case mAccountValue:
+		return &AccountValue{}
+	case mPortfolioValue:
+		return &PortfolioValue{}
+	case mAccountUpdateTime:
+		return &AccountUpdateTime{}
+	case mErrorMessage:
+		return &ErrorMessage{}
+	case mOpenOrder:
+		return &OpenOrder{}
+	case mNextValidId:
+		return &NextValidId{}
+	case mScannerData:
+		return &ScannerData{}
+	case mContractData:
+		return &ContractData{}
+	case mBondContractData:
+		return &BondContractData{}
+	case mExecutionData:
+		return &ExecutionData{}
+	case mMarketDepth:
+		return &MarketDepth{}
+	case mMarketDepthL2:
+		return &MarketDepthL2{}
+	case mNewsBulletins:
+		return &NewsBulletins{}
+	case mManagedAccounts:
+		return &ManagedAccounts{}
+	case mReceiveFA:
+		return &ReceiveFA{}
+	case mHistoricalData:
+		return &HistoricalData{}
+	case mScannerParameters:
+		return &ScannerParameters{}
+	case mCurrentTime:
+		return &CurrentTime{}
+	case mRealtimeBars:
+		return &RealtimeBars{}
+	case mFundamentalData:
+		return &FundamentalData{}
+	case mContractDataEnd:
+		return &ContractDataEnd{}
+	case mOpenOrderEnd:
+		return &OpenOrderEnd{}
+	case mAccountDownloadEnd:
+		return &AccountDownloadEnd{}
+	case mExecutionDataEnd:
+		return &ExecutionDataEnd{}
+	case mDeltaNeutralValidation:
+		return &DeltaNeutralValidation{}
+	case mTickSnapshotEnd:
+		return &TickSnapshotEnd{}
+	case mMarketDataType:
+		return &MarketDataType{}
+	}
+
+	return nil
+}
+
+func msg2Code(m interface{}) long {
+	switch m.(type) {
+	case TickPrice:
+		return mTickPrice
+	case TickSize:
+		return mTickSize
+	case TickOptionComputation:
+		return mTickOptionComputation
+	case TickGeneric:
+		return mTickGeneric
+	case TickString:
+		return mTickString
+	case TickEFP:
+		return mTickEFP
+	case OrderStatus:
+		return mOrderStatus
+	case AccountValue:
+		return mAccountValue
+	case PortfolioValue:
+		return mPortfolioValue
+	case AccountUpdateTime:
+		return mAccountUpdateTime
+	case ErrorMessage:
+		return mErrorMessage
+	case OpenOrder:
+		return mOpenOrder
+	case NextValidId:
+		return mNextValidId
+	case ScannerData:
+		return mScannerData
+	case ContractData:
+		return mContractData
+	case BondContractData:
+		return mBondContractData
+	case ExecutionData:
+		return mExecutionData
+	case MarketDepth:
+		return mMarketDepth
+	case MarketDepthL2:
+		return mMarketDepthL2
+	case NewsBulletins:
+		return mNewsBulletins
+	case ManagedAccounts:
+		return mManagedAccounts
+	case ReceiveFA:
+		return mReceiveFA
+	case HistoricalData:
+		return mHistoricalData
+	case ScannerParameters:
+		return mScannerParameters
+	case CurrentTime:
+		return mCurrentTime
+	case RealtimeBars:
+		return mRealtimeBars
+	case FundamentalData:
+		return mFundamentalData
+	case ContractDataEnd:
+		return mContractDataEnd
+	case OpenOrderEnd:
+		return mOpenOrderEnd
+	case AccountDownloadEnd:
+		return mAccountDownloadEnd
+	case ExecutionDataEnd:
+		return mExecutionDataEnd
+	case DeltaNeutralValidation:
+		return mDeltaNeutralValidation
+	case TickSnapshotEnd:
+		return mTickSnapshotEnd
+	case MarketDataType:
+		return mMarketDataType
+	}
+
+	return 0
 }
 
 type serverVersion struct {
-	version long
+	Version long
 }
 
 type clientVersion struct {
-	version long
+	Version long
 }
 
 type serverTime struct {
-	time time.Time
+	Time time.Time
 }
 
 // Contract
@@ -288,11 +404,7 @@ type ContractDetails struct {
 
 // Ticks, etc.
 
-type TickHeader struct {
-}
-
 type TickPrice struct {
-	TickHeader
 	Id             TickerId
 	Type           TickType
 	Price          double
@@ -301,14 +413,12 @@ type TickPrice struct {
 }
 
 type TickSize struct {
-	TickHeader
 	Id   TickerId
 	Type TickType
-	Size TickSize
+	Size long
 }
 
 type TickOptionComputation struct {
-	TickHeader
 	Id         TickerId
 	Type       TickType
 	ImpliedVol double // > 0
@@ -322,21 +432,18 @@ type TickOptionComputation struct {
 }
 
 type TickGeneric struct {
-	TickHeader
 	Id    TickerId
 	Type  TickType
 	Value double
 }
 
 type TickString struct {
-	TickHeader
 	Id    TickerId
 	Type  TickType
 	Value string
 }
 
 type TickEFP struct {
-	TickHeader
 	Id                   TickerId
 	Type                 TickType
 	BasisPoints          double

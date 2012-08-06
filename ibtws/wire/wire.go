@@ -10,7 +10,8 @@ import (
 	"time"
 )
 
-const ibTimeFormat = "20060102 15:04:05.000000 MST"
+//const ibTimeFormat = "20060102 15:04:05.000000 MST"
+const ibTimeFormat = "20060102 15:04:05 MST"
 
 func unpanic() (err error) {
 	if r := recover(); r != nil {

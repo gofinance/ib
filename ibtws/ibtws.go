@@ -3,7 +3,9 @@ package ibtws
 import (
 	"bufio"
 	"net"
-	"runtime"
+	//"runtime"
+	"./wire"
+	"bytes"
 	"time"
 )
 
@@ -12,139 +14,98 @@ const (
 )
 
 type Engine struct {
-	con        net.Conn
-	serverTime time.Time
-	serverVersion int
-	ch         chan interface{}
-}
-
-//
-// Control requests
-//
-
-type ctlShutdown struct {
-	// kill the engine
+	con           net.Conn
+	reader        *bufio.Reader
+	buffer        *bytes.Buffer
+	serverTime    time.Time
+	serverVersion long
 }
 
 // Set up the engine 
 
 func Make() (*Engine, error) {
-	ctl := make(chan interface{})
-	engine := Engine{}
-
 	con, err := net.Dial("tcp", gateway)
 	if err != nil {
 		return nil, err
 	}
 
-	b := bufio.NewReader(con)
+	reader := bufio.NewReader(con)
+	buffer := bytes.NewBuffer(make([]byte, 0, 4096))
+
+	engine := Engine{con: con, reader: reader, buffer: buffer}
 
 	// write client version
-	write(con, encodeClientVersion(57))
+	cver := &clientVersion{57}
+	if err := engine.write(cver); err != nil {
+		return nil, err
+	}
 
 	// read server version
-	serverVersion, err := readServerVersion(b)
-	if err != nil {
+	sver := &serverVersion{}
+	if err := engine.read(sver); err != nil {
 		return nil, err
 	}
-	trace("receiver: server version = ", serverVersion)
 
 	// read server time
-	serverTime, err := readServerTime(b)
-	if err != nil {
+	tm := &serverTime{}
+	if err := engine.read(tm); err != nil {
 		return nil, err
 	}
-	trace("receiver: server time = ", serverTime)
 
-	engine.serverVersion = serverVersion
-	engine.serverTime = serverTime
-
-	ch := make(chan interface{})
-
-	go func() {
-		runtime.LockOSThread()
-		for {
-			select {
-			case e := <-ctl:
-				switch e.(type) {
-				case ctlShutdown:
-					// clean up
-					close(ctl)
-					break
-				}
-			case ev := <-ch:
-				ctl <- ev
-			}
-		}
-	}()
+	engine.serverVersion = sver.Version
+	engine.serverTime = tm.Time
 
 	return &engine, nil
 }
 
-type packet interface {
-	encode() string
-}
-
-func (engine *Engine) Send(packet packet) (int, error) {
-	return write(engine.con, packet.encode())
-}
-
-func (engine *Engine) Receive() <-chan interface{} {
-	return engine.ch
-}
-
-func read(b *bufio.Reader) (string, error) {
-	bytes, err := b.ReadString(0)
-	if err != nil {
-		return bytes, err
-	}
-	return string(bytes[:len(bytes)-1]), nil
-}
-
-func write(con net.Conn, data string) (int, error) {
-	n1, err := con.Write([]byte(data))
-	if err != nil {
-		return n1, err
-	}
-	n2, err := con.Write([]byte("\000"))
-	if err != nil {
-		return n1, err
-	}
-	return n1 + n2, nil
-}
-
-func readServerVersion(b *bufio.Reader) (int, error) {
-	data, err := read(b)
-	if err != nil {
-		return 0, err
-	}
-	return decodeServerVersion(data)
-}
-
-func readServerTime(b *bufio.Reader) (time.Time, error) {
-	data, err := read(b)
-	if err != nil {
-		return time.Now(), err
-	}
-	return decodeServerTime(data)
-}
-
 /*
-	// wait for quiting (/quit). run until running is true
-	for running {
-		time.Sleep(1 * 1e9)
+func (engine *Engine) Send(v interface{}) error {
+	engine.buffer.Reset()
+
+	if err := wire.Encode(engine.buffer, v); err != nil {
+		return err
 	}
-	trace("main(): stoped")
 
-	   fmt.Print("Please give you name: ");
-	   reader := bufio.NewReader(os.Stdin);
-	   name, _ := reader.ReadBytes('\n');
+	if _, err := engine.con.Write(engine.buffer.Bytes()); err != nil {
+		return err
+	}
 
-	   //cn.Write(strings.Bytes("User: "));
-	   cn.Write(name[0:len(name)-1]);
+	return nil
+}
 
-	   // start receiver and sender
-	   trace("main(): start sender");
-	   go clientsender(&cn);
+func (engine *Engine) Receive() (interface{}, error) {
+	type temp struct {
+		N long
+	}
+
+	n := temp{}
+	engine.buffer.Reset()
+
+	if err := wire.Decode(engine.reader, dst); err != nil {
+		t.Fatal(err)
+	}
+
 }
 */
+
+func (engine *Engine) write(v interface{}) error {
+	engine.buffer.Reset()
+
+	if err := wire.Encode(engine.buffer, v); err != nil {
+		return err
+	}
+
+	if _, err := engine.con.Write(engine.buffer.Bytes()); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (engine *Engine) read(v interface{}) error {
+	engine.buffer.Reset()
+	if err := wire.Decode(engine.reader, v); err != nil {
+		return err
+	}
+	return nil
+}
