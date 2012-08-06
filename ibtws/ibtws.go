@@ -1,7 +1,9 @@
 package ibtws
 
 import (
+	"reflect"
 	"bufio"
+	"fmt"
 	"net"
 	//"runtime"
 	"./wire"
@@ -10,6 +12,7 @@ import (
 )
 
 const (
+	version = 57
 	gateway = "127.0.0.1:4001"
 )
 
@@ -18,6 +21,7 @@ type Engine struct {
 	reader        *bufio.Reader
 	buffer        *bytes.Buffer
 	serverTime    time.Time
+	clientVersion long
 	serverVersion long
 }
 
@@ -35,7 +39,7 @@ func Make() (*Engine, error) {
 	engine := Engine{con: con, reader: reader, buffer: buffer}
 
 	// write client version
-	cver := &clientVersion{57}
+	cver := &clientVersion{ version }
 	if err := engine.write(cver); err != nil {
 		return nil, err
 	}
@@ -58,10 +62,43 @@ func Make() (*Engine, error) {
 	return &engine, nil
 }
 
-/*
+type PacketError struct {
+	Value interface{}
+	Type  reflect.Type
+}
+
+func (e *PacketError) Error() string {
+	return fmt.Sprintf("ibtws: don't understand packet '%v' of type '%v'",
+		e.Value, e.Type)
+}
+
+func failPacket(v interface{}) error {
+	return &PacketError{
+		Value: v,
+		Type:  reflect.ValueOf(v).Type(),
+	}
+}
+
+type header struct {
+	Code long
+	Version long
+}
+
 func (engine *Engine) Send(v interface{}) error {
 	engine.buffer.Reset()
 
+	code := msg2Code(v)
+	if code == 0 {
+		return failPacket(v)
+	}
+
+	// encode message type and client version
+	header := &header{ code, version }
+	if err := wire.Encode(engine.buffer, header); err != nil {
+		return err
+	}
+
+	// encode the message itself
 	if err := wire.Encode(engine.buffer, v); err != nil {
 		return err
 	}
@@ -74,19 +111,23 @@ func (engine *Engine) Send(v interface{}) error {
 }
 
 func (engine *Engine) Receive() (interface{}, error) {
-	type temp struct {
-		N long
-	}
-
-	n := temp{}
 	engine.buffer.Reset()
+	header := &header{}
 
-	if err := wire.Decode(engine.reader, dst); err != nil {
-		t.Fatal(err)
+	// decode header
+	if err := wire.Decode(engine.reader, header); err != nil {
+		return nil, err
 	}
 
+	// decode message
+	v := code2Msg(header.Code)
+	if err := wire.Decode(engine.reader, v); err != nil {
+		return nil, err
+	}
+
+	return v, nil
 }
-*/
+
 
 func (engine *Engine) write(v interface{}) error {
 	engine.buffer.Reset()
