@@ -1,13 +1,12 @@
 package trade
 
 import (
-	"reflect"
+	"./wire"
 	"bufio"
+	"bytes"
 	"fmt"
 	"net"
-	//"runtime"
-	"./wire"
-	"bytes"
+	"reflect"
 	"time"
 )
 
@@ -19,7 +18,8 @@ const (
 type Engine struct {
 	con           net.Conn
 	reader        *bufio.Reader
-	buffer        *bytes.Buffer
+	input         *bytes.Buffer
+	output        *bytes.Buffer
 	serverTime    time.Time
 	clientVersion long
 	serverVersion long
@@ -34,12 +34,18 @@ func Make() (*Engine, error) {
 	}
 
 	reader := bufio.NewReader(con)
-	buffer := bytes.NewBuffer(make([]byte, 0, 4096))
+	input := bytes.NewBuffer(make([]byte, 0, 4096))
+	output := bytes.NewBuffer(make([]byte, 0, 4096))
 
-	engine := Engine{con: con, reader: reader, buffer: buffer}
+	engine := Engine{
+		con:    con,
+		reader: reader,
+		input:  input,
+		output: output,
+	}
 
 	// write client version
-	cver := &clientVersion{ version }
+	cver := &clientVersion{version}
 	if err := engine.write(cver); err != nil {
 		return nil, err
 	}
@@ -79,31 +85,33 @@ func failPacket(v interface{}) error {
 	}
 }
 
-type header struct {
-	Code long
-	Version long
-}
+func (engine *Engine) Send(tickId long, v interface{}) error {
+	type header struct {
+		Code    long
+		Version long
+		TickId  long
+	}
 
-func (engine *Engine) Send(v interface{}) error {
-	engine.buffer.Reset()
+	engine.output.Reset()
 
 	code := msg2Code(v)
 	if code == 0 {
+		fmt.Printf("Code = %d\n", code)
 		return failPacket(v)
 	}
 
 	// encode message type and client version
-	header := &header{ code, version }
-	if err := wire.Encode(engine.buffer, header); err != nil {
+	hdr := &header{code, version, tickId}
+	if err := wire.Encode(engine.output, hdr); err != nil {
 		return err
 	}
 
 	// encode the message itself
-	if err := wire.Encode(engine.buffer, v); err != nil {
+	if err := wire.Encode(engine.output, v); err != nil {
 		return err
 	}
 
-	if _, err := engine.con.Write(engine.buffer.Bytes()); err != nil {
+	if _, err := engine.con.Write(engine.output.Bytes()); err != nil {
 		return err
 	}
 
@@ -111,16 +119,20 @@ func (engine *Engine) Send(v interface{}) error {
 }
 
 func (engine *Engine) Receive() (interface{}, error) {
-	engine.buffer.Reset()
-	header := &header{}
+	type header struct {
+		Code    long
+		Version long
+	}
+	engine.input.Reset()
+	hdr := &header{}
 
 	// decode header
-	if err := wire.Decode(engine.reader, header); err != nil {
+	if err := wire.Decode(engine.reader, hdr); err != nil {
 		return nil, err
 	}
 
 	// decode message
-	v := code2Msg(header.Code)
+	v := code2Msg(hdr.Code)
 	if err := wire.Decode(engine.reader, v); err != nil {
 		return nil, err
 	}
@@ -129,13 +141,13 @@ func (engine *Engine) Receive() (interface{}, error) {
 }
 
 func (engine *Engine) write(v interface{}) error {
-	engine.buffer.Reset()
+	engine.input.Reset()
 
-	if err := wire.Encode(engine.buffer, v); err != nil {
+	if err := wire.Encode(engine.input, v); err != nil {
 		return err
 	}
 
-	if _, err := engine.con.Write(engine.buffer.Bytes()); err != nil {
+	if _, err := engine.con.Write(engine.input.Bytes()); err != nil {
 		return err
 	}
 
@@ -143,7 +155,7 @@ func (engine *Engine) write(v interface{}) error {
 }
 
 func (engine *Engine) read(v interface{}) error {
-	engine.buffer.Reset()
+	engine.input.Reset()
 	if err := wire.Decode(engine.reader, v); err != nil {
 		return err
 	}
