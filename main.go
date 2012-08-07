@@ -1,12 +1,12 @@
 package main
 
 import (
-	"./ibtws"
+	"./trade"
 	"fmt"
 )
 
 func main() {
-	engine, err := ibtws.Make()
+	engine, err := trade.Make()
 	if err != nil {
 		fmt.Printf("error initializing engine: %s\n", err)
 		return

@@ -1,4 +1,4 @@
-package ibtws
+package trade
 
 import (
 	"reflect"
@@ -127,7 +127,6 @@ func (engine *Engine) Receive() (interface{}, error) {
 
 	return v, nil
 }
-
 
 func (engine *Engine) write(v interface{}) error {
 	engine.buffer.Reset()

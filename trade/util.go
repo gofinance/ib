@@ -1,4 +1,4 @@
-package ibtws
+package trade
 
 import (
 	"fmt"
