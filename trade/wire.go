@@ -30,7 +30,7 @@ type EncodeError struct {
 }
 
 func (e *EncodeError) Error() string {
-	return fmt.Sprintf("ibtws: cannot encode field %s of type %v with value %v",
+	return fmt.Sprintf("trade: cannot encode field %s of type %v with value %v",
 		e.Name, e.Type, e.Value)
 }
 
@@ -53,19 +53,23 @@ func skipField(v reflect.Value, f reflect.StructField) bool {
 	if !f1.IsValid() {
 		return false
 	}
-
-	// not a string
+	// target field is not a string
 	if f1.Type().Kind() != reflect.String {
 		return false
 	}
 
-	// string is empty
-	if f1.String() != "" {
-		return false
+	target := f1.String()
+	value := f.Tag.Get("value")
+
+	switch f.Tag.Get("cond") {
+	case "is":
+		// skip when target equals value
+		return (target == value)
+	case "not":
+		return (target != value)
 	}
 
-	// skip this field
-	return true
+	return false
 }
 
 func Encode(buf *bytes.Buffer, v interface{}) error {
@@ -91,7 +95,7 @@ func encode(buf *bytes.Buffer, v reflect.Value) error {
 	case reflect.String:
 		s = string(v.String())
 	case reflect.Bool:
-		if v.Int() > 0 {
+		if v.Bool() {
 			s = "1"
 		} else {
 			s = "0"
@@ -123,7 +127,6 @@ func encode(buf *bytes.Buffer, v reflect.Value) error {
 			for i := 0; i < v.NumField(); i++ {
 				f := v.Field(i)
 				if skipField(v, v.Type().Field(i)) {
-					// string field we depend on is empty
 					continue
 				}
 				if err := encode(buf, f); err != nil {
@@ -152,7 +155,7 @@ type DecodeError struct {
 }
 
 func (e *DecodeError) Error() string {
-	return fmt.Sprintf("ibtws: cannot decode '%v' into field %s of type %v",
+	return fmt.Sprintf("trade: cannot decode '%v' into field %s of type %v",
 		e.Data, e.Name, e.Type)
 }
 
@@ -213,6 +216,7 @@ func decode(b *bufio.Reader, v reflect.Value) error {
 					continue
 				}
 				if err := decode(b, f); err != nil {
+					fmt.Printf("Failed to decode structure %v, error %s\n", v, err)
 					return err
 				}
 			}

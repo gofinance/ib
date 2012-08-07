@@ -38,7 +38,7 @@ type sliceRec struct {
 
 type tagRec struct {
 	S string
-	I long `when:"S"`
+	I long `when:"S" cond:"is" value:""`
 }
 
 func makebuf() *bytes.Buffer {

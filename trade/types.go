@@ -307,6 +307,15 @@ func msg2Code(m interface{}) long {
 	return 0
 }
 
+func code2Version(code long) long {
+	switch code {
+	case mRequestMarketData:
+		return 9
+	}
+
+	return 0
+}
+
 type serverVersion struct {
 	Version long
 }
@@ -360,8 +369,10 @@ type Contract struct {
 	PrimaryExchange string
 	Currency        string
 	LocalSymbol     string
-	ComboLegs       []ComboLeg
+	ComboLegs       []ComboLeg `when:"SecurityType" cond:"not" value:"BAG"`
 	Comp            *UnderComp
+	GenericTickList string
+	Snapshot        bool
 }
 
 type ContractDetails struct {
@@ -586,7 +597,7 @@ type OpenOrder struct {
 	VolatilityType          long
 	DeltaNeutralOrderType   string
 	DeltaNeutralAuxPrice    double
-	DeltaNeutral            DeltaNeutralData `when:"DeltaNeutralOrderType"`
+	DeltaNeutral            DeltaNeutralData `when:"DeltaNeutralOrderType" cond:"is" value:""`
 	ContinuousUpdate        long
 	ReferencePriceType      long
 	TrailingStopPrice       double
@@ -598,15 +609,15 @@ type OpenOrder struct {
 	ScaleSubsLevelSize      long   // max
 	ScalePriceIncrement     double // max
 	HedgeType               string
-	HedgeParam              HedgeParam `when:"HedgeType"`
+	HedgeParam              HedgeParam `when:"HedgeType" cond:"is" value:""`
 	OptOutSmartRouting      bool
 	ClearingAccount         string
 	ClearingIntent          string
 	NotHeld                 bool
 	HaveUnderComp           bool
-	UnderComp               UnderComp `when:"HaveUnderComp"`
+	UnderComp               UnderComp `when:"HaveUnderComp" cond:"is" value:""`
 	AlgoStrategy            string
-	AlgoParams              AlgoParams `when:"AlgoStrategy"`
+	AlgoParams              AlgoParams `when:"AlgoStrategy" cond:"is" value:""`
 	OrderState              OrderState
 }
 

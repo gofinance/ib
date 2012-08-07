@@ -6,11 +6,12 @@ import (
 	"fmt"
 	"net"
 	"reflect"
+	"strings"
 	"time"
 )
 
 const (
-	version = 57
+	version = 48
 	gateway = "127.0.0.1:4001"
 )
 
@@ -84,8 +85,14 @@ func failPacket(v interface{}) error {
 	}
 }
 
+func dump(b *bytes.Buffer) {
+	s := strings.Replace(b.String(), "\000", "-", -1)
+	fmt.Printf("Buffer = '%s'\n", s)
+}
+
 func (engine *Engine) Send(tickId long, v interface{}) error {
 	type header struct {
+		Client  long
 		Code    long
 		Version long
 		TickId  long
@@ -95,12 +102,18 @@ func (engine *Engine) Send(tickId long, v interface{}) error {
 
 	code := msg2Code(v)
 	if code == 0 {
-		fmt.Printf("Code = %d\n", code)
 		return failPacket(v)
 	}
 
+	fmt.Printf("Sending message '%v' with code %d\n", v, code)
+
 	// encode message type and client version
-	hdr := &header{code, version, tickId}
+	ver := code2Version(code)
+	hdr := &header{
+		Code:    code,
+		Version: ver,
+		TickId:  tickId,
+	}
 	if err := Encode(engine.output, hdr); err != nil {
 		return err
 	}
@@ -109,6 +122,8 @@ func (engine *Engine) Send(tickId long, v interface{}) error {
 	if err := Encode(engine.output, v); err != nil {
 		return err
 	}
+
+	//dump(engine.output)
 
 	if _, err := engine.con.Write(engine.output.Bytes()); err != nil {
 		return err
@@ -122,6 +137,7 @@ func (engine *Engine) Receive() (interface{}, error) {
 		Code    long
 		Version long
 	}
+
 	engine.input.Reset()
 	hdr := &header{}
 
@@ -140,13 +156,13 @@ func (engine *Engine) Receive() (interface{}, error) {
 }
 
 func (engine *Engine) write(v interface{}) error {
-	engine.input.Reset()
+	engine.output.Reset()
 
-	if err := Encode(engine.input, v); err != nil {
+	if err := Encode(engine.output, v); err != nil {
 		return err
 	}
 
-	if _, err := engine.con.Write(engine.input.Bytes()); err != nil {
+	if _, err := engine.con.Write(engine.output.Bytes()); err != nil {
 		return err
 	}
 
@@ -155,6 +171,7 @@ func (engine *Engine) write(v interface{}) error {
 
 func (engine *Engine) read(v interface{}) error {
 	engine.input.Reset()
+
 	if err := Decode(engine.reader, v); err != nil {
 		return err
 	}
