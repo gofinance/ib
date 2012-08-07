@@ -1,4 +1,4 @@
-package wire
+package trade
 
 import (
 	"bufio"
@@ -7,8 +7,6 @@ import (
 	"testing"
 	"time"
 )
-
-type long int64
 
 type intRec struct {
 	I int64
@@ -143,7 +141,9 @@ func TestDecodeString(t *testing.T) {
 }
 
 func TestDecodeTime(t *testing.T) {
-	v1 := &timeRec{T: time.Now()}
+	now := time.Now()
+	now = now.Add(time.Duration(-1 * now.Nanosecond()))
+	v1 := &timeRec{T: now}
 	v2 := &timeRec{}
 
 	testDecode(t, v1, v2)

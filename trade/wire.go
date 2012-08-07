@@ -1,4 +1,4 @@
-package wire
+package trade
 
 import (
 	"bufio"
@@ -78,6 +78,10 @@ func encode(buf *bytes.Buffer, v reflect.Value) error {
 	}
 
 	var s string
+
+	if !v.IsValid() {
+		v = reflect.ValueOf(0)
+	}
 
 	switch v.Type().Kind() {
 	case reflect.Int, reflect.Int64:

@@ -231,74 +231,77 @@ func code2Msg(code long) interface{} {
 
 func msg2Code(m interface{}) long {
 	switch m.(type) {
-	case TickPrice:
+	case *TickPrice:
 		return mTickPrice
-	case TickSize:
+	case *TickSize:
 		return mTickSize
-	case TickOptionComputation:
+	case *TickOptionComputation:
 		return mTickOptionComputation
-	case TickGeneric:
+	case *TickGeneric:
 		return mTickGeneric
-	case TickString:
+	case *TickString:
 		return mTickString
-	case TickEFP:
+	case *TickEFP:
 		return mTickEFP
-	case OrderStatus:
+	case *OrderStatus:
 		return mOrderStatus
-	case AccountValue:
+	case *AccountValue:
 		return mAccountValue
-	case PortfolioValue:
+	case *PortfolioValue:
 		return mPortfolioValue
-	case AccountUpdateTime:
+	case *AccountUpdateTime:
 		return mAccountUpdateTime
-	case ErrorMessage:
+	case *ErrorMessage:
 		return mErrorMessage
-	case OpenOrder:
+	case *OpenOrder:
 		return mOpenOrder
-	case NextValidId:
+	case *NextValidId:
 		return mNextValidId
-	case ScannerData:
+	case *ScannerData:
 		return mScannerData
-	case ContractData:
+	case *ContractData:
 		return mContractData
-	case BondContractData:
+	case *BondContractData:
 		return mBondContractData
-	case ExecutionData:
+	case *ExecutionData:
 		return mExecutionData
-	case MarketDepth:
+	case *MarketDepth:
 		return mMarketDepth
-	case MarketDepthL2:
+	case *MarketDepthL2:
 		return mMarketDepthL2
-	case NewsBulletins:
+	case *NewsBulletins:
 		return mNewsBulletins
-	case ManagedAccounts:
+	case *ManagedAccounts:
 		return mManagedAccounts
-	case ReceiveFA:
+	case *ReceiveFA:
 		return mReceiveFA
-	case HistoricalData:
+	case *HistoricalData:
 		return mHistoricalData
-	case ScannerParameters:
+	case *ScannerParameters:
 		return mScannerParameters
-	case CurrentTime:
+	case *CurrentTime:
 		return mCurrentTime
-	case RealtimeBars:
+	case *RealtimeBars:
 		return mRealtimeBars
-	case FundamentalData:
+	case *FundamentalData:
 		return mFundamentalData
-	case ContractDataEnd:
+	case *ContractDataEnd:
 		return mContractDataEnd
-	case OpenOrderEnd:
+	case *OpenOrderEnd:
 		return mOpenOrderEnd
-	case AccountDownloadEnd:
+	case *AccountDownloadEnd:
 		return mAccountDownloadEnd
-	case ExecutionDataEnd:
+	case *ExecutionDataEnd:
 		return mExecutionDataEnd
-	case DeltaNeutralValidation:
+	case *DeltaNeutralValidation:
 		return mDeltaNeutralValidation
-	case TickSnapshotEnd:
+	case *TickSnapshotEnd:
 		return mTickSnapshotEnd
-	case MarketDataType:
+	case *MarketDataType:
 		return mMarketDataType
+	// outgoing messages
+	case *RequestMarketData:
+		return mRequestMarketData
 	}
 
 	return 0
@@ -332,11 +335,11 @@ type ComboLeg struct {
 	Ratio      long
 	Action     string
 	Exchange   string
-	OpenClose  LegOpenClose
+	//OpenClose  LegOpenClose
 	// for stock legs when doing short sale
-	ShortSaleSlot      long // 1 = clearing broker, 2 = third party
-	DesignatedLocation string
-	ExemptCode         long // -1
+	//ShortSaleSlot      long // 1 = clearing broker, 2 = third party
+	//DesignatedLocation string
+	//ExemptCode         long // -1
 }
 
 type UnderComp struct {
@@ -357,14 +360,8 @@ type Contract struct {
 	PrimaryExchange string
 	Currency        string
 	LocalSymbol     string
-	IncludeExpired  bool
-	SecurityIdType  string
-	SecurityId      string
-	// COMBOS
-	ComboLegsDescr string // received in open order 14 and up for all combos
-	ComboLegs      []ComboLeg
-	// delta neutral
-	Comp UnderComp
+	ComboLegs       []ComboLeg
+	Comp            *UnderComp
 }
 
 type ContractDetails struct {
@@ -854,4 +851,8 @@ type TickSnapshotEnd struct {
 type MarketDataType struct {
 	RequestId long
 	Type      long
+}
+
+type RequestMarketData struct {
+	Contract Contract
 }

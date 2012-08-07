@@ -1,7 +1,6 @@
 package trade
 
 import (
-	"./wire"
 	"bufio"
 	"bytes"
 	"fmt"
@@ -74,7 +73,7 @@ type PacketError struct {
 }
 
 func (e *PacketError) Error() string {
-	return fmt.Sprintf("ibtws: don't understand packet '%v' of type '%v'",
+	return fmt.Sprintf("don't understand packet '%v' of type '%v'",
 		e.Value, e.Type)
 }
 
@@ -102,12 +101,12 @@ func (engine *Engine) Send(tickId long, v interface{}) error {
 
 	// encode message type and client version
 	hdr := &header{code, version, tickId}
-	if err := wire.Encode(engine.output, hdr); err != nil {
+	if err := Encode(engine.output, hdr); err != nil {
 		return err
 	}
 
 	// encode the message itself
-	if err := wire.Encode(engine.output, v); err != nil {
+	if err := Encode(engine.output, v); err != nil {
 		return err
 	}
 
@@ -127,13 +126,13 @@ func (engine *Engine) Receive() (interface{}, error) {
 	hdr := &header{}
 
 	// decode header
-	if err := wire.Decode(engine.reader, hdr); err != nil {
+	if err := Decode(engine.reader, hdr); err != nil {
 		return nil, err
 	}
 
 	// decode message
 	v := code2Msg(hdr.Code)
-	if err := wire.Decode(engine.reader, v); err != nil {
+	if err := Decode(engine.reader, v); err != nil {
 		return nil, err
 	}
 
@@ -143,7 +142,7 @@ func (engine *Engine) Receive() (interface{}, error) {
 func (engine *Engine) write(v interface{}) error {
 	engine.input.Reset()
 
-	if err := wire.Encode(engine.input, v); err != nil {
+	if err := Encode(engine.input, v); err != nil {
 		return err
 	}
 
@@ -156,7 +155,7 @@ func (engine *Engine) write(v interface{}) error {
 
 func (engine *Engine) read(v interface{}) error {
 	engine.input.Reset()
-	if err := wire.Decode(engine.reader, v); err != nil {
+	if err := Decode(engine.reader, v); err != nil {
 		return err
 	}
 	return nil
