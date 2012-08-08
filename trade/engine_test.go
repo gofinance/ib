@@ -22,7 +22,8 @@ func (pump *MessagePump) Expect(t *testing.T, code long) (interface{}, error) {
 		}
 		if code1 != code {
 			// wrong message received
-			fmt.Printf("received packet '%v' of type '%v'\n", v1, reflect.ValueOf(v1).Type())
+			fmt.Printf("received packet '%v' of type '%v'\n",
+				v1, reflect.ValueOf(v1).Type())
 			continue
 		}
 		return v1, nil
@@ -60,21 +61,21 @@ func TestRequestMarketData(t *testing.T) {
 	if err := engine.Send(req); err != nil {
 		t.Fatalf("cannot request market data: %s", err)
 	}
+	/*
+		// managed accounts
+		accounts, err := pump.Expect(t, mManagedAccounts)
+		if err != nil {
+			t.Fatalf("cannot receive managed accounts: %s", err)
+		}
+		fmt.Printf("Managed accounts = %v\n", accounts)
 
-	// managed accounts
-	accounts, err := pump.Expect(t, mManagedAccounts)
-	if err != nil {
-		t.Fatalf("cannot receive managed accounts: %s", err)
-	}
-	fmt.Printf("Managed accounts = %v\n", accounts)
-
-	// next valid id
-	next, err := pump.Expect(t, mNextValidId)
-	if err != nil {
-		t.Fatalf("cannot receive next valid id: %s", err)
-	}
-	fmt.Printf("Next valid id = %v\n", next)
-
+		// next valid id
+		next, err := pump.Expect(t, mNextValidId)
+		if err != nil {
+			t.Fatalf("cannot receive next valid id: %s", err)
+		}
+		fmt.Printf("Next valid id = %v\n", next)
+	*/
 	rep, err := pump.Expect(t, mTickPrice)
 	if err != nil {
 		t.Fatalf("cannot receive market data: %s", err)
