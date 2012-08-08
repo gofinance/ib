@@ -93,7 +93,7 @@ type (
 )
 
 const (
-	kBidSize = iota
+	kBidSize TickType = iota
 	kBid
 	kAsk
 	kAskSize
@@ -416,7 +416,7 @@ type TickPrice struct {
 	Id             TickerId
 	Type           TickType
 	Price          double
-	Size           TickSize
+	Size           long
 	CanAutoExecute bool
 }
 
