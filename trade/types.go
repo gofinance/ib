@@ -324,6 +324,10 @@ type clientVersion struct {
 	Version long
 }
 
+type clientId struct {
+	Id long
+}
+
 type serverTime struct {
 	Time time.Time
 }

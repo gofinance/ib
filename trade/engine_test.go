@@ -30,17 +30,15 @@ func (pump *MessagePump) Expect(t *testing.T, code long) (interface{}, error) {
 	return nil, nil
 }
 
-/*
 func TestMake(t *testing.T) {
-	if _, err := Make(); err != nil {
+	if _, err := Make(0); err != nil {
 		t.Fatalf("cannot initialize engine: %s", err)
 	}
 }
-*/
 
 func TestRequestMarketData(t *testing.T) {
 	// make engine
-	engine, err := Make()
+	engine, err := Make(1)
 	if err != nil {
 		t.Fatalf("cannot initialize engine: %s", err)
 	}
@@ -59,7 +57,7 @@ func TestRequestMarketData(t *testing.T) {
 	}
 
 	req := &RequestMarketData{c}
-	if err := engine.Send(1, req); err != nil {
+	if err := engine.Send(req); err != nil {
 		t.Fatalf("cannot request market data: %s", err)
 	}
 

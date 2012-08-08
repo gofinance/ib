@@ -16,6 +16,8 @@ const (
 )
 
 type Engine struct {
+	client        long
+	tick          chan long
 	con           net.Conn
 	reader        *bufio.Reader
 	input         *bytes.Buffer
@@ -25,9 +27,21 @@ type Engine struct {
 	serverVersion long
 }
 
+func uniqueId() chan long {
+	ch := make(chan long)
+	id := long(0)
+	go func() {
+		for {
+			ch <- id
+			id += 1
+		}
+	}()
+	return ch
+}
+
 // Set up the engine 
 
-func Make() (*Engine, error) {
+func Make(client long) (*Engine, error) {
 	con, err := net.Dial("tcp", gateway)
 	if err != nil {
 		return nil, err
@@ -36,8 +50,11 @@ func Make() (*Engine, error) {
 	reader := bufio.NewReader(con)
 	input := bytes.NewBuffer(make([]byte, 0, 4096))
 	output := bytes.NewBuffer(make([]byte, 0, 4096))
+	tick := uniqueId()
 
 	engine := Engine{
+		client: client,
+		tick:   tick,
 		con:    con,
 		reader: reader,
 		input:  input,
@@ -59,6 +76,12 @@ func Make() (*Engine, error) {
 	// read server time
 	tm := &serverTime{}
 	if err := engine.read(tm); err != nil {
+		return nil, err
+	}
+
+	// write client id
+	id := &clientId{client}
+	if err := engine.write(id); err != nil {
 		return nil, err
 	}
 
@@ -90,7 +113,7 @@ func dump(b *bytes.Buffer) {
 	fmt.Printf("Buffer = '%s'\n", s)
 }
 
-func (engine *Engine) Send(tickId long, v interface{}) error {
+func (engine *Engine) Send(v interface{}) error {
 	type header struct {
 		Client  long
 		Code    long
@@ -112,7 +135,7 @@ func (engine *Engine) Send(tickId long, v interface{}) error {
 	hdr := &header{
 		Code:    code,
 		Version: ver,
-		TickId:  tickId,
+		TickId:  <-engine.tick,
 	}
 	if err := Encode(engine.output, hdr); err != nil {
 		return err
