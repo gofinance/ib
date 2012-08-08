@@ -37,7 +37,7 @@ func TestMake(t *testing.T) {
 	}
 }
 
-func TestRequestMarketData(t *testing.T) {
+func TestMarketData(t *testing.T) {
 	// make engine
 	engine, err := Make(1)
 	if err != nil {
@@ -57,29 +57,27 @@ func TestRequestMarketData(t *testing.T) {
 		Currency:     "USD",
 	}
 
-	req := &RequestMarketData{c}
-	if err := engine.Send(req); err != nil {
+	req1 := &RequestMarketData{c}
+	if err := engine.Send(engine.NextTick(), req1); err != nil {
 		t.Fatalf("cannot request market data: %s", err)
 	}
-	/*
-		// managed accounts
-		accounts, err := pump.Expect(t, mManagedAccounts)
-		if err != nil {
-			t.Fatalf("cannot receive managed accounts: %s", err)
-		}
-		fmt.Printf("Managed accounts = %v\n", accounts)
 
-		// next valid id
-		next, err := pump.Expect(t, mNextValidId)
-		if err != nil {
-			t.Fatalf("cannot receive next valid id: %s", err)
-		}
-		fmt.Printf("Next valid id = %v\n", next)
-	*/
-	rep, err := pump.Expect(t, mTickPrice)
+	rep1, err := pump.Expect(t, mTickPrice)
 	if err != nil {
 		t.Fatalf("cannot receive market data: %s", err)
 	}
 
-	fmt.Printf("received packet '%v' of type %v\n", rep, reflect.ValueOf(rep).Type())
+	fmt.Printf("received packet '%v' of type %v\n", rep1, reflect.ValueOf(rep1).Type())
+
+	req2 := &CancelMarketData{}
+	if err := engine.Send(engine.Tick(), req2); err != nil {
+		t.Fatalf("cannot cancel market data: %s", err)
+	}
+
+	rep2, err := pump.Expect(t, mNextValidId)
+	if err != nil {
+		t.Fatalf("cannot receive next valid id: %s", err)
+	}
+
+	fmt.Printf("received packet '%v' of type %v\n", rep2, reflect.ValueOf(rep2).Type())
 }

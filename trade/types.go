@@ -231,6 +231,7 @@ func code2Msg(code long) interface{} {
 
 func msg2Code(m interface{}) long {
 	switch m.(type) {
+	// incoming messages
 	case *TickPrice:
 		return mTickPrice
 	case *TickSize:
@@ -302,6 +303,8 @@ func msg2Code(m interface{}) long {
 	// outgoing messages
 	case *RequestMarketData:
 		return mRequestMarketData
+	case *CancelMarketData:
+		return mCancelMarketData
 	}
 
 	return 0
@@ -870,4 +873,7 @@ type MarketDataType struct {
 
 type RequestMarketData struct {
 	Contract Contract
+}
+
+type CancelMarketData struct {
 }
