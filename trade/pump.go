@@ -42,7 +42,7 @@ func (pump *MessagePump) Close() {
 
 func (pump *MessagePump) Read() (interface{}, error) {
 	select {
-	case <-time.After(10 * time.Second):
+	case <-time.After(30 * time.Second):
 		// no data
 		return nil, nil
 	case msg := <-pump.ch:

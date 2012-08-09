@@ -116,7 +116,7 @@ func dump(b *bytes.Buffer) {
 
 func (engine *Engine) Send(tick long, v interface{}) error {
 	type header struct {
-		Client  long
+		//Client  long
 		Code    long
 		Version long
 		Tick    long
@@ -132,6 +132,7 @@ func (engine *Engine) Send(tick long, v interface{}) error {
 	// encode message type and client version
 	ver := code2Version(code)
 	hdr := &header{
+		//Client:  engine.client,
 		Code:    code,
 		Version: ver,
 		Tick:    tick,

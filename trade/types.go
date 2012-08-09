@@ -225,7 +225,6 @@ func code2Msg(code long) interface{} {
 	case mMarketDataType:
 		return &MarketDataType{}
 	}
-
 	return nil
 }
 
@@ -305,8 +304,9 @@ func msg2Code(m interface{}) long {
 		return mRequestMarketData
 	case *CancelMarketData:
 		return mCancelMarketData
+	case *RequestContractData:
+		return mRequestContractData
 	}
-
 	return 0
 }
 
@@ -314,8 +314,9 @@ func code2Version(code long) long {
 	switch code {
 	case mRequestMarketData:
 		return 9
+	case mRequestContractData:
+		return 6
 	}
-
 	return 0
 }
 
@@ -364,7 +365,7 @@ type UnderComp struct {
 	Price      double
 }
 
-type Contract struct {
+type ContractDetails struct {
 	ContractId      long
 	Symbol          string
 	SecurityType    string
@@ -376,29 +377,21 @@ type Contract struct {
 	PrimaryExchange string
 	Currency        string
 	LocalSymbol     string
-	ComboLegs       []ComboLeg `when:"SecurityType" cond:"not" value:"BAG"`
-	Comp            *UnderComp
-	GenericTickList string
-	Snapshot        bool
-}
-
-type ContractDetails struct {
-	Summary        Contract
-	MarketName     string
-	TradingClass   string
-	MinTick        double
-	OrderTypes     string
-	ValidExchanges string
-	PriceMagnifier long
-	UnderConId     long
-	IntName        string
-	ContractMonth  string
-	Industry       string
-	Category       string
-	Subcategory    string
-	TimeZoneId     string
-	TradingHours   string
-	LiquidHours    string
+	MarketName      string
+	TradingClass    string
+	MinTick         double
+	OrderTypes      string
+	ValidExchanges  string
+	PriceMagnifier  long
+	UnderConId      long
+	IntName         string
+	ContractMonth   string
+	Industry        string
+	Category        string
+	Subcategory     string
+	TimeZoneId      string
+	TradingHours    string
+	LiquidHours     string
 	// BOND values
 	Cusip             string
 	Ratings           string
@@ -872,8 +865,38 @@ type MarketDataType struct {
 }
 
 type RequestMarketData struct {
-	Contract Contract
+	ContractId      long
+	Symbol          string
+	SecurityType    string
+	Expiry          string
+	Strike          double
+	Right           string
+	Multiplier      string
+	Exchange        string
+	PrimaryExchange string
+	Currency        string
+	LocalSymbol     string
+	ComboLegs       []ComboLeg `when:"SecurityType" cond:"not" value:"BAG"`
+	Comp            *UnderComp
+	GenericTickList string
+	Snapshot        bool
 }
 
 type CancelMarketData struct {
+}
+
+type RequestContractData struct {
+	ContractId     long
+	Symbol         string
+	SecurityType   string
+	Expiry         string
+	Strike         double
+	Right          string
+	Multiplier     string
+	Exchange       string
+	Currency       string
+	LocalSymbol    string
+	IncludeExpired bool
+	SecurityIdType string
+	SecurityId     string
 }

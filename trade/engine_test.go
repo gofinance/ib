@@ -37,27 +37,31 @@ func TestMake(t *testing.T) {
 	}
 }
 
-func TestMarketData(t *testing.T) {
-	// make engine
-	engine, err := Make(1)
+func setup(client long) (*Engine, *MessagePump, error) {
+	engine, err := Make(client)
 	if err != nil {
-		t.Fatalf("cannot initialize engine: %s", err)
+		return nil, nil, err
 	}
-
-	// make message pump
 	pump, err := engine.MakePump()
 	if err != nil {
-		t.Fatalf("cannot create message pump: %s", err)
+		return nil, nil, err
+	}
+	return engine, pump, nil
+}
+
+func TestMarketData(t *testing.T) {
+	engine, pump, err := setup(1)
+	if err != nil {
+		t.Fatalf("cannot setup engine: %s", err)
 	}
 
-	c := Contract{
+	req1 := &RequestMarketData{
 		Symbol:       "AAPL",
 		SecurityType: "STK",
 		Exchange:     "SMART",
 		Currency:     "USD",
 	}
 
-	req1 := &RequestMarketData{c}
 	if err := engine.Send(engine.NextTick(), req1); err != nil {
 		t.Fatalf("cannot request market data: %s", err)
 	}
@@ -73,11 +77,29 @@ func TestMarketData(t *testing.T) {
 	if err := engine.Send(engine.Tick(), req2); err != nil {
 		t.Fatalf("cannot cancel market data: %s", err)
 	}
+}
 
-	rep2, err := pump.Expect(t, mNextValidId)
+func TestContractDetails(t *testing.T) {
+	engine, pump, err := setup(2)
 	if err != nil {
-		t.Fatalf("cannot receive next valid id: %s", err)
+		t.Fatalf("cannot setup engine: %s", err)
 	}
 
-	fmt.Printf("received packet '%v' of type %v\n", rep2, reflect.ValueOf(rep2).Type())
+	req1 := &RequestContractData{
+		Symbol:       "AAPL",
+		SecurityType: "STK",
+		Exchange:     "SMART",
+		Currency:     "USD",
+	}
+
+	if err := engine.Send(engine.NextTick(), req1); err != nil {
+		t.Fatalf("cannot request market data: %s", err)
+	}
+
+	rep1, err := pump.Expect(t, mContractData)
+	if err != nil {
+		t.Fatalf("cannot receive contract details: %s", err)
+	}
+
+	fmt.Printf("received packet '%v' of type %v\n", rep1, reflect.ValueOf(rep1).Type())
 }
