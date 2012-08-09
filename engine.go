@@ -1,4 +1,4 @@
-package trade
+package algokit
 
 import (
 	"bufio"
@@ -40,9 +40,7 @@ func uniqueId() chan int64 {
 	return ch
 }
 
-// Set up the engine 
-
-func Make(client int64) (*Engine, error) {
+func Connect(client int64) (*Engine, error) {
 	con, err := net.Dial("tcp", gateway)
 	if err != nil {
 		return nil, err

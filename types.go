@@ -1,4 +1,4 @@
-package trade
+package algokit
 
 import (
 	"time"

@@ -1,4 +1,4 @@
-package trade
+package algokit
 
 import (
 	"fmt"
@@ -32,7 +32,7 @@ func (pump *MessagePump) Expect(t *testing.T, code int64) (interface{}, error) {
 }
 
 func connect(client int64) (*Engine, *MessagePump, error) {
-	engine, err := Make(client)
+	engine, err := Connect(client)
 	if err != nil {
 		return nil, nil, err
 	}
