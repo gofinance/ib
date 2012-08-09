@@ -87,9 +87,8 @@ const maxInt = int(^uint(0) >> 1)
 
 type (
 	double   float64
-	long     int64
-	TickType long
-	TickerId long
+	TickType int64
+	TickerId int64
 )
 
 const (
@@ -154,7 +153,7 @@ const (
 	kNotSet
 )
 
-func code2Msg(code long) interface{} {
+func code2Msg(code int64) interface{} {
 	switch code {
 	case mTickPrice:
 		return &TickPrice{}
@@ -228,7 +227,7 @@ func code2Msg(code long) interface{} {
 	return nil
 }
 
-func msg2Code(m interface{}) long {
+func msg2Code(m interface{}) int64 {
 	switch m.(type) {
 	// incoming messages
 	case *TickPrice:
@@ -310,7 +309,7 @@ func msg2Code(m interface{}) long {
 	return 0
 }
 
-func code2Version(code long) long {
+func code2Version(code int64) int64 {
 	switch code {
 	case mRequestMarketData:
 		return 9
@@ -321,15 +320,15 @@ func code2Version(code long) long {
 }
 
 type serverVersion struct {
-	Version long
+	Version int64
 }
 
 type clientVersion struct {
-	Version long
+	Version int64
 }
 
 type clientId struct {
-	Id long
+	Id int64
 }
 
 type serverTime struct {
@@ -348,25 +347,25 @@ const (
 )
 
 type ComboLeg struct {
-	ContractId long
-	Ratio      long
+	ContractId int64
+	Ratio      int64
 	Action     string
 	Exchange   string
 	//OpenClose  LegOpenClose
 	// for stock legs when doing short sale
-	//ShortSaleSlot      long // 1 = clearing broker, 2 = third party
+	//ShortSaleSlot      int64 // 1 = clearing broker, 2 = third party
 	//DesignatedLocation string
-	//ExemptCode         long // -1
+	//ExemptCode         int64 // -1
 }
 
 type UnderComp struct {
-	ContractId long
+	ContractId int64
 	Delta      double
 	Price      double
 }
 
 type ContractDetails struct {
-	ContractId      long
+	ContractId      int64
 	Symbol          string
 	SecurityType    string
 	Expiry          string
@@ -382,8 +381,8 @@ type ContractDetails struct {
 	MinTick         double
 	OrderTypes      string
 	ValidExchanges  string
-	PriceMagnifier  long
-	UnderConId      long
+	PriceMagnifier  int64
+	UnderConId      int64
 	IntName         string
 	ContractMonth   string
 	Industry        string
@@ -416,14 +415,14 @@ type TickPrice struct {
 	Id             TickerId
 	Type           TickType
 	Price          double
-	Size           long
+	Size           int64
 	CanAutoExecute bool
 }
 
 type TickSize struct {
 	Id   TickerId
 	Type TickType
-	Size long
+	Size int64
 }
 
 type TickOptionComputation struct {
@@ -457,22 +456,22 @@ type TickEFP struct {
 	BasisPoints          double
 	FormattedBasisPoints string
 	ImpliedFuturesPrice  double
-	HoldDays             long
+	HoldDays             int64
 	FuturesExpiry        string
 	DividendImpact       double
 	DividendsToExpiry    double
 }
 
 type OrderStatus struct {
-	Id               long
+	Id               int64
 	Status           string
-	Filled           long
-	Remaining        long
+	Filled           int64
+	Remaining        int64
 	AverageFillPrice double
-	PermId           long
-	ParentId         long
+	PermId           int64
+	ParentId         int64
 	LastFillPrice    double
-	ClientId         long
+	ClientId         int64
 	WhyHeld          string
 }
 
@@ -484,7 +483,7 @@ type AccountValue struct {
 }
 
 type PortfolioValue struct {
-	ContractId       long
+	ContractId       int64
 	Symbol           string
 	SecType          string
 	Expiry           string
@@ -494,7 +493,7 @@ type PortfolioValue struct {
 	PrimaryExchange  string
 	Currency         string
 	LocalSymbol      string
-	Position         long
+	Position         int64
 	MarketPrice      double
 	MarketValue      double
 	AverageCost      double
@@ -509,8 +508,8 @@ type AccountUpdateTime struct {
 }
 
 type ErrorMessage struct {
-	Id      long
-	Code    long
+	Id      int64
+	Code    int64
 	Message string
 }
 
@@ -519,7 +518,7 @@ type AlgoParams struct {
 }
 
 type DeltaNeutralData struct {
-	ContractId      long
+	ContractId      int64
 	ClearingBroker  string
 	ClearingAccount string
 	ClearingIntent  string
@@ -535,9 +534,9 @@ type HedgeParam struct {
 }
 
 type OpenOrder struct {
-	OrderId long
+	OrderId int64
 	// contract
-	ContractId  long
+	ContractId  int64
 	Symbol      string
 	SecType     string
 	Expiry      string
@@ -548,7 +547,7 @@ type OpenOrder struct {
 	LocalSymbol string
 	// order
 	Action                  string
-	TotalQty                long
+	TotalQty                int64
 	OrderType               string
 	LimitPrice              double
 	AuxPrice                double
@@ -556,10 +555,10 @@ type OpenOrder struct {
 	OCAGroup                string
 	Account                 string
 	OpenClose               string
-	Origin                  long
+	Origin                  int64
 	OrderRef                string
-	ClientId                long
-	PermId                  long
+	ClientId                int64
+	PermId                  int64
 	OutsideRTH              bool
 	Hidden                  bool
 	DiscretionaryAmount     double
@@ -573,40 +572,40 @@ type OpenOrder struct {
 	Rule80A                 string
 	PercentOffset           double
 	ClearingBroker          string
-	ShortSaleSlot           long
+	ShortSaleSlot           int64
 	DesignatedLocation      string
-	ExemptCode              long
-	AuctionStrategy         long
+	ExemptCode              int64
+	AuctionStrategy         int64
 	StartingPrice           double
 	StockRefPrice           double
 	Delta                   double
 	StockRangeLower         double
 	StockRangeUpper         double
-	DisplaySize             long
+	DisplaySize             int64
 	BlockOrder              bool
 	SweepToFill             bool
 	AllOrNone               bool
-	MinQty                  long
-	OCAType                 long
-	ETradeOnly              long
+	MinQty                  int64
+	OCAType                 int64
+	ETradeOnly              int64
 	FirmQuoteOnly           bool
 	NBBOPriceCap            double
-	ParentId                long
-	TriggerMethod           long
+	ParentId                int64
+	TriggerMethod           int64
 	Volatility              double
-	VolatilityType          long
+	VolatilityType          int64
 	DeltaNeutralOrderType   string
 	DeltaNeutralAuxPrice    double
 	DeltaNeutral            DeltaNeutralData `when:"DeltaNeutralOrderType" cond:"is" value:""`
-	ContinuousUpdate        long
-	ReferencePriceType      long
+	ContinuousUpdate        int64
+	ReferencePriceType      int64
 	TrailingStopPrice       double
 	BasisPoints             double
-	BasisPointsType         long
+	BasisPointsType         int64
 	ComboLegsDescription    string
 	SmartComboRoutingParams []TagValue
-	ScaleInitLevelSize      long   // max
-	ScaleSubsLevelSize      long   // max
+	ScaleInitLevelSize      int64  // max
+	ScaleSubsLevelSize      int64  // max
 	ScalePriceIncrement     double // max
 	HedgeType               string
 	HedgeParam              HedgeParam `when:"HedgeType" cond:"is" value:""`
@@ -635,18 +634,18 @@ type OrderState struct {
 }
 
 type NextValidId struct {
-	OrderId long
+	OrderId int64
 }
 
 type ScannerData struct {
-	TickerId      long
+	TickerId      int64
 	ScannerDetail []ScannerDetail
 }
 
 type ScannerDetail struct {
-	Rank long
+	Rank int64
 	// ContractDetails
-	ContractId   long
+	ContractId   int64
 	Symbol       string
 	SecType      string
 	Expiry       string
@@ -665,7 +664,7 @@ type ScannerDetail struct {
 }
 
 type ContractData struct {
-	RequestId long
+	RequestId int64
 	// ContractDetails
 	Symbol          string
 	SecType         string
@@ -677,13 +676,13 @@ type ContractData struct {
 	LocalSymbol     string
 	MarketName      string
 	TradingClass    string
-	ContractId      long
+	ContractId      int64
 	MinTick         double
 	Multiplier      string
 	OrderTypes      string
 	ValidExchanges  string
-	PriceMagnifier  long
-	UnderContractId long
+	PriceMagnifier  int64
+	UnderContractId int64
 	LongName        string
 	PrimaryExchange string
 	ContractMonth   string
@@ -696,7 +695,7 @@ type ContractData struct {
 }
 
 type BondContractData struct {
-	RequestId         long
+	RequestId         int64
 	Symbol            string
 	SecType           string
 	Cusip             string
@@ -714,7 +713,7 @@ type BondContractData struct {
 	Currency          string
 	MarketName        string
 	TradingClass      string
-	ContractId        long
+	ContractId        int64
 	MinTick           double
 	OrderTypes        string
 	ValidExchanges    string
@@ -726,10 +725,10 @@ type BondContractData struct {
 }
 
 type ExecutionData struct {
-	RequestId long
-	OrderId   long
+	RequestId int64
+	OrderId   int64
 	// Contract
-	ContractId  long
+	ContractId  int64
 	Symbol      string
 	SecType     string
 	Expiry      string
@@ -744,38 +743,38 @@ type ExecutionData struct {
 	Account           string
 	ExecutionExchange string
 	Side              string
-	Shares            long
+	Shares            int64
 	Price             double
-	PermId            long
-	ClientId          long
-	Liquidation       long
-	CumQty            long
+	PermId            int64
+	ClientId          int64
+	Liquidation       int64
+	CumQty            int64
 	AveragePrice      double
 	OrderRef          string
 }
 
 type MarketDepth struct {
-	Id        long
-	Position  long
-	Operation long
-	Side      long
+	Id        int64
+	Position  int64
+	Operation int64
+	Side      int64
 	Price     double
-	Size      long
+	Size      int64
 }
 
 type MarketDepthL2 struct {
-	Id          long
-	Position    long
+	Id          int64
+	Position    int64
 	MarketMaker string
-	Operation   long
-	Side        long
+	Operation   int64
+	Side        int64
 	Price       double
-	Size        long
+	Size        int64
 }
 
 type NewsBulletins struct {
-	Id       long
-	Type     long
+	Id       int64
+	Type     int64
 	Message  string
 	Exchange string
 }
@@ -785,12 +784,12 @@ type ManagedAccounts struct {
 }
 
 type ReceiveFA struct {
-	Type long
+	Type int64
 	XML  string
 }
 
 type HistoricalData struct {
-	RequestId long
+	RequestId int64
 	StartDate string
 	EndDate   string
 	Data      []HistoricalDataItem
@@ -802,10 +801,10 @@ type HistoricalDataItem struct {
 	High     double
 	Low      double
 	Close    double
-	Volume   long
+	Volume   int64
 	WAP      double
 	HasGaps  string
-	BarCount long
+	BarCount int64
 }
 
 type ScannerParameters struct {
@@ -813,28 +812,28 @@ type ScannerParameters struct {
 }
 
 type CurrentTime struct {
-	Time long
+	Time int64
 }
 
 type RealtimeBars struct {
-	RequestId long
-	Time      long
+	RequestId int64
+	Time      int64
 	Open      double
 	High      double
 	Low       double
 	Close     double
 	Volume    double
 	WAP       double
-	Count     long
+	Count     int64
 }
 
 type FundamentalData struct {
-	RequestId long
+	RequestId int64
 	Data      string
 }
 
 type ContractDataEnd struct {
-	RequestId long
+	RequestId int64
 }
 
 type OpenOrderEnd struct {
@@ -845,27 +844,27 @@ type AccountDownloadEnd struct {
 }
 
 type ExecutionDataEnd struct {
-	RequestId long
+	RequestId int64
 }
 
 type DeltaNeutralValidation struct {
-	RequestId  long
-	ContractId long
+	RequestId  int64
+	ContractId int64
 	Delta      double
 	Price      double
 }
 
 type TickSnapshotEnd struct {
-	RequestId long
+	RequestId int64
 }
 
 type MarketDataType struct {
-	RequestId long
-	Type      long
+	RequestId int64
+	Type      int64
 }
 
 type RequestMarketData struct {
-	ContractId      long
+	ContractId      int64
 	Symbol          string
 	SecurityType    string
 	Expiry          string
@@ -886,7 +885,7 @@ type CancelMarketData struct {
 }
 
 type RequestContractData struct {
-	ContractId     long
+	ContractId     int64
 	Symbol         string
 	SecurityType   string
 	Expiry         string

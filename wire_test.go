@@ -12,8 +12,8 @@ type intRec struct {
 	I int64
 }
 
-type longRec struct {
-	L long
+type int64Rec struct {
+	L int64
 }
 
 type stringRec struct {
@@ -38,7 +38,7 @@ type sliceRec struct {
 
 type tagRec struct {
 	S string
-	I long `when:"S" cond:"is" value:""`
+	I int64 `when:"S" cond:"is" value:""`
 }
 
 func makebuf() *bytes.Buffer {
@@ -63,7 +63,7 @@ func TestEncodeInt(t *testing.T) {
 }
 
 func TestEncodeLong(t *testing.T) {
-	v := &longRec{L: 57}
+	v := &int64Rec{L: 57}
 	testEncode(t, v, "57")
 }
 

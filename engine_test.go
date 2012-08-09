@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func (pump *MessagePump) Expect(t *testing.T, code long) (interface{}, error) {
+func (pump *MessagePump) Expect(t *testing.T, code int64) (interface{}, error) {
 	for {
 		v1, err := pump.Read()
 		if err != nil {
@@ -31,7 +31,7 @@ func (pump *MessagePump) Expect(t *testing.T, code long) (interface{}, error) {
 	return nil, nil
 }
 
-func connect(client long) (*Engine, *MessagePump, error) {
+func connect(client int64) (*Engine, *MessagePump, error) {
 	engine, err := Make(client)
 	if err != nil {
 		return nil, nil, err
