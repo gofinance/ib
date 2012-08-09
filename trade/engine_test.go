@@ -31,13 +31,7 @@ func (pump *MessagePump) Expect(t *testing.T, code long) (interface{}, error) {
 	return nil, nil
 }
 
-func TestMake(t *testing.T) {
-	if _, err := Make(0); err != nil {
-		t.Fatalf("cannot initialize engine: %s", err)
-	}
-}
-
-func setup(client long) (*Engine, *MessagePump, error) {
+func connect(client long) (*Engine, *MessagePump, error) {
 	engine, err := Make(client)
 	if err != nil {
 		return nil, nil, err
@@ -49,10 +43,17 @@ func setup(client long) (*Engine, *MessagePump, error) {
 	return engine, pump, nil
 }
 
-func TestMarketData(t *testing.T) {
-	engine, pump, err := setup(1)
+func TestConnect(t *testing.T) {
+	_, _, err := connect(0)
 	if err != nil {
-		t.Fatalf("cannot setup engine: %s", err)
+		t.Fatalf("cannot connect engine: %s", err)
+	}
+}
+
+func TestMarketData(t *testing.T) {
+	engine, pump, err := connect(1)
+	if err != nil {
+		t.Fatalf("cannot connect engine: %s", err)
 	}
 
 	req1 := &RequestMarketData{
@@ -80,9 +81,9 @@ func TestMarketData(t *testing.T) {
 }
 
 func TestContractDetails(t *testing.T) {
-	engine, pump, err := setup(2)
+	engine, pump, err := connect(2)
 	if err != nil {
-		t.Fatalf("cannot setup engine: %s", err)
+		t.Fatalf("cannot connect engine: %s", err)
 	}
 
 	req1 := &RequestContractData{
@@ -97,6 +98,38 @@ func TestContractDetails(t *testing.T) {
 	}
 
 	rep1, err := pump.Expect(t, mContractData)
+	if err != nil {
+		t.Fatalf("cannot receive contract details: %s", err)
+	}
+
+	fmt.Printf("received packet '%v' of type %v\n", rep1, reflect.ValueOf(rep1).Type())
+
+	rep2, err := pump.Expect(t, mContractDataEnd)
+	if err != nil {
+		t.Fatalf("cannot receive end of contract details: %s", err)
+	}
+
+	fmt.Printf("received packet '%v' of type %v\n", rep2, reflect.ValueOf(rep2).Type())
+}
+
+func TestOptionChain(t *testing.T) {
+	engine, pump, err := connect(3)
+	if err != nil {
+		t.Fatalf("cannot connect engine: %s", err)
+	}
+
+	req1 := &RequestContractData{
+		Symbol:       "AAPL",
+		SecurityType: "OPT",
+		Exchange:     "SMART",
+		Currency:     "USD",
+	}
+
+	if err := engine.Send(engine.NextTick(), req1); err != nil {
+		t.Fatalf("cannot request market data: %s", err)
+	}
+
+	rep1, err := pump.Expect(t, mContractDataEnd)
 	if err != nil {
 		t.Fatalf("cannot receive contract details: %s", err)
 	}
