@@ -86,7 +86,6 @@ const (
 const maxInt = int(^uint(0) >> 1)
 
 type (
-	double   float64
 	TickType int64
 	TickerId int64
 )
@@ -360,8 +359,8 @@ type ComboLeg struct {
 
 type UnderComp struct {
 	ContractId int64
-	Delta      double
-	Price      double
+	Delta      float64
+	Price      float64
 }
 
 type ContractDetails struct {
@@ -369,7 +368,7 @@ type ContractDetails struct {
 	Symbol          string
 	SecurityType    string
 	Expiry          string
-	Strike          double
+	Strike          float64
 	Right           string
 	Multiplier      string
 	Exchange        string
@@ -378,7 +377,7 @@ type ContractDetails struct {
 	LocalSymbol     string
 	MarketName      string
 	TradingClass    string
-	MinTick         double
+	MinTick         float64
 	OrderTypes      string
 	ValidExchanges  string
 	PriceMagnifier  int64
@@ -399,7 +398,7 @@ type ContractDetails struct {
 	CouponType        string
 	Callable          bool
 	Putable           bool
-	Coupon            double
+	Coupon            float64
 	Convertible       bool
 	Maturity          string
 	IssueDate         string
@@ -414,7 +413,7 @@ type ContractDetails struct {
 type TickPrice struct {
 	Id             TickerId
 	Type           TickType
-	Price          double
+	Price          float64
 	Size           int64
 	CanAutoExecute bool
 }
@@ -428,20 +427,20 @@ type TickSize struct {
 type TickOptionComputation struct {
 	Id         TickerId
 	Type       TickType
-	ImpliedVol double // > 0
-	Delta      double // 0 <= delta <= 1	
-	OptPrice   double
-	PvDividend double
-	Gamma      double
-	Vega       double
-	Theta      double
-	SpotPrice  double
+	ImpliedVol float64 // > 0
+	Delta      float64 // 0 <= delta <= 1	
+	OptPrice   float64
+	PvDividend float64
+	Gamma      float64
+	Vega       float64
+	Theta      float64
+	SpotPrice  float64
 }
 
 type TickGeneric struct {
 	Id    TickerId
 	Type  TickType
-	Value double
+	Value float64
 }
 
 type TickString struct {
@@ -453,13 +452,13 @@ type TickString struct {
 type TickEFP struct {
 	Id                   TickerId
 	Type                 TickType
-	BasisPoints          double
+	BasisPoints          float64
 	FormattedBasisPoints string
-	ImpliedFuturesPrice  double
+	ImpliedFuturesPrice  float64
 	HoldDays             int64
 	FuturesExpiry        string
-	DividendImpact       double
-	DividendsToExpiry    double
+	DividendImpact       float64
+	DividendsToExpiry    float64
 }
 
 type OrderStatus struct {
@@ -467,10 +466,10 @@ type OrderStatus struct {
 	Status           string
 	Filled           int64
 	Remaining        int64
-	AverageFillPrice double
+	AverageFillPrice float64
 	PermId           int64
 	ParentId         int64
-	LastFillPrice    double
+	LastFillPrice    float64
 	ClientId         int64
 	WhyHeld          string
 }
@@ -487,18 +486,18 @@ type PortfolioValue struct {
 	Symbol           string
 	SecType          string
 	Expiry           string
-	Strike           double
+	Strike           float64
 	Right            string
 	Multiplier       string
 	PrimaryExchange  string
 	Currency         string
 	LocalSymbol      string
 	Position         int64
-	MarketPrice      double
-	MarketValue      double
-	AverageCost      double
-	UnrealizedPNL    double
-	RealizedPNL      double
+	MarketPrice      float64
+	MarketValue      float64
+	AverageCost      float64
+	UnrealizedPNL    float64
+	RealizedPNL      float64
 	AccountName      string
 	PrimaryExchange1 string
 }
@@ -540,7 +539,7 @@ type OpenOrder struct {
 	Symbol      string
 	SecType     string
 	Expiry      string
-	Strike      double
+	Strike      float64
 	Right       string
 	Exchange    string
 	Currency    string
@@ -549,8 +548,8 @@ type OpenOrder struct {
 	Action                  string
 	TotalQty                int64
 	OrderType               string
-	LimitPrice              double
-	AuxPrice                double
+	LimitPrice              float64
+	AuxPrice                float64
 	TIF                     string
 	OCAGroup                string
 	Account                 string
@@ -561,7 +560,7 @@ type OpenOrder struct {
 	PermId                  int64
 	OutsideRTH              bool
 	Hidden                  bool
-	DiscretionaryAmount     double
+	DiscretionaryAmount     float64
 	GoodAfterTime           string
 	SharesAllocation        string // deprecated
 	FAGroup                 string
@@ -570,17 +569,17 @@ type OpenOrder struct {
 	FAProfile               string
 	GoodTillDate            string
 	Rule80A                 string
-	PercentOffset           double
+	PercentOffset           float64
 	ClearingBroker          string
 	ShortSaleSlot           int64
 	DesignatedLocation      string
 	ExemptCode              int64
 	AuctionStrategy         int64
-	StartingPrice           double
-	StockRefPrice           double
-	Delta                   double
-	StockRangeLower         double
-	StockRangeUpper         double
+	StartingPrice           float64
+	StockRefPrice           float64
+	Delta                   float64
+	StockRangeLower         float64
+	StockRangeUpper         float64
 	DisplaySize             int64
 	BlockOrder              bool
 	SweepToFill             bool
@@ -589,24 +588,24 @@ type OpenOrder struct {
 	OCAType                 int64
 	ETradeOnly              int64
 	FirmQuoteOnly           bool
-	NBBOPriceCap            double
+	NBBOPriceCap            float64
 	ParentId                int64
 	TriggerMethod           int64
-	Volatility              double
+	Volatility              float64
 	VolatilityType          int64
 	DeltaNeutralOrderType   string
-	DeltaNeutralAuxPrice    double
+	DeltaNeutralAuxPrice    float64
 	DeltaNeutral            DeltaNeutralData `when:"DeltaNeutralOrderType" cond:"is" value:""`
 	ContinuousUpdate        int64
 	ReferencePriceType      int64
-	TrailingStopPrice       double
-	BasisPoints             double
+	TrailingStopPrice       float64
+	BasisPoints             float64
 	BasisPointsType         int64
 	ComboLegsDescription    string
 	SmartComboRoutingParams []TagValue
-	ScaleInitLevelSize      int64  // max
-	ScaleSubsLevelSize      int64  // max
-	ScalePriceIncrement     double // max
+	ScaleInitLevelSize      int64   // max
+	ScaleSubsLevelSize      int64   // max
+	ScalePriceIncrement     float64 // max
 	HedgeType               string
 	HedgeParam              HedgeParam `when:"HedgeType" cond:"is" value:""`
 	OptOutSmartRouting      bool
@@ -626,9 +625,9 @@ type OrderState struct {
 	InitialMargin      string
 	MaintenanceMargin  string
 	EquityWithLoan     string
-	Commission         double // max
-	MinCommission      double // max
-	MaxCommission      double // max
+	Commission         float64 // max
+	MinCommission      float64 // max
+	MaxCommission      float64 // max
 	CommissionCurrency string
 	WarningText        string
 }
@@ -649,7 +648,7 @@ type ScannerDetail struct {
 	Symbol       string
 	SecType      string
 	Expiry       string
-	Strike       double
+	Strike       float64
 	Right        string
 	Exchange     string
 	Currency     string
@@ -669,7 +668,7 @@ type ContractData struct {
 	Symbol          string
 	SecType         string
 	Expiry          string
-	Strike          double
+	Strike          float64
 	Right           string
 	Exchange        string
 	Currency        string
@@ -677,7 +676,7 @@ type ContractData struct {
 	MarketName      string
 	TradingClass    string
 	ContractId      int64
-	MinTick         double
+	MinTick         float64
 	Multiplier      string
 	OrderTypes      string
 	ValidExchanges  string
@@ -699,7 +698,7 @@ type BondContractData struct {
 	Symbol            string
 	SecType           string
 	Cusip             string
-	Coupon            double
+	Coupon            float64
 	Maturity          string
 	IssueDate         string
 	Ratings           string
@@ -714,7 +713,7 @@ type BondContractData struct {
 	MarketName        string
 	TradingClass      string
 	ContractId        int64
-	MinTick           double
+	MinTick           float64
 	OrderTypes        string
 	ValidExchanges    string
 	NextOptionDate    string
@@ -732,7 +731,7 @@ type ExecutionData struct {
 	Symbol      string
 	SecType     string
 	Expiry      string
-	Strike      double
+	Strike      float64
 	Right       string
 	Exchange    string
 	Currency    string
@@ -744,12 +743,12 @@ type ExecutionData struct {
 	ExecutionExchange string
 	Side              string
 	Shares            int64
-	Price             double
+	Price             float64
 	PermId            int64
 	ClientId          int64
 	Liquidation       int64
 	CumQty            int64
-	AveragePrice      double
+	AveragePrice      float64
 	OrderRef          string
 }
 
@@ -758,7 +757,7 @@ type MarketDepth struct {
 	Position  int64
 	Operation int64
 	Side      int64
-	Price     double
+	Price     float64
 	Size      int64
 }
 
@@ -768,7 +767,7 @@ type MarketDepthL2 struct {
 	MarketMaker string
 	Operation   int64
 	Side        int64
-	Price       double
+	Price       float64
 	Size        int64
 }
 
@@ -797,12 +796,12 @@ type HistoricalData struct {
 
 type HistoricalDataItem struct {
 	Date     string
-	Open     double
-	High     double
-	Low      double
-	Close    double
+	Open     float64
+	High     float64
+	Low      float64
+	Close    float64
 	Volume   int64
-	WAP      double
+	WAP      float64
 	HasGaps  string
 	BarCount int64
 }
@@ -818,12 +817,12 @@ type CurrentTime struct {
 type RealtimeBars struct {
 	RequestId int64
 	Time      int64
-	Open      double
-	High      double
-	Low       double
-	Close     double
-	Volume    double
-	WAP       double
+	Open      float64
+	High      float64
+	Low       float64
+	Close     float64
+	Volume    float64
+	WAP       float64
 	Count     int64
 }
 
@@ -850,8 +849,8 @@ type ExecutionDataEnd struct {
 type DeltaNeutralValidation struct {
 	RequestId  int64
 	ContractId int64
-	Delta      double
-	Price      double
+	Delta      float64
+	Price      float64
 }
 
 type TickSnapshotEnd struct {
@@ -868,7 +867,7 @@ type RequestMarketData struct {
 	Symbol          string
 	SecurityType    string
 	Expiry          string
-	Strike          double
+	Strike          float64
 	Right           string
 	Multiplier      string
 	Exchange        string
@@ -889,7 +888,7 @@ type RequestContractData struct {
 	Symbol         string
 	SecurityType   string
 	Expiry         string
-	Strike         double
+	Strike         float64
 	Right          string
 	Multiplier     string
 	Exchange       string
