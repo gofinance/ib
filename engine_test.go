@@ -4,30 +4,39 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
+	"time"
 )
 
-func (pump *MessagePump) Expect(t *testing.T, code int64) (interface{}, error) {
+func (pump *MessagePump) Expect(t *testing.T, expected int64) (interface{}, error) {
+	var v interface{}
+
 	for {
-		v1, err := pump.Read()
-		if err != nil {
+
+		select {
+		case <-time.After(30 * time.Second):
+			// no data
+			t.Fatalf("timeout reading from pump")
+		case v = <-pump.Data:
+		case err := <-pump.Error:
 			t.Fatalf("error reading from pump: %s", err)
 		}
-		if v1 == nil {
-			t.Fatalf("timeout reading from pump")
-			return nil, nil
+
+		code := msg2Code(v)
+
+		if code == 0 {
+			t.Fatalf("don't know message '%v'", v)
 		}
-		code1 := msg2Code(v1)
-		if code1 == 0 {
-			t.Fatalf("don't know message '%v'", v1)
-		}
-		if code1 != code {
+
+		if code != expected {
 			// wrong message received
 			fmt.Printf("received packet '%v' of type '%v'\n",
-				v1, reflect.ValueOf(v1).Type())
+				v, reflect.ValueOf(v).Type())
 			continue
 		}
-		return v1, nil
+
+		return v, nil
 	}
+
 	return nil, nil
 }
 
