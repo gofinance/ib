@@ -1,4 +1,4 @@
-package algokit
+package trade
 
 import (
 	"fmt"

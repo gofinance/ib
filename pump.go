@@ -1,4 +1,4 @@
-package algokit
+package trade
 
 type MessagePump struct {
 	Data  chan interface{}
