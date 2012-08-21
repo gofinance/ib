@@ -16,9 +16,11 @@ const (
 )
 
 type Engine struct {
+	Tick          chan int64
+	In            chan interface{}
+	Out           chan interface{}
+	Error         chan error
 	client        int64
-	tick          int64
-	nextTick      chan int64
 	con           net.Conn
 	reader        *bufio.Reader
 	input         *bytes.Buffer
@@ -40,7 +42,7 @@ func uniqueId() chan int64 {
 	return ch
 }
 
-func Connect(client int64) (*Engine, error) {
+func NewEngine(client int64) (*Engine, error) {
 	con, err := net.Dial("tcp", gateway)
 	if err != nil {
 		return nil, err
@@ -52,12 +54,12 @@ func Connect(client int64) (*Engine, error) {
 	tick := uniqueId()
 
 	engine := Engine{
-		client:   client,
-		nextTick: tick,
-		con:      con,
-		reader:   reader,
-		input:    input,
-		output:   output,
+		client: client,
+		Tick:   tick,
+		con:    con,
+		reader: reader,
+		input:  input,
+		output: output,
 	}
 
 	// write client version
@@ -87,27 +89,63 @@ func Connect(client int64) (*Engine, error) {
 	engine.serverVersion = sver.Version
 	engine.serverTime = tm.Time
 
+	engine.Out = make(chan interface{})
+	engine.In = make(chan interface{})
+	engine.Error = make(chan error)
+
+	// receiver
+	go func() {
+		for {
+			msg, err := engine.receive()
+			if err != nil {
+				engine.Error <- err
+				break
+			}
+
+			engine.Out <- msg
+		}
+
+		close(engine.Out)
+	}()
+
+	// sender
+	go func() {
+		for {
+			msg := <-engine.In
+			if err := engine.send(msg); err != nil {
+				engine.Error <- err
+				close(engine.In)
+				return
+			}
+		}
+	}()
+
 	return &engine, nil
 }
 
-func (engine *Engine) Run(strategy Strategy) error {
-	strategy.Start(engine)
+/*
+type StateFn func(v interface{}) (StateFn, error)
 
+func (engine *Engine) Run(fn StateFn) error {
 	for {
 		msg, err := engine.Receive()
-
 		if err != nil {
-			strategy.Error(err)
 			return err
 		}
 
-		if !strategy.Step(msg) {
+		fn, err := fn(msg)
+		if err != nil {
+			return err
+		}
+
+		if fn == nil {
 			break
 		}
 	}
 
 	return nil
 }
+*/
 
 type PacketError struct {
 	Value interface{}
@@ -131,12 +169,10 @@ func dump(b *bytes.Buffer) {
 	fmt.Printf("Buffer = '%s'\n", s)
 }
 
-func (engine *Engine) Send(tick int64, v interface{}) error {
+func (engine *Engine) send(v interface{}) error {
 	type header struct {
-		//Client  int64
 		Code    int64
 		Version int64
-		Tick    int64
 	}
 
 	engine.output.Reset()
@@ -149,12 +185,10 @@ func (engine *Engine) Send(tick int64, v interface{}) error {
 	// encode message type and client version
 	ver := code2Version(code)
 	hdr := &header{
-		//Client:  engine.client,
 		Code:    code,
 		Version: ver,
-		Tick:    tick,
 	}
-	fmt.Printf("Sending message '%v' with code %d and tick id %d\n", v, code, hdr.Tick)
+	fmt.Printf("Sending message '%v' with code %d\n", v, code)
 	if err := Encode(engine.output, hdr); err != nil {
 		return err
 	}
@@ -173,7 +207,7 @@ func (engine *Engine) Send(tick int64, v interface{}) error {
 	return nil
 }
 
-func (engine *Engine) Receive() (interface{}, error) {
+func (engine *Engine) receive() (interface{}, error) {
 	type header struct {
 		Code    int64
 		Version int64
@@ -218,13 +252,3 @@ func (engine *Engine) read(v interface{}) error {
 	}
 	return nil
 }
-
-func (engine *Engine) NextTick() int64 {
-	engine.tick = <-engine.nextTick
-	return engine.tick
-}
-
-func (engine *Engine) Tick() int64 {
-	return engine.tick
-}
-

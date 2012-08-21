@@ -863,6 +863,7 @@ type MarketDataType struct {
 }
 
 type RequestMarketData struct {
+	RequestId       int64
 	ContractId      int64
 	Symbol          string
 	SecurityType    string
@@ -881,9 +882,11 @@ type RequestMarketData struct {
 }
 
 type CancelMarketData struct {
+	RequestId int64
 }
 
 type RequestContractData struct {
+	RequestId      int64
 	ContractId     int64
 	Symbol         string
 	SecurityType   string
