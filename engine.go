@@ -90,6 +90,25 @@ func Connect(client int64) (*Engine, error) {
 	return &engine, nil
 }
 
+func (engine *Engine) Run(strategy Strategy) error {
+	strategy.Start(engine)
+
+	for {
+		msg, err := engine.Receive()
+
+		if err != nil {
+			strategy.Error(err)
+			return err
+		}
+
+		if !strategy.Step(msg) {
+			break
+		}
+	}
+
+	return nil
+}
+
 type PacketError struct {
 	Value interface{}
 	Type  reflect.Type
@@ -208,3 +227,4 @@ func (engine *Engine) NextTick() int64 {
 func (engine *Engine) Tick() int64 {
 	return engine.tick
 }
+
