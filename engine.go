@@ -175,7 +175,7 @@ func (engine *Engine) send(v interface{}) error {
 		Code:    code,
 		Version: ver,
 	}
-	fmt.Printf("Sending message '%v' with code %d\n", v, code)
+
 	if err := Encode(engine.output, hdr); err != nil {
 		return err
 	}

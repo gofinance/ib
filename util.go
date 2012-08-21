@@ -31,8 +31,8 @@ done:
 			case TickLast:
 				last = v.Price
 				break done
-				//default:
-				//    log.Printf("unhandled tick type %d", v.Type)                
+            default:
+                unknown <- v
 			}
 		default:
 			// handle somewhere else

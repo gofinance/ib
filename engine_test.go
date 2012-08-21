@@ -1,7 +1,6 @@
 package trade
 
 import (
-	"fmt"
 	"reflect"
 	"testing"
 	"time"
@@ -27,7 +26,7 @@ func (engine *Engine) expect(t *testing.T, expected int64) (interface{}, error) 
 
 		if code != expected {
 			// wrong message received
-			fmt.Printf("received packet '%v' of type '%v'\n",
+			t.Logf("received packet '%v' of type '%v'\n",
 				v, reflect.ValueOf(v).Type())
 			continue
 		}
@@ -66,7 +65,7 @@ func TestMarketData(t *testing.T) {
 		t.Fatalf("cannot receive market data: %s", err)
 	}
 
-	fmt.Printf("received packet '%v' of type %v\n", rep1, reflect.ValueOf(rep1).Type())
+	t.Logf("received packet '%v' of type %v\n", rep1, reflect.ValueOf(rep1).Type())
 
 	engine.In <- &CancelMarketData{tick}
 }
@@ -92,14 +91,14 @@ func TestContractDetails(t *testing.T) {
 		t.Fatalf("cannot receive contract details: %s", err)
 	}
 
-	fmt.Printf("received packet '%v' of type %v\n", rep1, reflect.ValueOf(rep1).Type())
+	t.Logf("received packet '%v' of type %v\n", rep1, reflect.ValueOf(rep1).Type())
 
 	rep2, err := engine.expect(t, mContractDataEnd)
 	if err != nil {
 		t.Fatalf("cannot receive end of contract details: %s", err)
 	}
 
-	fmt.Printf("received packet '%v' of type %v\n", rep2, reflect.ValueOf(rep2).Type())
+	t.Logf("received packet '%v' of type %v\n", rep2, reflect.ValueOf(rep2).Type())
 }
 
 func TestOptionChain(t *testing.T) {
@@ -121,5 +120,36 @@ func TestOptionChain(t *testing.T) {
 		t.Fatalf("cannot receive contract details: %s", err)
 	}
 
-	fmt.Printf("received packet '%v' of type %v\n", rep1, reflect.ValueOf(rep1).Type())
+	t.Logf("received packet '%v' of type %v\n", rep1, reflect.ValueOf(rep1).Type())
+}
+
+func TestPriceSnapshot(t *testing.T) {
+	engine, err := NewEngine(4)
+	if err != nil {
+		t.Fatalf("cannot connect engine: %s", err)
+	}
+
+	sink := make(chan interface{})
+
+	go func() {
+		for {
+			<-sink
+		}
+	}()
+
+	stock := &Stock{
+		Symbol:   "AAPL",
+		Exchange: "SMART",
+		Currency: "USD",
+	}
+
+	price, err := engine.GetPriceSnapshot(stock, sink)
+
+	if err != nil {
+		t.Fatalf("cannot get price snapshot: %s", err)
+	}
+
+	if price <= 0 {
+		t.Fatalf("wrong price in snapshot")
+	}
 }
