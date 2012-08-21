@@ -30,6 +30,17 @@ type Engine struct {
 	serverVersion int64
 }
 
+type TimeoutError struct {
+}
+
+func (e *TimeoutError) Error() string {
+	return fmt.Sprintf("tradine engine: timeout while trying to receive message")
+}
+
+func timeout() error {
+	return &TimeoutError{}
+}
+
 func uniqueId() chan int64 {
 	ch := make(chan int64)
 	id := int64(0)
@@ -122,30 +133,6 @@ func NewEngine(client int64) (*Engine, error) {
 
 	return &engine, nil
 }
-
-/*
-type StateFn func(v interface{}) (StateFn, error)
-
-func (engine *Engine) Run(fn StateFn) error {
-	for {
-		msg, err := engine.Receive()
-		if err != nil {
-			return err
-		}
-
-		fn, err := fn(msg)
-		if err != nil {
-			return err
-		}
-
-		if fn == nil {
-			break
-		}
-	}
-
-	return nil
-}
-*/
 
 type PacketError struct {
 	Value interface{}
