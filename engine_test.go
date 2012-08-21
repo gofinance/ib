@@ -174,7 +174,7 @@ func TestOptionChain(t *testing.T) {
 		Currency: "USD",
 	}
 
-	chains, err := engine.GetOptionChains(stock, sink) 
+	chains, err := engine.GetOptionChains(stock, sink)
 	if err != nil {
 		t.Fatalf("cannot get option chains: %s", err)
 	}

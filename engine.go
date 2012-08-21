@@ -15,10 +15,15 @@ const (
 	gateway = "127.0.0.1:4001"
 )
 
+// Engine is the entry point to the IB TWS API
 type Engine struct {
-	Tick          chan RequestId
-	In            chan interface{}
-	Out           chan interface{}
+	// Returns a unique request id when read
+	Tick chan RequestId
+	// Write requests to this channel
+	In chan interface{}
+	// Read replies from this channel
+	Out chan interface{}
+	// Read errors from this channel
 	Error         chan error
 	client        int64
 	con           net.Conn
@@ -30,15 +35,15 @@ type Engine struct {
 	serverVersion int64
 }
 
-type TimeoutError struct {
+type timeoutError struct {
 }
 
-func (e *TimeoutError) Error() string {
+func (e *timeoutError) Error() string {
 	return fmt.Sprintf("tradine engine: timeout while trying to receive message")
 }
 
 func timeout() error {
-	return &TimeoutError{}
+	return &timeoutError{}
 }
 
 func uniqueId() chan RequestId {
@@ -53,6 +58,8 @@ func uniqueId() chan RequestId {
 	return ch
 }
 
+// NewEngine takes a client id and returns a new connection 
+// to IB Gateway or IB Trader Workstation.
 func NewEngine(client int64) (*Engine, error) {
 	con, err := net.Dial("tcp", gateway)
 	if err != nil {
@@ -134,20 +141,20 @@ func NewEngine(client int64) (*Engine, error) {
 	return &engine, nil
 }
 
-type PacketError struct {
-	Value interface{}
-	Type  reflect.Type
+type packetError struct {
+	value interface{}
+	kind  reflect.Type
 }
 
-func (e *PacketError) Error() string {
+func (e *packetError) Error() string {
 	return fmt.Sprintf("don't understand packet '%v' of type '%v'",
-		e.Value, e.Type)
+		e.value, e.kind)
 }
 
 func failPacket(v interface{}) error {
-	return &PacketError{
-		Value: v,
-		Type:  reflect.ValueOf(v).Type(),
+	return &packetError{
+		value: v,
+		kind:  reflect.ValueOf(v).Type(),
 	}
 }
 
