@@ -1,23 +1,47 @@
 package trade
 
 import (
-	"fmt"
-	"log"
+	"time"
 )
 
-// func Log(v ...): loging. give log information if debug is true
+func (engine *Engine) GetPriceSnapshot(inst Instrument, unknown chan interface{}) (float64, error) {
+	tick := <-engine.Tick
+	engine.In <- inst.MarketDataReq(tick)
 
-func trace(v ...interface{}) {
-	ret := fmt.Sprint(v)
-	log.Printf("CLIENT: %s", ret)
-}
+	var (
+		v    interface{}
+		last float64
+	)
 
-// func test(): testing for error
+done:
 
-func test(err error, mesg string) {
-	if err != nil {
-		log.Fatalf("CLIENT: ERROR: %v when %s", err, mesg)
-	} else {
-		trace("Ok: ", mesg)
+	for {
+		select {
+		case <-time.After(30 * time.Second):
+			return 0, timeout()
+		case v = <-engine.Out:
+		case err := <-engine.Error:
+			return 0, err
+		}
+
+		switch v.(type) {
+		case *TickPrice:
+			v := v.(*TickPrice)
+			switch v.Type {
+			case TickLast:
+				last = v.Price
+				break done
+				//default:
+				//    log.Printf("unhandled tick type %d", v.Type)                
+			}
+		default:
+			// handle somewhere else
+			unknown <- v
+		}
 	}
+
+	// cancel market data
+	engine.In <- &CancelMarketData{tick}
+
+	return last, nil
 }
