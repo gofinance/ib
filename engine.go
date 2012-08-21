@@ -16,7 +16,7 @@ const (
 )
 
 type Engine struct {
-	Tick          chan int64
+	Tick          chan RequestId
 	In            chan interface{}
 	Out           chan interface{}
 	Error         chan error
@@ -41,9 +41,9 @@ func timeout() error {
 	return &TimeoutError{}
 }
 
-func uniqueId() chan int64 {
-	ch := make(chan int64)
-	id := int64(0)
+func uniqueId() chan RequestId {
+	ch := make(chan RequestId)
+	id := RequestId(0)
 	go func() {
 		for {
 			ch <- id

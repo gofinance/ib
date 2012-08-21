@@ -86,8 +86,8 @@ const (
 const maxInt = int(^uint(0) >> 1)
 
 type (
-	TickType int64
-	TickerId int64
+	TickType  int64
+	RequestId int64
 )
 
 const (
@@ -411,7 +411,7 @@ type ContractDetails struct {
 // Ticks, etc.
 
 type TickPrice struct {
-	Id             TickerId
+	Id             RequestId
 	Type           TickType
 	Price          float64
 	Size           int64
@@ -419,13 +419,13 @@ type TickPrice struct {
 }
 
 type TickSize struct {
-	Id   TickerId
+	Id   RequestId
 	Type TickType
 	Size int64
 }
 
 type TickOptionComputation struct {
-	Id         TickerId
+	Id         RequestId
 	Type       TickType
 	ImpliedVol float64 // > 0
 	Delta      float64 // 0 <= delta <= 1	
@@ -438,19 +438,19 @@ type TickOptionComputation struct {
 }
 
 type TickGeneric struct {
-	Id    TickerId
+	Id    RequestId
 	Type  TickType
 	Value float64
 }
 
 type TickString struct {
-	Id    TickerId
+	Id    RequestId
 	Type  TickType
 	Value string
 }
 
 type TickEFP struct {
-	Id                   TickerId
+	Id                   RequestId
 	Type                 TickType
 	BasisPoints          float64
 	FormattedBasisPoints string
@@ -637,7 +637,7 @@ type NextValidId struct {
 }
 
 type ScannerData struct {
-	TickerId      int64
+	Id            RequestId
 	ScannerDetail []ScannerDetail
 }
 
@@ -663,7 +663,7 @@ type ScannerDetail struct {
 }
 
 type ContractData struct {
-	RequestId int64
+	Id RequestId
 	// ContractDetails
 	Symbol          string
 	SecType         string
@@ -694,7 +694,7 @@ type ContractData struct {
 }
 
 type BondContractData struct {
-	RequestId         int64
+	Id                RequestId
 	Symbol            string
 	SecType           string
 	Cusip             string
@@ -724,8 +724,8 @@ type BondContractData struct {
 }
 
 type ExecutionData struct {
-	RequestId int64
-	OrderId   int64
+	Id      RequestId
+	OrderId int64
 	// Contract
 	ContractId  int64
 	Symbol      string
@@ -788,7 +788,7 @@ type ReceiveFA struct {
 }
 
 type HistoricalData struct {
-	RequestId int64
+	Id        RequestId
 	StartDate string
 	EndDate   string
 	Data      []HistoricalDataItem
@@ -815,24 +815,24 @@ type CurrentTime struct {
 }
 
 type RealtimeBars struct {
-	RequestId int64
-	Time      int64
-	Open      float64
-	High      float64
-	Low       float64
-	Close     float64
-	Volume    float64
-	WAP       float64
-	Count     int64
+	Id     RequestId
+	Time   int64
+	Open   float64
+	High   float64
+	Low    float64
+	Close  float64
+	Volume float64
+	WAP    float64
+	Count  int64
 }
 
 type FundamentalData struct {
-	RequestId int64
-	Data      string
+	Id   RequestId
+	Data string
 }
 
 type ContractDataEnd struct {
-	RequestId int64
+	Id RequestId
 }
 
 type OpenOrderEnd struct {
@@ -843,27 +843,27 @@ type AccountDownloadEnd struct {
 }
 
 type ExecutionDataEnd struct {
-	RequestId int64
+	Id RequestId
 }
 
 type DeltaNeutralValidation struct {
-	RequestId  int64
+	Id         RequestId
 	ContractId int64
 	Delta      float64
 	Price      float64
 }
 
 type TickSnapshotEnd struct {
-	RequestId int64
+	Id RequestId
 }
 
 type MarketDataType struct {
-	RequestId int64
-	Type      int64
+	Id   RequestId
+	Type int64
 }
 
 type RequestMarketData struct {
-	RequestId       int64
+	Id              RequestId
 	ContractId      int64
 	Symbol          string
 	SecurityType    string
@@ -882,11 +882,11 @@ type RequestMarketData struct {
 }
 
 type CancelMarketData struct {
-	RequestId int64
+	Id RequestId
 }
 
 type RequestContractData struct {
-	RequestId      int64
+	Id             RequestId
 	ContractId     int64
 	Symbol         string
 	SecurityType   string

@@ -7,17 +7,6 @@ import (
 	"time"
 )
 
-type TimeoutError struct {
-}
-
-func (e *TimeoutError) Error() string {
-	return fmt.Sprintf("timeout while trying to receive message")
-}
-
-func timeout() error {
-	return &TimeoutError{}
-}
-
 func (engine *Engine) expect(t *testing.T, expected int64) (interface{}, error) {
 	var v interface{}
 
@@ -65,7 +54,7 @@ func TestMarketData(t *testing.T) {
 	tick := <-engine.Tick
 
 	engine.In <- &RequestMarketData{
-		RequestId:    tick,
+		Id:           tick,
 		Symbol:       "AAPL",
 		SecurityType: "STK",
 		Exchange:     "SMART",
@@ -91,7 +80,7 @@ func TestContractDetails(t *testing.T) {
 	tick := <-engine.Tick
 
 	engine.In <- &RequestContractData{
-		RequestId:    tick,
+		Id:           tick,
 		Symbol:       "AAPL",
 		SecurityType: "STK",
 		Exchange:     "SMART",
@@ -120,7 +109,7 @@ func TestOptionChain(t *testing.T) {
 	}
 
 	engine.In <- &RequestContractData{
-		RequestId:    <-engine.Tick,
+		Id:           <-engine.Tick,
 		Symbol:       "AAPL",
 		SecurityType: "OPT",
 		Exchange:     "SMART",
