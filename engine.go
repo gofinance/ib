@@ -176,12 +176,12 @@ func (engine *Engine) send(v interface{}) error {
 		Version: ver,
 	}
 
-	if err := Encode(engine.output, hdr); err != nil {
+	if err := encode(engine.output, reflect.ValueOf(hdr)); err != nil {
 		return err
 	}
 
 	// encode the message itself
-	if err := Encode(engine.output, v); err != nil {
+	if err := encode(engine.output, reflect.ValueOf(v)); err != nil {
 		return err
 	}
 
@@ -204,13 +204,13 @@ func (engine *Engine) receive() (interface{}, error) {
 	hdr := &header{}
 
 	// decode header
-	if err := Decode(engine.reader, hdr); err != nil {
+	if err := decode(engine.reader, reflect.ValueOf(hdr)); err != nil {
 		return nil, err
 	}
 
 	// decode message
 	v := code2Msg(hdr.Code)
-	if err := Decode(engine.reader, v); err != nil {
+	if err := decode(engine.reader, reflect.ValueOf(v)); err != nil {
 		return nil, err
 	}
 
@@ -220,7 +220,7 @@ func (engine *Engine) receive() (interface{}, error) {
 func (engine *Engine) write(v interface{}) error {
 	engine.output.Reset()
 
-	if err := Encode(engine.output, v); err != nil {
+	if err := encode(engine.output, reflect.ValueOf(v)); err != nil {
 		return err
 	}
 
@@ -234,7 +234,7 @@ func (engine *Engine) write(v interface{}) error {
 func (engine *Engine) read(v interface{}) error {
 	engine.input.Reset()
 
-	if err := Decode(engine.reader, v); err != nil {
+	if err := decode(engine.reader, reflect.ValueOf(v)); err != nil {
 		return err
 	}
 	return nil

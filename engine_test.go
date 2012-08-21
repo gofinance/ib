@@ -101,7 +101,7 @@ func TestContractDetails(t *testing.T) {
 	t.Logf("received packet '%v' of type %v\n", rep2, reflect.ValueOf(rep2).Type())
 }
 
-func TestOptionChain(t *testing.T) {
+func TestOptionChainRequest(t *testing.T) {
 	engine, err := NewEngine(3)
 	if err != nil {
 		t.Fatalf("cannot connect engine: %s", err)
@@ -151,5 +151,35 @@ func TestPriceSnapshot(t *testing.T) {
 
 	if price <= 0 {
 		t.Fatalf("wrong price in snapshot")
+	}
+}
+
+func TestOptionChain(t *testing.T) {
+	engine, err := NewEngine(5)
+	if err != nil {
+		t.Fatalf("cannot connect engine: %s", err)
+	}
+
+	sink := make(chan interface{})
+
+	go func() {
+		for {
+			<-sink
+		}
+	}()
+
+	stock := &Stock{
+		Symbol:   "AAPL",
+		Exchange: "SMART",
+		Currency: "USD",
+	}
+
+	chains, err := engine.GetOptionChains(stock, sink) 
+	if err != nil {
+		t.Fatalf("cannot get option chains: %s", err)
+	}
+
+	if len(chains) == 0 {
+		t.Fatalf("not option chains retrieved")
 	}
 }

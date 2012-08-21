@@ -3,6 +3,7 @@ package trade
 import (
 	"bufio"
 	"bytes"
+	"reflect"
 	"strconv"
 	"testing"
 	"time"
@@ -48,7 +49,7 @@ func makebuf() *bytes.Buffer {
 func testEncode(t *testing.T, v interface{}, s string) {
 	b := makebuf()
 
-	if err := Encode(b, v); err != nil {
+	if err := encode(b, reflect.ValueOf(v)); err != nil {
 		t.Fatal(err)
 	}
 
@@ -107,13 +108,13 @@ func TestEncodeTag(t *testing.T) {
 func testDecode(t *testing.T, src interface{}, dst interface{}) {
 	b := makebuf()
 
-	if err := Encode(b, src); err != nil {
+	if err := encode(b, reflect.ValueOf(src)); err != nil {
 		t.Fatal(err)
 	}
 
 	r := bufio.NewReader(bytes.NewReader(b.Bytes()))
 
-	if err := Decode(r, dst); err != nil {
+	if err := decode(r, reflect.ValueOf(dst)); err != nil {
 		t.Fatal(err)
 	}
 }

@@ -31,8 +31,8 @@ done:
 			case TickLast:
 				last = v.Price
 				break done
-            default:
-                unknown <- v
+			default:
+				unknown <- v
 			}
 		default:
 			// handle somewhere else

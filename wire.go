@@ -72,10 +72,6 @@ func skipField(v reflect.Value, f reflect.StructField) bool {
 	return false
 }
 
-func Encode(buf *bytes.Buffer, v interface{}) error {
-	return encode(buf, reflect.ValueOf(v))
-}
-
 func encode(buf *bytes.Buffer, v reflect.Value) error {
 	if v.Kind() == reflect.Ptr {
 		v = v.Elem()
@@ -165,10 +161,6 @@ func failDecode(d string, n string, t reflect.Type) error {
 		Name: n,
 		Type: t,
 	}
-}
-
-func Decode(b *bufio.Reader, v interface{}) error {
-	return decode(b, reflect.ValueOf(v))
 }
 
 func decode(b *bufio.Reader, v reflect.Value) error {
