@@ -9,8 +9,16 @@ type Instrument interface {
 	GetSymbol() string
 	GetExchange() string
 	GetCurrency() string
-	ContractDataReq() *RequestContractData
-	MarketDataReq(tick RequestId) *RequestMarketData
+}
+
+type Quotable interface {
+    Instrument
+    MarketDataReq(tick RequestId) *RequestMarketData
+}
+
+type Discoverable interface {
+    Instrument
+    ContractDataReq() *RequestContractData
 }
 
 // Stock
@@ -112,72 +120,3 @@ func (option *Option) MarketDataReq(tick RequestId) *RequestMarketData {
 	}
 }
 
-// Butterfly
-
-type Butterfly struct {
-	Higher  Option
-	Neutral Option
-	Lower   Option
-}
-
-func NewFly(spot Instrument, expiry time.Time, strike float64, wingspan int) *Butterfly {
-	span := float64(wingspan)
-	// Wing 1
-	lower := Option{
-		Symbol:   spot.GetSymbol(),
-		Exchange: spot.GetExchange(),
-		Currency: spot.GetCurrency(),
-		Strike:   strike - span,
-		Expiry:   expiry,
-	}
-	// Body strike
-	neutral := Option{
-		Symbol:   spot.GetSymbol(),
-		Exchange: spot.GetExchange(),
-		Currency: spot.GetCurrency(),
-		Strike:   strike,
-		Expiry:   expiry,
-	}
-	// Wing 2
-	higher := Option{
-		Symbol:   spot.GetSymbol(),
-		Exchange: spot.GetExchange(),
-		Currency: spot.GetCurrency(),
-		Strike:   strike + span,
-		Expiry:   expiry,
-	}
-	return &Butterfly{
-		Neutral: neutral,
-		Lower:   lower,
-		Higher:  higher,
-	}
-}
-
-func (fly *Butterfly) MarketDataReq(tick RequestId) *RequestMarketData {
-	neutral := ComboLeg{
-		ContractId: fly.Neutral.ContractId,
-		Ratio:      2,
-		Action:     "SELL",
-		Exchange:   fly.Neutral.Exchange,
-	}
-	lower := ComboLeg{
-		ContractId: fly.Lower.ContractId,
-		Ratio:      1,
-		Action:     "BUY",
-		Exchange:   fly.Lower.Exchange,
-	}
-	higher := ComboLeg{
-		ContractId: fly.Higher.ContractId,
-		Ratio:      1,
-		Action:     "BUY",
-		Exchange:   fly.Higher.Exchange,
-	}
-	return &RequestMarketData{
-		Id:           tick,
-		Symbol:       fly.Neutral.Symbol,
-		SecurityType: "OPT",
-		Exchange:     fly.Neutral.Exchange,
-		Currency:     fly.Neutral.Currency,
-		ComboLegs:    []ComboLeg{lower, neutral, higher},
-	}
-}

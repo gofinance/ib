@@ -1,6 +1,6 @@
 package trade
 
-func (engine *Engine) GetPriceSnapshot(inst Instrument, sink Sink) (float64, error) {
+func (engine *Engine) GetPriceSnapshot(inst Quotable, sink Sink) (float64, error) {
 	id := engine.NextRequestId()
 
 	if err := engine.Send(inst.MarketDataReq(id)); err != nil {

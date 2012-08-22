@@ -18,7 +18,7 @@ type Strike struct {
 	Call  *Option
 }
 
-func (engine *Engine) GetOptionChains(spot Instrument, sink Sink) (OptionChains, error) {
+func (engine *Engine) GetOptionChains(spot Discoverable, sink Sink) (OptionChains, error) {
 	req := spot.ContractDataReq()
 	req.SecurityType = "OPT"
 
