@@ -249,16 +249,16 @@ type TickSize struct {
 }
 
 type TickOptionComputation struct {
-	Id         RequestId
-	Type       TickType
-	ImpliedVol float64 // > 0
-	Delta      float64 // 0 <= delta <= 1	
-	OptPrice   float64
-	PvDividend float64
-	Gamma      float64
-	Vega       float64
-	Theta      float64
-	SpotPrice  float64
+	Id          RequestId
+	Type        TickType
+	ImpliedVol  float64 // > 0
+	Delta       float64 // 0 <= delta <= 1	
+	OptionPrice float64
+	PvDividend  float64
+	Gamma       float64
+	Vega        float64
+	Theta       float64
+	SpotPrice   float64
 }
 
 type TickGeneric struct {

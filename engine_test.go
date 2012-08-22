@@ -49,12 +49,12 @@ func TestMarketData(t *testing.T) {
 	id := engine.NextRequestId()
 
 	req1 := &RequestMarketData{
-		Id:           id,
-		Contract : Contract{
-		Symbol:       "AAPL",
-		SecurityType: "STK",
-		Exchange:     "SMART",
-		Currency:     "USD",
+		Id: id,
+		Contract: Contract{
+			Symbol:       "AAPL",
+			SecurityType: "STK",
+			Exchange:     "SMART",
+			Currency:     "USD",
 		},
 	}
 
@@ -85,11 +85,11 @@ func TestContractDetails(t *testing.T) {
 	id := engine.NextRequestId()
 
 	req1 := &RequestContractData{
-		Id: id,
-			Symbol:       "AAPL",
-			SecurityType: "STK",
-			Exchange:     "SMART",
-			Currency:     "USD",
+		Id:           id,
+		Symbol:       "AAPL",
+		SecurityType: "STK",
+		Exchange:     "SMART",
+		Currency:     "USD",
 	}
 
 	if err := engine.Send(req1); err != nil {
@@ -121,11 +121,11 @@ func TestOptionChainRequest(t *testing.T) {
 	}
 
 	req1 := &RequestContractData{
-		Id: engine.NextRequestId(),
-			Symbol:       "AAPL",
-			SecurityType: "OPT",
-			Exchange:     "SMART",
-			Currency:     "USD",
+		Id:           engine.NextRequestId(),
+		Symbol:       "AAPL",
+		SecurityType: "OPT",
+		Exchange:     "SMART",
+		Currency:     "USD",
 	}
 
 	if err := engine.Send(req1); err != nil {
