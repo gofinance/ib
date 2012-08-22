@@ -10,7 +10,7 @@ func (engine *Engine) expect(t *testing.T, expected int64) (v interface{}, err e
 		v, err = engine.Receive()
 
 		if err != nil {
-			t.Fatalf("error reading from pump: %s", err)
+			t.Fatalf("error reading message from engine: %s", err)
 		}
 
 		code := msg2Code(v)
@@ -23,7 +23,7 @@ func (engine *Engine) expect(t *testing.T, expected int64) (v interface{}, err e
 			break
 		} else {
 			// wrong message received
-			t.Logf("received packet '%v' of type '%v'\n",
+			t.Logf("received message '%v' of type '%v'\n",
 				v, reflect.ValueOf(v).Type())
 		}
 	}
@@ -32,7 +32,7 @@ func (engine *Engine) expect(t *testing.T, expected int64) (v interface{}, err e
 }
 
 func TestConnect(t *testing.T) {
-	_, err := NewEngine(0)
+	_, err := NewEngine(1)
 
 	if err != nil {
 		t.Fatalf("cannot connect engine: %s", err)
@@ -40,7 +40,7 @@ func TestConnect(t *testing.T) {
 }
 
 func TestMarketData(t *testing.T) {
-	engine, err := NewEngine(1)
+	engine, err := NewEngine(2)
 
 	if err != nil {
 		t.Fatalf("cannot connect engine: %s", err)
@@ -49,11 +49,11 @@ func TestMarketData(t *testing.T) {
 	id := engine.NextRequestId()
 
 	req1 := &RequestMarketData{
-		Id:           id,
-		Symbol:       "AAPL",
-		SecurityType: "STK",
-		Exchange:     "SMART",
-		Currency:     "USD",
+		Id: id,
+			Symbol:       "AAPL",
+			SecurityType: "STK",
+			Exchange:     "SMART",
+			Currency:     "USD",
 	}
 
 	if err := engine.Send(req1); err != nil {
@@ -74,7 +74,7 @@ func TestMarketData(t *testing.T) {
 }
 
 func TestContractDetails(t *testing.T) {
-	engine, err := NewEngine(2)
+	engine, err := NewEngine(3)
 
 	if err != nil {
 		t.Fatalf("cannot connect engine: %s", err)
@@ -83,11 +83,13 @@ func TestContractDetails(t *testing.T) {
 	id := engine.NextRequestId()
 
 	req1 := &RequestContractData{
-		Id:           id,
-		Symbol:       "AAPL",
-		SecurityType: "STK",
-		Exchange:     "SMART",
-		Currency:     "USD",
+		Id: id,
+		Contract: Contract{
+			Symbol:       "AAPL",
+			SecurityType: "STK",
+			Exchange:     "SMART",
+			Currency:     "USD",
+		},
 	}
 
 	if err := engine.Send(req1); err != nil {
@@ -112,18 +114,20 @@ func TestContractDetails(t *testing.T) {
 }
 
 func TestOptionChainRequest(t *testing.T) {
-	engine, err := NewEngine(3)
+	engine, err := NewEngine(4)
 
 	if err != nil {
 		t.Fatalf("cannot connect engine: %s", err)
 	}
 
 	req1 := &RequestContractData{
-		Id:           engine.NextRequestId(),
-		Symbol:       "AAPL",
-		SecurityType: "OPT",
-		Exchange:     "SMART",
-		Currency:     "USD",
+		Id: engine.NextRequestId(),
+		Contract: Contract{
+			Symbol:       "AAPL",
+			SecurityType: "OPT",
+			Exchange:     "SMART",
+			Currency:     "USD",
+		},
 	}
 
 	if err := engine.Send(req1); err != nil {
@@ -140,7 +144,7 @@ func TestOptionChainRequest(t *testing.T) {
 }
 
 func TestPriceSnapshot(t *testing.T) {
-	engine, err := NewEngine(4)
+	engine, err := NewEngine(5)
 
 	if err != nil {
 		t.Fatalf("cannot connect engine: %s", err)
@@ -149,9 +153,11 @@ func TestPriceSnapshot(t *testing.T) {
 	sink := func(v interface{}) {}
 
 	stock := &Stock{
-		Symbol:   "AAPL",
-		Exchange: "SMART",
-		Currency: "USD",
+		Contract{
+			Symbol:   "AAPL",
+			Exchange: "SMART",
+			Currency: "USD",
+		},
 	}
 
 	price, err := engine.GetPriceSnapshot(stock, sink)
@@ -166,7 +172,7 @@ func TestPriceSnapshot(t *testing.T) {
 }
 
 func TestOptionChain(t *testing.T) {
-	engine, err := NewEngine(5)
+	engine, err := NewEngine(6)
 
 	if err != nil {
 		t.Fatalf("cannot connect engine: %s", err)
@@ -175,9 +181,11 @@ func TestOptionChain(t *testing.T) {
 	sink := func(v interface{}) {}
 
 	stock := &Stock{
-		Symbol:   "AAPL",
-		Exchange: "SMART",
-		Currency: "USD",
+		Contract{
+			Symbol:   "AAPL",
+			Exchange: "SMART",
+			Currency: "USD",
+		},
 	}
 
 	chains, err := engine.GetOptionChains(stock, sink)
