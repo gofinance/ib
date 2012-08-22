@@ -68,7 +68,11 @@ done:
 
 func (strike *Strike) update(v *ContractData) {
 	option := &Option{
-		ContractId: v.ContractId,
+		Symbol:      v.Symbol,
+		LocalSymbol: v.LocalSymbol,
+		Exchange:    v.Exchange,
+		Currency:    v.Currency,
+		ContractId:  v.ContractId,
 	}
 
 	if v.Right == "C" {

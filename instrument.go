@@ -12,13 +12,13 @@ type Instrument interface {
 }
 
 type Quotable interface {
-    Instrument
-    MarketDataReq(tick RequestId) *RequestMarketData
+	Instrument
+	MarketDataReq(tick RequestId) *RequestMarketData
 }
 
 type Discoverable interface {
-    Instrument
-    ContractDataReq() *RequestContractData
+	Instrument
+	ContractDataReq() *RequestContractData
 }
 
 // Stock
@@ -75,13 +75,14 @@ const (
 )
 
 type Option struct {
-	ContractId int64
-	Symbol     string
-	Exchange   string
-	Currency   string
-	Expiry     time.Time
-	Strike     float64
-	Type       OptionType
+	ContractId  int64
+	Symbol      string
+	LocalSymbol string
+	Exchange    string
+	Currency    string
+	Expiry      time.Time
+	Strike      float64
+	Type        OptionType
 }
 
 func (option *Option) GetContractId() int64 {
@@ -119,4 +120,3 @@ func (option *Option) MarketDataReq(tick RequestId) *RequestMarketData {
 		Currency:     option.Currency,
 	}
 }
-
