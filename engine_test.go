@@ -69,7 +69,7 @@ func TestMarketData(t *testing.T) {
 	t.Logf("received packet '%v' of type %v\n", rep1, reflect.ValueOf(rep1).Type())
 
 	if err := engine.Send(&CancelMarketData{id}); err != nil {
-		t.Fatalf("cannot send cancel request: %s", err)		
+		t.Fatalf("cannot send cancel request: %s", err)
 	}
 }
 
@@ -141,7 +141,7 @@ func TestOptionChainRequest(t *testing.T) {
 
 func TestPriceSnapshot(t *testing.T) {
 	engine, err := NewEngine(4)
-	
+
 	if err != nil {
 		t.Fatalf("cannot connect engine: %s", err)
 	}
@@ -167,7 +167,7 @@ func TestPriceSnapshot(t *testing.T) {
 
 func TestOptionChain(t *testing.T) {
 	engine, err := NewEngine(5)
-	
+
 	if err != nil {
 		t.Fatalf("cannot connect engine: %s", err)
 	}

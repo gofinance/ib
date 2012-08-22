@@ -233,8 +233,7 @@ type ContractDetails struct {
 	notes             string
 }
 
-// Ticks, etc.
-
+// TickPrice holds bid, ask, last, etc. price information
 type TickPrice struct {
 	Id             RequestId
 	Type           TickType
