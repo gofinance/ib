@@ -1,26 +1,21 @@
 package trade
 
-import (
-	"time"
-)
+func (engine *Engine) GetPriceSnapshot(inst Instrument, sink Sink) (float64, error) {
+	id := engine.NextRequestId()
 
-func (engine *Engine) GetPriceSnapshot(inst Instrument, unknown chan interface{}) (float64, error) {
-	tick := <-engine.Tick
-	engine.In <- inst.MarketDataReq(tick)
+	if err := engine.Send(inst.MarketDataReq(id)); err != nil {
+		return 0, err
+	}
 
-	var (
-		v    interface{}
-		last float64
-	)
+	var last float64
 
 done:
 
 	for {
-		select {
-		case <-time.After(30 * time.Second):
-			return 0, timeout()
-		case v = <-engine.Out:
-		case err := <-engine.Error:
+
+		v, err := engine.Receive()
+
+		if err != nil {
 			return 0, err
 		}
 
@@ -32,16 +27,18 @@ done:
 				last = v.Price
 				break done
 			default:
-				unknown <- v
+				sink(v)
 			}
 		default:
 			// handle somewhere else
-			unknown <- v
+			sink(v)
 		}
 	}
 
 	// cancel market data
-	engine.In <- &CancelMarketData{tick}
+	if err := engine.Send(&CancelMarketData{id}); err != nil {
+		return 0, err
+	}
 
 	return last, nil
 }

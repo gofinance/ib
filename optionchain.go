@@ -18,25 +18,24 @@ type Strike struct {
 	Call  *Option
 }
 
-func (engine *Engine) GetOptionChains(spot Instrument, unknown chan interface{}) (OptionChains, error) {
+func (engine *Engine) GetOptionChains(spot Instrument, sink Sink) (OptionChains, error) {
 	req := spot.ContractDataReq()
 	req.SecurityType = "OPT"
-	engine.In <- req
+
+	if err := engine.Send(req); err != nil {
+		return nil, err
+	}
 
 	// temporary option chains
 	chains := make(OptionChains)
-
-	var v interface{}
 
 done:
 
 	// message loop
 	for {
-		select {
-		case <-time.After(30 * time.Second):
-			return nil, timeout()
-		case v = <-engine.Out:
-		case err := <-engine.Error:
+		v, err := engine.Receive()
+
+		if err != nil {
 			return nil, err
 		}
 
@@ -60,7 +59,7 @@ done:
 				chains[expiry] = chain
 			}
 		default:
-			unknown <- v
+			sink(v)
 		}
 	}
 

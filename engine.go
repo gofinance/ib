@@ -17,14 +17,10 @@ const (
 
 // Engine is the entry point to the IB TWS API
 type Engine struct {
-	// Returns a unique request id when read
-	Tick chan RequestId
-	// Write requests to this channel
-	In chan interface{}
-	// Read replies from this channel
-	Out chan interface{}
-	// Read errors from this channel
-	Error         chan error
+	timeout       time.Duration
+	tick          chan RequestId
+	data          chan interface{}
+	err           chan error
 	client        int64
 	con           net.Conn
 	reader        *bufio.Reader
@@ -34,6 +30,10 @@ type Engine struct {
 	clientVersion int64
 	serverVersion int64
 }
+
+// Sink is intended to be a closure that 
+// handles messages not handled otherwise.
+type Sink func(interface{})
 
 type timeoutError struct {
 }
@@ -72,12 +72,13 @@ func NewEngine(client int64) (*Engine, error) {
 	tick := uniqueId()
 
 	engine := Engine{
-		client: client,
-		Tick:   tick,
-		con:    con,
-		reader: reader,
-		input:  input,
-		output: output,
+		timeout: 10 * time.Second,
+		client:  client,
+		tick:    tick,
+		con:     con,
+		reader:  reader,
+		input:   input,
+		output:  output,
 	}
 
 	// write client version
@@ -107,63 +108,51 @@ func NewEngine(client int64) (*Engine, error) {
 	engine.serverVersion = sver.Version
 	engine.serverTime = tm.Time
 
-	engine.Out = make(chan interface{})
-	engine.In = make(chan interface{})
-	engine.Error = make(chan error)
+	engine.data = make(chan interface{})
+	engine.err = make(chan error)
 
 	// receiver
 	go func() {
 		for {
 			msg, err := engine.receive()
 			if err != nil {
-				engine.Error <- err
+				engine.err <- err
 				break
 			}
 
-			engine.Out <- msg
+			engine.data <- msg
 		}
 
-		close(engine.Out)
-	}()
-
-	// sender
-	go func() {
-		for {
-			msg := <-engine.In
-			if err := engine.send(msg); err != nil {
-				engine.Error <- err
-				close(engine.In)
-				return
-			}
-		}
+		close(engine.data)
+		close(engine.err)
 	}()
 
 	return &engine, nil
 }
 
-type packetError struct {
-	value interface{}
-	kind  reflect.Type
+// NextRequestId returns a unique request id.
+func (engine *Engine) NextRequestId() RequestId {
+	return <-engine.tick
 }
 
-func (e *packetError) Error() string {
-	return fmt.Sprintf("don't understand packet '%v' of type '%v'",
-		e.value, e.kind)
+// SetTimeout sets the timeout used when receiving messages.
+func (engine *Engine) SetTimeout(timeout time.Duration) {
+	engine.timeout = timeout
 }
 
-func failPacket(v interface{}) error {
-	return &packetError{
-		value: v,
-		kind:  reflect.ValueOf(v).Type(),
+// Receive a message from the engine.
+func (engine *Engine) Receive() (v interface{}, err error) {
+	select {
+	case <-time.After(engine.timeout):
+		err = timeout()
+	case v = <-engine.data:
+	case err = <-engine.err:
 	}
+	return
 }
 
-func dump(b *bytes.Buffer) {
-	s := strings.Replace(b.String(), "\000", "-", -1)
-	fmt.Printf("Buffer = '%s'\n", s)
-}
-
-func (engine *Engine) send(v interface{}) error {
+// Send a message to the engine
+func (engine *Engine) Send(v interface{}) error {
 	type header struct {
 		Code    int64
 		Version int64
@@ -199,6 +188,28 @@ func (engine *Engine) send(v interface{}) error {
 	}
 
 	return nil
+}
+
+type packetError struct {
+	value interface{}
+	kind  reflect.Type
+}
+
+func (e *packetError) Error() string {
+	return fmt.Sprintf("don't understand packet '%v' of type '%v'",
+		e.value, e.kind)
+}
+
+func failPacket(v interface{}) error {
+	return &packetError{
+		value: v,
+		kind:  reflect.ValueOf(v).Type(),
+	}
+}
+
+func dump(b *bytes.Buffer) {
+	s := strings.Replace(b.String(), "\000", "-", -1)
+	fmt.Printf("Buffer = '%s'\n", s)
 }
 
 func (engine *Engine) receive() (interface{}, error) {
