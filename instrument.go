@@ -30,22 +30,22 @@ func (stock *Stock) GetContract() *Contract {
 
 func (stock *Stock) ContractDataReq() *RequestContractData {
 	return &RequestContractData{
-		Contract: Contract{
-			Symbol:       stock.Symbol,
-			SecurityType: "STK",
-			Exchange:     stock.Exchange,
-			Currency:     stock.Currency,
-		},
+		Symbol:       stock.Symbol,
+		SecurityType: "STK",
+		Exchange:     stock.Exchange,
+		Currency:     stock.Currency,
 	}
 }
 
 func (stock *Stock) MarketDataReq(tick RequestId) *RequestMarketData {
 	return &RequestMarketData{
 		Id: tick,
+		Contract: Contract{
 			Symbol:       stock.Symbol,
 			SecurityType: "STK",
 			Exchange:     stock.Exchange,
 			Currency:     stock.Currency,
+		},
 	}
 }
 
@@ -71,22 +71,22 @@ func (option *Option) GetContract() *Contract {
 
 func (option *Option) ContractDataReq() *RequestContractData {
 	return &RequestContractData{
-		Contract: Contract{
-			Symbol:       option.Symbol,
-			SecurityType: "OPT",
-			Exchange:     option.Exchange,
-			Currency:     option.Currency,
-		},
+		Symbol:       option.Symbol,
+		SecurityType: "OPT",
+		Exchange:     option.Exchange,
+		Currency:     option.Currency,
 	}
 }
 
 func (option *Option) MarketDataReq(tick RequestId) *RequestMarketData {
 	return &RequestMarketData{
 		Id: tick,
+		Contract: Contract{
 			ContractId:   option.ContractId,
 			Symbol:       option.Symbol,
 			SecurityType: "OPT",
 			Exchange:     option.Exchange,
 			Currency:     option.Currency,
+		},
 	}
 }

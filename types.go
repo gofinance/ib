@@ -685,17 +685,7 @@ type MarketDataType struct {
 
 type RequestMarketData struct {
 	Id RequestId
-	ContractId   int64
-	Symbol       string
-	SecurityType string
-	Expiry       string
-	Strike       float64
-	Right        string
-	Multiplier   string
-	Exchange     string
-	PrimaryExchange string
-	Currency        string
-	LocalSymbol     string
+	Contract
 	ComboLegs       []ComboLeg `when:"SecurityType" cond:"not" value:"BAG"`
 	Comp            *UnderComp
 	GenericTickList string
@@ -703,14 +693,15 @@ type RequestMarketData struct {
 }
 
 type Contract struct {
-	ContractId   int64
-	Symbol       string
-	SecurityType string
-	Expiry       string
-	Strike       float64
-	Right        string
-	Multiplier   string
-	Exchange     string
+	ContractId      int64
+	Symbol          string
+	SecurityType    string
+	Expiry          string
+	Strike          float64
+	Right           string
+	Multiplier      string
+	Exchange        string
+	PrimaryExchange string
 	Currency        string
 	LocalSymbol     string
 }
@@ -720,8 +711,17 @@ type CancelMarketData struct {
 }
 
 type RequestContractData struct {
-	Id RequestId
-	Contract
+	Id             RequestId
+	ContractId     int64
+	Symbol         string
+	SecurityType   string
+	Expiry         string
+	Strike         float64
+	Right          string
+	Multiplier     string
+	Exchange       string
+	Currency       string
+	LocalSymbol    string
 	IncludeExpired bool
 	SecurityIdType string
 	SecurityId     string
