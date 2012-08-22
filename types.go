@@ -679,16 +679,20 @@ type MarketDataType struct {
 	Type int64
 }
 
+///
+/// Outgoing messages
+///
+
 type RequestMarketData struct {
-	Id              RequestId
-	ContractId      int64
-	Symbol          string
-	SecurityType    string
-	Expiry          string
-	Strike          float64
-	Right           string
-	Multiplier      string
-	Exchange        string
+	Id RequestId
+	ContractId   int64
+	Symbol       string
+	SecurityType string
+	Expiry       string
+	Strike       float64
+	Right        string
+	Multiplier   string
+	Exchange     string
 	PrimaryExchange string
 	Currency        string
 	LocalSymbol     string
@@ -698,25 +702,53 @@ type RequestMarketData struct {
 	Snapshot        bool
 }
 
+type Contract struct {
+	ContractId   int64
+	Symbol       string
+	SecurityType string
+	Expiry       string
+	Strike       float64
+	Right        string
+	Multiplier   string
+	Exchange     string
+	Currency        string
+	LocalSymbol     string
+}
+
 type CancelMarketData struct {
 	Id RequestId
 }
 
 type RequestContractData struct {
-	Id             RequestId
-	ContractId     int64
-	Symbol         string
-	SecurityType   string
-	Expiry         string
-	Strike         float64
-	Right          string
-	Multiplier     string
-	Exchange       string
-	Currency       string
-	LocalSymbol    string
+	Id RequestId
+	Contract
 	IncludeExpired bool
 	SecurityIdType string
 	SecurityId     string
+}
+
+type RequestCalcImpliedVol struct {
+	Id RequestId
+	Contract
+	OptionPrice float64
+	// Underlying price
+	SpotPrice float64
+}
+
+type RequestCalcOptionPrice struct {
+	Id RequestId
+	Contract
+	// Implied volatility
+	Volatility float64
+	SpotPrice  float64
+}
+
+type CancelCalcImpliedVol struct {
+	Id RequestId
+}
+
+type CancelCalcOptionPrice struct {
+	Id RequestId
 }
 
 func code2Msg(code int64) interface{} {
@@ -871,6 +903,14 @@ func msg2Code(m interface{}) int64 {
 		return mCancelMarketData
 	case *RequestContractData:
 		return mRequestContractData
+	case *RequestCalcImpliedVol:
+		return mRequestCalcImpliedVol
+	case *RequestCalcOptionPrice:
+		return mRequestCalcOptionPrice
+	case *CancelCalcImpliedVol:
+		return mCancelCalcImpliedVol
+	case *CancelCalcOptionPrice:
+		return mCancelCalcOptionPrice
 	}
 	return 0
 }
@@ -881,6 +921,11 @@ func code2Version(code int64) int64 {
 		return 9
 	case mRequestContractData:
 		return 6
+	case mRequestCalcImpliedVol, mRequestCalcOptionPrice:
+		return 1
+	case mCancelCalcImpliedVol, mCancelCalcOptionPrice:
+		return 1
 	}
+
 	return 0
 }
