@@ -7,6 +7,10 @@ func (engine *Engine) GetPriceSnapshot(inst Quotable, sink Sink) (float64, error
 		return 0, err
 	}
 
+	defer func() {
+		engine.Send(&CancelMarketData{id})
+	}()
+
 	var last float64
 
 done:
@@ -33,11 +37,6 @@ done:
 			// handle somewhere else
 			sink(v)
 		}
-	}
-
-	// cancel market data
-	if err := engine.Send(&CancelMarketData{id}); err != nil {
-		return 0, err
 	}
 
 	return last, nil
