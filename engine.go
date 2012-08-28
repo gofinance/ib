@@ -18,8 +18,8 @@ const (
 // Engine is the entry point to the IB TWS API
 type Engine struct {
 	timeout       time.Duration
-	tick          chan RequestId
-	data          chan interface{}
+	tick          chan int64
+	data          chan reply
 	err           chan error
 	client        int64
 	con           net.Conn
@@ -46,9 +46,9 @@ func timeout() error {
 	return &timeoutError{}
 }
 
-func uniqueId() chan RequestId {
-	ch := make(chan RequestId)
-	id := RequestId(0)
+func uniqueId() chan int64 {
+	ch := make(chan int64)
+	id := int64(0)
 	go func() {
 		for {
 			ch <- id
@@ -81,34 +81,22 @@ func NewEngine(client int64) (*Engine, error) {
 		output:  output,
 	}
 
-	// write client version
-	cver := &clientVersion{version}
-	if err := engine.write(cver); err != nil {
+	// write client version and id
+	clientShake := &clientHandshake{version, client}
+	if err := engine.write(clientShake); err != nil {
 		return nil, err
 	}
 
-	// read server version
-	sver := &serverVersion{}
-	if err := engine.read(sver); err != nil {
+	// read server version and time
+	serverShake := &serverHandshake{}
+	if err := engine.read(serverShake); err != nil {
 		return nil, err
 	}
 
-	// read server time
-	tm := &serverTime{}
-	if err := engine.read(tm); err != nil {
-		return nil, err
-	}
+	engine.serverVersion = serverShake.version
+	engine.serverTime = serverShake.time
 
-	// write client id
-	id := &clientId{client}
-	if err := engine.write(id); err != nil {
-		return nil, err
-	}
-
-	engine.serverVersion = sver.Version
-	engine.serverTime = tm.Time
-
-	engine.data = make(chan interface{})
+	engine.data = make(chan reply)
 	engine.err = make(chan error)
 
 	// receiver
@@ -131,7 +119,7 @@ func NewEngine(client int64) (*Engine, error) {
 }
 
 // NextRequestId returns a unique request id.
-func (engine *Engine) NextRequestId() RequestId {
+func (engine *Engine) NextRequestId() int64 {
 	return <-engine.tick
 }
 
@@ -141,7 +129,7 @@ func (engine *Engine) SetTimeout(timeout time.Duration) {
 }
 
 // Receive a message from the engine.
-func (engine *Engine) Receive() (v interface{}, err error) {
+func (engine *Engine) Receive() (v reply, err error) {
 	select {
 	case <-time.After(engine.timeout):
 		err = timeout()
@@ -151,37 +139,42 @@ func (engine *Engine) Receive() (v interface{}, err error) {
 	return
 }
 
+type header struct {
+	code    int64
+	version int64
+}
+
+func (v *header) write(b *bytes.Buffer) {
+	writeInt(b, v.code)
+	writeInt(b, v.version)
+}
+
+func (v *header) read(b *bufio.Reader) {
+	v.code = readInt(b)
+	v.version = readInt(b)
+}
+
 // Send a message to the engine
-func (engine *Engine) Send(v interface{}) error {
-	type header struct {
-		Code    int64
-		Version int64
-	}
+func (engine *Engine) Send(v request) error {
 
 	engine.output.Reset()
 
-	code := msg2Code(v)
-	if code == 0 {
-		return failPacket(v)
-	}
-
 	// encode message type and client version
-	ver := code2Version(code)
 	hdr := &header{
-		Code:    code,
-		Version: ver,
+		code:    v.code(),
+		version: v.version(),
 	}
 
-	if err := encode(engine.output, reflect.ValueOf(hdr)); err != nil {
+	if err := write(engine.output, hdr); err != nil {
 		return err
 	}
 
 	// encode the message itself
-	if err := encode(engine.output, reflect.ValueOf(v)); err != nil {
+	if err := write(engine.output, v); err != nil {
 		return err
 	}
 
-	//dump(engine.output)
+	dump(engine.output)
 
 	if _, err := engine.con.Write(engine.output.Bytes()); err != nil {
 		return err
@@ -212,33 +205,28 @@ func dump(b *bytes.Buffer) {
 	fmt.Printf("Buffer = '%s'\n", s)
 }
 
-func (engine *Engine) receive() (interface{}, error) {
-	type header struct {
-		Code    int64
-		Version int64
-	}
-
+func (engine *Engine) receive() (reply, error) {
 	engine.input.Reset()
 	hdr := &header{}
 
 	// decode header
-	if err := decode(engine.reader, reflect.ValueOf(hdr)); err != nil {
+	if err := read(engine.reader, hdr); err != nil {
 		return nil, err
 	}
 
 	// decode message
-	v := code2Msg(hdr.Code)
-	if err := decode(engine.reader, reflect.ValueOf(v)); err != nil {
+	v := code2Msg(hdr.code)
+	if err := read(engine.reader, v); err != nil {
 		return nil, err
 	}
 
 	return v, nil
 }
 
-func (engine *Engine) write(v interface{}) error {
+func (engine *Engine) write(v writable) error {
 	engine.output.Reset()
 
-	if err := encode(engine.output, reflect.ValueOf(v)); err != nil {
+	if err := write(engine.output, v); err != nil {
 		return err
 	}
 
@@ -249,10 +237,10 @@ func (engine *Engine) write(v interface{}) error {
 	return nil
 }
 
-func (engine *Engine) read(v interface{}) error {
+func (engine *Engine) read(v readable) error {
 	engine.input.Reset()
 
-	if err := decode(engine.reader, reflect.ValueOf(v)); err != nil {
+	if err := read(engine.reader, v); err != nil {
 		return err
 	}
 	return nil

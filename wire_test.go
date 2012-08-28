@@ -3,212 +3,102 @@ package trade
 import (
 	"bufio"
 	"bytes"
-	"reflect"
 	"strconv"
 	"testing"
 	"time"
 )
 
-type intRec struct {
-	I int64
-}
-
-type int64Rec struct {
-	L int64
-}
-
-type stringRec struct {
-	S string
-}
-
-type timeRec struct {
-	T time.Time
-}
-
-type floatRec struct {
-	F float64
-}
-
-type item struct {
-	S string
-}
-
-type sliceRec struct {
-	Items []item
-}
-
-type tagRec struct {
-	S string
-	I int64 `when:"S" cond:"is" value:""`
-}
-
 func makebuf() *bytes.Buffer {
 	return bytes.NewBuffer(make([]byte, 0, 1024))
 }
 
-func testEncode(t *testing.T, v interface{}, s string) {
+func TestWriteString(t *testing.T) {
 	b := makebuf()
-
-	if err := encode(b, reflect.ValueOf(v)); err != nil {
-		t.Fatal(err)
-	}
-
-	if b.String() != s+"\000" {
-		t.Fatalf("encode(%v) = %s, want %s", v, b.String(), s)
+	writeString(b, "foobar")
+	expected := "foobar\000"
+	if b.String() != expected {
+		t.Fatalf("writeString('foobar') = %s, want %s", b.String(), expected)
 	}
 }
 
-func TestEncodeInt(t *testing.T) {
-	v := &intRec{I: 57}
-	testEncode(t, v, "57")
+func TestWriteInt(t *testing.T) {
+	b := makebuf()
+	writeInt(b, int64(57))
+	expected := "57\000"
+	if b.String() != expected {
+		t.Fatalf("writeInt(57) = %s, want %s", b.String(), expected)
+	}
 }
 
-func TestEncodeLong(t *testing.T) {
-	v := &int64Rec{L: 57}
-	testEncode(t, v, "57")
-}
-
-func TestEncodeString(t *testing.T) {
-	v := &stringRec{S: "foobar"}
-	testEncode(t, v, "foobar")
-}
-
-func TestEncodeTime(t *testing.T) {
+func TestWriteTime(t *testing.T) {
+	b := makebuf()
 	ts := time.Now()
-	v := &timeRec{T: ts}
-	testEncode(t, v, ts.Format(ibTimeFormat))
+	writeTime(b, ts)
+	expected := ts.Format(ibTimeFormat) + "\000"
+	if b.String() != expected {
+		t.Fatalf("writeTime(%s) = %s, want %s", ts, b.String(), expected)		
+	}
 }
 
-func TestEncodeFloat(t *testing.T) {
+func TestWriteFloat(t *testing.T) {
 	f := 0.535
-	v := &floatRec{F: f}
-	testEncode(t, v, strconv.FormatFloat(f, 'g', 10, 64))
+	b := makebuf()
+	writeFloat(b, f)
+	expected := strconv.FormatFloat(f, 'g', 10, 64) + "\000"
+	if b.String() != expected {
+		t.Fatalf("writeFloat(%g) = %s, want %s", f, b.String(), expected)
+	}
 }
 
-func TestEncodeEmptySlice(t *testing.T) {
-	v := &sliceRec{}
-	testEncode(t, v, "0")
-}
-
-func TestEncodeSlice(t *testing.T) {
-	v := &sliceRec{Items: []item{{"foo"}, {"bar"}}}
-	testEncode(t, v, "2\000foo\000bar")
-}
-
-func TestNotEncodeTag(t *testing.T) {
-	v := &tagRec{I: 10}
-	testEncode(t, v, "")
-}
-
-func TestEncodeTag(t *testing.T) {
-	v := &tagRec{S: "yes!", I: 10}
-	testEncode(t, v, "yes!\00010")
-}
-
-func testDecode(t *testing.T, src interface{}, dst interface{}) {
+func TestReadString(t *testing.T) {
+	x := "foobar"
 	b := makebuf()
 
-	if err := encode(b, reflect.ValueOf(src)); err != nil {
-		t.Fatal(err)
-	}
-
+	writeString(b, x)
 	r := bufio.NewReader(bytes.NewReader(b.Bytes()))
+	y := readString(r)
 
-	if err := decode(r, reflect.ValueOf(dst)); err != nil {
-		t.Fatal(err)
+	if x != y {
+		t.Fatalf("expected %d but got %d", x, y)
 	}
 }
 
-func TestDecodeInt(t *testing.T) {
-	v1 := &intRec{I: 57}
-	v2 := &intRec{}
+func TestReadInt(t *testing.T) {
+	x := int64(57)
+	b := makebuf()
 
-	testDecode(t, v1, v2)
+	writeInt(b, x)
+	r := bufio.NewReader(bytes.NewReader(b.Bytes()))
+	y := readInt(r)
 
-	if *v1 != *v2 {
-		t.Fatalf("decode got %v, want %v", v2, v1)
+	if x != y {
+		t.Fatalf("expected %d but got %d", x, y)
 	}
 }
 
-func TestDecodeString(t *testing.T) {
-	v1 := &stringRec{S: "foobar"}
-	v2 := &stringRec{}
+func TestReadTime(t *testing.T) {
+	x := time.Now()
+	x = x.Add(time.Duration(-1 * x.Nanosecond()))	
+	b := makebuf()
 
-	testDecode(t, v1, v2)
+	writeTime(b, x)
+	r := bufio.NewReader(bytes.NewReader(b.Bytes()))
+	y := readTime(r)
 
-	if *v1 != *v2 {
-		t.Fatalf("decode got %v, want %v", v2, v1)
+	if x != y {
+		t.Fatalf("expected %v but got %v", x, y)
 	}
 }
 
-func TestDecodeTime(t *testing.T) {
-	now := time.Now()
-	now = now.Add(time.Duration(-1 * now.Nanosecond()))
-	v1 := &timeRec{T: now}
-	v2 := &timeRec{}
+func TestReadFloat(t *testing.T) {
+	x := 0.545
+	b := makebuf()
 
-	testDecode(t, v1, v2)
+	writeFloat(b, x)
+	r := bufio.NewReader(bytes.NewReader(b.Bytes()))
+	y := readFloat(r)
 
-	if *v1 != *v2 {
-		t.Fatalf("decode got %v, want %v", v2, v1)
-	}
-}
-
-func TestDecodeFloat(t *testing.T) {
-	v1 := &floatRec{F: 0.545}
-	v2 := &floatRec{}
-
-	testDecode(t, v1, v2)
-
-	if *v1 != *v2 {
-		t.Fatalf("decode got %v, want %v", v2, v1)
-	}
-}
-
-func TestDecodeEmptySlice(t *testing.T) {
-	v1 := &sliceRec{}
-	v2 := &sliceRec{}
-
-	testDecode(t, v1, v2)
-
-	if len(v2.Items) != 0 {
-		t.Fatalf("decode got %v, want %v", v2, v1)
-	}
-}
-
-func TestDecodeSlice(t *testing.T) {
-	v1 := &sliceRec{Items: []item{{"foo"}, {"bar"}}}
-	v2 := &sliceRec{}
-
-	testDecode(t, v1, v2)
-
-	if len(v2.Items) != 2 {
-		t.Fatalf("decode got %v, want %v", v2, v1)
-	}
-
-	if v2.Items[0] != v1.Items[0] || v2.Items[1] != v1.Items[1] {
-		t.Fatalf("decode got %v, want %v", v2, v1)
-	}
-}
-
-func TestNotDecodeTag(t *testing.T) {
-	v1 := &tagRec{I: 10}
-	v2 := &tagRec{}
-
-	testDecode(t, v1, v2)
-
-	if v2.S != "" || v2.I != 0 {
-		t.Fatalf("decode got %v, want %v", v2, v1)
-	}
-}
-
-func TestDecodeTag(t *testing.T) {
-	v1 := &tagRec{S: "yes!", I: 10}
-	v2 := &tagRec{}
-
-	testDecode(t, v1, v2)
-
-	if *v1 != *v2 {
-		t.Fatalf("decode got %v, want %v", v2, v1)
+	if x != y {
+		t.Fatalf("expected %v but got %v", x, y)
 	}
 }

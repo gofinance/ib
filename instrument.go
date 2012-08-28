@@ -10,7 +10,7 @@ type Instrument interface {
 
 type Quotable interface {
 	Instrument
-	MarketDataReq(tick RequestId) *RequestMarketData
+	MarketDataReq(tick int64) *RequestMarketData
 }
 
 type Discoverable interface {
@@ -37,9 +37,8 @@ func (stock *Stock) ContractDataReq() *RequestContractData {
 	}
 }
 
-func (stock *Stock) MarketDataReq(tick RequestId) *RequestMarketData {
-	return &RequestMarketData{
-		Id: tick,
+func (stock *Stock) MarketDataReq(id int64) *RequestMarketData {
+	req := &RequestMarketData{
 		Contract: Contract{
 			Symbol:       stock.Symbol,
 			SecurityType: "STK",
@@ -47,6 +46,8 @@ func (stock *Stock) MarketDataReq(tick RequestId) *RequestMarketData {
 			Currency:     stock.Currency,
 		},
 	}
+	req.SetId(id)
+	return req
 }
 
 // Option
@@ -78,9 +79,8 @@ func (option *Option) ContractDataReq() *RequestContractData {
 	}
 }
 
-func (option *Option) MarketDataReq(tick RequestId) *RequestMarketData {
-	return &RequestMarketData{
-		Id: tick,
+func (option *Option) MarketDataReq(id int64) *RequestMarketData {
+	req := &RequestMarketData{
 		Contract: Contract{
 			ContractId:   option.ContractId,
 			Symbol:       option.Symbol,
@@ -89,4 +89,6 @@ func (option *Option) MarketDataReq(tick RequestId) *RequestMarketData {
 			Currency:     option.Currency,
 		},
 	}
+	req.SetId(id)
+	return req
 }

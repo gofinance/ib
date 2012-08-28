@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func (engine *Engine) expect(t *testing.T, expected int64) (v interface{}, err error) {
+func (engine *Engine) expect(t *testing.T, expected int64) (v reply, err error) {
 	for {
 		v, err = engine.Receive()
 
@@ -13,7 +13,7 @@ func (engine *Engine) expect(t *testing.T, expected int64) (v interface{}, err e
 			t.Fatalf("error reading message from engine: %s", err)
 		}
 
-		code := msg2Code(v)
+		code := v.code()
 
 		if code == 0 {
 			t.Fatalf("don't know message '%v'", v)
@@ -49,7 +49,6 @@ func TestMarketData(t *testing.T) {
 	id := engine.NextRequestId()
 
 	req1 := &RequestMarketData{
-		Id: id,
 		Contract: Contract{
 			Symbol:       "AAPL",
 			SecurityType: "STK",
@@ -57,6 +56,8 @@ func TestMarketData(t *testing.T) {
 			Currency:     "USD",
 		},
 	}
+
+	req1.SetId(id)
 
 	if err := engine.Send(req1); err != nil {
 		t.Fatalf("cannot send market data request: %s", err)
@@ -85,12 +86,13 @@ func TestContractDetails(t *testing.T) {
 	id := engine.NextRequestId()
 
 	req1 := &RequestContractData{
-		Id:           id,
 		Symbol:       "AAPL",
 		SecurityType: "STK",
 		Exchange:     "SMART",
 		Currency:     "USD",
 	}
+
+	req1.SetId(id)
 
 	if err := engine.Send(req1); err != nil {
 		t.Fatalf("cannot send contract data request: %s", err)
@@ -121,12 +123,13 @@ func TestOptionChainRequest(t *testing.T) {
 	}
 
 	req1 := &RequestContractData{
-		Id:           engine.NextRequestId(),
 		Symbol:       "AAPL",
 		SecurityType: "OPT",
 		Exchange:     "SMART",
 		Currency:     "USD",
 	}
+
+	req1.SetId(engine.NextRequestId())
 
 	if err := engine.Send(req1); err != nil {
 		t.Fatalf("cannot send contract data request: %s", err)
@@ -196,3 +199,5 @@ func TestOptionChain(t *testing.T) {
 		t.Fatalf("not option chains retrieved")
 	}
 }
+
+

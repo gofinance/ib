@@ -2,6 +2,8 @@ package trade
 
 import (
 	"time"
+	"bufio"
+	"bytes"
 )
 
 const (
@@ -82,13 +84,8 @@ const (
 
 const maxInt = int(^uint(0) >> 1)
 
-type (
-	TickType  int64
-	RequestId int64
-)
-
 const (
-	TickBidSize TickType = iota
+	TickBidSize int64 = iota
 	TickBid
 	TickAsk
 	TickAskSize
@@ -149,20 +146,37 @@ const (
 	TickNotSet
 )
 
-type serverVersion struct {
-	Version int64
+type request interface {
+	writable
+	SetId(id int64)
+	code() int64
+	version() int64
 }
 
-type clientVersion struct {
-	Version int64
+type reply interface {
+	readable
+	Id() int64
+	code() int64
 }
 
-type clientId struct {
-	Id int64
+type serverHandshake struct {
+	version int64
+	time time.Time
 }
 
-type serverTime struct {
-	Time time.Time
+func (v *serverHandshake) read(b *bufio.Reader) {
+	v.version = readInt(b)
+	v.time = readTime(b)
+}
+
+type clientHandshake struct {
+	version int64
+	id int64
+}
+
+func (v *clientHandshake) write(b *bytes.Buffer) {
+	writeInt(b, v.version)
+	writeInt(b, v.id)
 }
 
 // Contract
@@ -183,74 +197,79 @@ type ComboLeg struct {
 	Exchange   string
 }
 
+func (v *ComboLeg) write(b *bytes.Buffer) {
+	writeInt(b, v.ContractId)
+	writeInt(b, v.Ratio)
+	writeString(b, v.Action)
+	writeString(b, v.Exchange)
+}
+
 type UnderComp struct {
 	ContractId int64
 	Delta      float64
 	Price      float64
 }
 
-type ContractDetails struct {
-	ContractId        int64
-	Symbol            string
-	SecurityType      string
-	Expiry            string
-	Strike            float64
-	Right             string
-	Multiplier        string
-	Exchange          string
-	PrimaryExchange   string
-	Currency          string
-	LocalSymbol       string
-	MarketName        string
-	TradingClass      string
-	MinTick           float64
-	OrderTypes        string
-	ValidExchanges    string
-	PriceMagnifier    int64
-	UnderConId        int64
-	IntName           string
-	ContractMonth     string
-	Industry          string
-	Category          string
-	Subcategory       string
-	TimeZoneId        string
-	TradingHours      string
-	LiquidHours       string
-	Cusip             string
-	Ratings           string
-	DescAppend        string
-	BondType          string
-	CouponType        string
-	Callable          bool
-	Putable           bool
-	Coupon            float64
-	Convertible       bool
-	Maturity          string
-	IssueDate         string
-	NextOptionDate    string
-	NextOptionType    string
-	NextOptionPartial bool
-	notes             string
+func (v *UnderComp) read(b *bufio.Reader) {
+	v.ContractId = readInt(b)
+	v.Delta = readFloat(b)
+	v.Price = readFloat(b)
+}
+
+func (v *UnderComp) write(b *bytes.Buffer) {
+	writeInt(b, v.ContractId)
+	writeFloat(b, v.Delta)
+	writeFloat(b, v.Price)
 }
 
 // TickPrice holds bid, ask, last, etc. price information
 type TickPrice struct {
-	Id             RequestId
-	Type           TickType
+	id             int64
+	Type           int64
 	Price          float64
 	Size           int64
 	CanAutoExecute bool
 }
 
+func (v *TickPrice) Id() int64 {
+	return v.id
+}
+
+func (v *TickPrice) code() int64 {
+	return mTickPrice
+}
+
+func (v *TickPrice) read(b *bufio.Reader) {
+	v.id = readInt(b)
+	v.Type = readInt(b)
+	v.Price = readFloat(b)
+	v.Size = readInt(b)
+	v.CanAutoExecute = readBool(b)
+}
+
 type TickSize struct {
-	Id   RequestId
-	Type TickType
+	id   int64
+	Type int64
 	Size int64
 }
 
+func (v *TickSize) Id() int64 {
+	return v.id
+}
+
+func (v *TickSize) code() int64 {
+	return mTickSize
+}
+
+func (v *TickSize) read(b *bufio.Reader) {
+	v.id = readInt(b)
+	v.Type = readInt(b)
+	v.Size = readInt(b)
+}
+
 type TickOptionComputation struct {
-	Id          RequestId
-	Type        TickType
+	id          int64
+	Type        int64
 	ImpliedVol  float64 // > 0
 	Delta       float64 // 0 <= delta <= 1	
 	OptionPrice float64
@@ -261,21 +280,70 @@ type TickOptionComputation struct {
 	SpotPrice   float64
 }
 
+func (v *TickOptionComputation) Id() int64 {
+	return v.id
+}
+
+func (v *TickOptionComputation) code() int64 {
+	return mTickOptionComputation
+}
+
+func (v *TickOptionComputation) read(b *bufio.Reader) {
+	v.id = readInt(b)
+	v.Type = readInt(b)
+	v.ImpliedVol = readFloat(b)
+	v.Delta = readFloat(b)
+	v.OptionPrice = readFloat(b)
+	v.PvDividend = readFloat(b)
+	v.Gamma = readFloat(b)
+	v.Vega = readFloat(b)
+	v.Theta = readFloat(b)
+	v.SpotPrice = readFloat(b)
+}
+
 type TickGeneric struct {
-	Id    RequestId
-	Type  TickType
+	id    int64
+	Type  int64
 	Value float64
 }
 
+func (v *TickGeneric) Id() int64 {
+	return v.id
+}
+
+func (v *TickGeneric) code() int64 {
+	return mTickGeneric
+}
+
+func (v *TickGeneric) read(b *bufio.Reader) {
+	v.id = readInt(b)
+	v.Type = readInt(b)
+	v.Value = readFloat(b)
+}
+
 type TickString struct {
-	Id    RequestId
-	Type  TickType
+	id    int64
+	Type  int64
 	Value string
 }
 
+func (v *TickString) Id() int64 {
+	return v.id
+}
+
+func (v *TickString) code() int64 {
+	return mTickString
+}
+
+func (v *TickString) read(b *bufio.Reader) {
+	v.id = readInt(b)
+	v.Type = readInt(b)
+	v.Value = readString(b)
+}
+
 type TickEFP struct {
-	Id                   RequestId
-	Type                 TickType
+	id                   int64
+	Type                 int64
 	BasisPoints          float64
 	FormattedBasisPoints string
 	ImpliedFuturesPrice  float64
@@ -285,8 +353,28 @@ type TickEFP struct {
 	DividendsToExpiry    float64
 }
 
+func (v *TickEFP) Id() int64 {
+	return v.id
+}
+
+func (v *TickEFP) code() int64 {
+	return mTickEFP
+}
+
+func (v *TickEFP) read(b *bufio.Reader) {
+	v.id = readInt(b)
+	v.Type = readInt(b)
+	v.BasisPoints = readFloat(b)
+	v.FormattedBasisPoints = readString(b)
+	v.ImpliedFuturesPrice = readFloat(b)
+	v.HoldDays = readInt(b)
+	v.FuturesExpiry = readString(b)
+	v.DividendImpact = readFloat(b)
+	v.DividendsToExpiry = readFloat(b)
+}
+
 type OrderStatus struct {
-	Id               int64
+	id               int64
 	Status           string
 	Filled           int64
 	Remaining        int64
@@ -298,11 +386,47 @@ type OrderStatus struct {
 	WhyHeld          string
 }
 
+func (v *OrderStatus) Id() int64 {
+	return v.id
+}
+
+func (v *OrderStatus) code() int64 {
+	return mOrderStatus
+}
+
+func (v *OrderStatus) read(b *bufio.Reader) {
+	v.id = readInt(b)
+	v.Status = readString(b)
+	v.Filled = readInt(b)
+	v.Remaining = readInt(b)
+	v.AverageFillPrice = readFloat(b)
+	v.PermId = readInt(b)
+	v.ParentId = readInt(b)
+	v.LastFillPrice = readFloat(b)
+	v.ClientId = readInt(b)
+	v.WhyHeld = readString(b)
+}
+
 type AccountValue struct {
 	Key         string
 	Value       string
 	Current     string
 	AccountName string
+}
+
+func (v *AccountValue) Id() int64 {
+	return 0
+}
+
+func (v *AccountValue) code() int64 {
+	return mAccountValue
+}
+
+func (v *AccountValue) read(b *bufio.Reader) {
+	v.Key = readString(b)
+	v.Value = readString(b)
+	v.Current = readString(b)
+	v.AccountName = readString(b)
 }
 
 type PortfolioValue struct {
@@ -326,18 +450,80 @@ type PortfolioValue struct {
 	PrimaryExchange1 string
 }
 
+func (v *PortfolioValue) Id() int64 {
+	return v.ContractId
+}
+
+func (v *PortfolioValue) code() int64 {
+	return mPortfolioValue
+}
+
+func (v *PortfolioValue) read(b *bufio.Reader) {
+	v.ContractId = readInt(b)
+	v.Symbol = readString(b)
+	v.SecType = readString(b)
+	v.Expiry = readString(b)
+	v.Strike = readFloat(b)
+	v.Right = readString(b)
+	v.Multiplier = readString(b)
+	v.PrimaryExchange = readString(b)
+	v.Currency = readString(b)
+	v.LocalSymbol = readString(b)
+	v.Position = readInt(b)
+	v.MarketPrice = readFloat(b)
+	v.MarketValue = readFloat(b)
+	v.AverageCost = readFloat(b)
+	v.UnrealizedPNL = readFloat(b)
+	v.RealizedPNL = readFloat(b)
+	v.AccountName = readString(b)
+	v.PrimaryExchange1 = readString(b)
+}
+
 type AccountUpdateTime struct {
 	Timestamp string
 }
 
+func (v *AccountUpdateTime) Id() int64 {
+	return 0
+}
+
+func (v *AccountUpdateTime) code() int64 {
+	return mAccountUpdateTime
+}
+
+func (v *AccountUpdateTime) read(b *bufio.Reader) {
+	v.Timestamp = readString(b)
+}
+
 type ErrorMessage struct {
-	Id      int64
+	id      int64
 	Code    int64
 	Message string
 }
 
+func (v *ErrorMessage) Id() int64 {
+	return v.id
+}
+
+func (v *ErrorMessage) code() int64 {
+	return mErrorMessage
+}
+
+func (v *ErrorMessage) read(b *bufio.Reader) {
+	v.id = readInt(b)
+	v.Code = readInt(b)
+	v.Message = readString(b)
+}
+
 type AlgoParams struct {
-	AlgoParams []TagValue
+	Params []*TagValue
+}
+
+func (v *AlgoParams) read(b *bufio.Reader) {
+	v.Params = make([]*TagValue, readInt(b))
+	for _, e := range v.Params {
+		e.read(b)
+	}
 }
 
 type DeltaNeutralData struct {
@@ -347,17 +533,33 @@ type DeltaNeutralData struct {
 	ClearingIntent  string
 }
 
+func (v *DeltaNeutralData) read(b *bufio.Reader) {
+	v.ContractId = readInt(b)
+	v.ClearingBroker = readString(b)
+	v.ClearingAccount = readString(b)
+	v.ClearingIntent = readString(b)
+}
+
 type TagValue struct {
 	Tag   string
 	Value string
+}
+
+func (v *TagValue) read(b *bufio.Reader) {
+	v.Tag = readString(b)
+	v.Value = readString(b)
 }
 
 type HedgeParam struct {
 	Param string
 }
 
+func (v *HedgeParam) read(b *bufio.Reader) {
+	v.Param = readString(b)
+}
+
 type OpenOrder struct {
-	OrderId                 int64
+	id                 int64
 	ContractId              int64
 	Symbol                  string
 	SecType                 string
@@ -441,6 +643,110 @@ type OpenOrder struct {
 	OrderState              OrderState
 }
 
+func (v *OpenOrder) Id() int64 {
+	return v.id
+}
+
+func (v *OpenOrder) code() int64 {
+	return mOpenOrder
+}
+
+func (v *OpenOrder) read(b *bufio.Reader) {
+	v.id = readInt(b)
+	v.ContractId = readInt(b)
+	v.Symbol = readString(b)
+	v.SecType = readString(b)
+	v.Expiry = readString(b)
+	v.Strike = readFloat(b)
+	v.Right = readString(b)
+	v.Exchange = readString(b)
+	v.Currency = readString(b)
+	v.LocalSymbol = readString(b)
+	v.Action = readString(b)
+	v.TotalQty = readInt(b)
+	v.OrderType = readString(b)
+	v.LimitPrice = readFloat(b)
+	v.AuxPrice = readFloat(b)
+	v.TIF = readString(b)
+	v.OCAGroup = readString(b)
+	v.Account = readString(b)
+	v.OpenClose = readString(b)
+	v.Origin = readInt(b)
+	v.OrderRef = readString(b)
+	v.ClientId = readInt(b)
+	v.PermId = readInt(b)
+	v.OutsideRTH = readBool(b)
+	v.Hidden = readBool(b)
+	v.DiscretionaryAmount = readFloat(b)
+	v.GoodAfterTime = readString(b)
+	v.SharesAllocation = readString(b)
+	v.FAGroup = readString(b)
+	v.FAMethod = readString(b)
+	v.FAPercentage = readString(b)
+	v.FAProfile = readString(b)
+	v.GoodTillDate = readString(b)
+	v.Rule80A = readString(b)
+	v.PercentOffset = readFloat(b)
+	v.ClearingBroker = readString(b)
+	v.ShortSaleSlot = readInt(b)
+	v.DesignatedLocation = readString(b)
+	v.ExemptCode = readInt(b)
+	v.AuctionStrategy = readInt(b)
+	v.StartingPrice = readFloat(b)
+	v.StockRefPrice = readFloat(b)
+	v.Delta = readFloat(b)
+	v.StockRangeLower = readFloat(b)
+	v.StockRangeUpper = readFloat(b)
+	v.DisplaySize = readInt(b)
+	v.BlockOrder = readBool(b)
+	v.SweepToFill = readBool(b)
+	v.AllOrNone = readBool(b)
+	v.MinQty = readInt(b)
+	v.OCAType = readInt(b)
+	v.ETradeOnly = readInt(b)
+	v.FirmQuoteOnly = readBool(b)
+	v.NBBOPriceCap = readFloat(b)
+	v.ParentId = readInt(b)
+	v.TriggerMethod = readInt(b)
+	v.Volatility = readFloat(b)
+	v.VolatilityType = readInt(b)
+	v.DeltaNeutralOrderType = readString(b)
+	v.DeltaNeutralAuxPrice = readFloat(b)
+	if v.DeltaNeutralOrderType != "" {
+		v.DeltaNeutral.read(b)
+	}
+	v.ContinuousUpdate = readInt(b)
+	v.ReferencePriceType = readInt(b)
+	v.TrailingStopPrice = readFloat(b)
+	v.BasisPoints = readFloat(b)
+	v.BasisPointsType = readInt(b)
+	v.ComboLegsDescription = readString(b)
+	v.SmartComboRoutingParams = make([]TagValue, readInt(b))
+	for _, e := range v.SmartComboRoutingParams {
+		e.read(b)
+	}
+	v.ScaleInitLevelSize = readInt(b)
+	v.ScaleSubsLevelSize = readInt(b)
+	v.ScalePriceIncrement = readFloat(b)
+	v.HedgeType = readString(b)
+	if v.HedgeType != "" {
+		v.HedgeParam.read(b)
+	}
+	v.OptOutSmartRouting = readBool(b)
+	v.ClearingAccount = readString(b)
+	v.ClearingIntent = readString(b)
+	v.NotHeld = readBool(b)
+	v.HaveUnderComp = readBool(b)
+	if v.HaveUnderComp {
+		v.UnderComp.read(b)
+	}
+	v.AlgoStrategy = readString(b)
+	if v.AlgoStrategy != "" {
+		v.AlgoParams.read(b)
+	}
+	v.OrderState.read(b)
+}
+
 type OrderState struct {
 	WhatIf             bool
 	Status             string
@@ -454,13 +760,54 @@ type OrderState struct {
 	WarningText        string
 }
 
+func (v *OrderState) read(b *bufio.Reader) {
+	v.WhatIf = readBool(b)
+	v.Status = readString(b)
+	v.InitialMargin = readString(b)
+	v.MaintenanceMargin = readString(b)
+	v.EquityWithLoan = readString(b)
+	v.Commission = readFloat(b)
+	v.MinCommission = readFloat(b)
+	v.MaxCommission = readFloat(b)
+	v.CommissionCurrency = readString(b)
+	v.WarningText = readString(b)
+}
+
 type NextValidId struct {
-	OrderId int64
+	id int64
+}
+
+func (v *NextValidId) Id() int64 {
+	return v.id
+}
+
+func (v *NextValidId) code() int64 {
+	return mNextValidId
+}
+
+func (v *NextValidId) read(b *bufio.Reader) {
+	v.id = readInt(b)
 }
 
 type ScannerData struct {
-	Id            RequestId
-	ScannerDetail []ScannerDetail
+	id            int64
+	Detail []ScannerDetail
+}
+
+func (v *ScannerData) Id() int64 {
+	return v.id
+}
+
+func (v *ScannerData) code() int64 {
+	return mScannerData
+}
+
+func (v *ScannerData) read(b *bufio.Reader) {
+	v.id = readInt(b)
+	v.Detail = make([]ScannerDetail, readInt(b))
+	for _, e := range v.Detail {
+		e.read(b)
+	}
 }
 
 type ScannerDetail struct {
@@ -482,8 +829,27 @@ type ScannerDetail struct {
 	Legs         string
 }
 
+func (v *ScannerDetail) read(b *bufio.Reader) {
+	v.Rank = readInt(b)
+	v.ContractId = readInt(b)
+	v.Symbol = readString(b)
+	v.SecType = readString(b)
+	v.Expiry = readString(b)
+	v.Strike = readFloat(b)
+	v.Right = readString(b)
+	v.Exchange = readString(b)
+	v.Currency = readString(b)
+	v.LocalSymbol = readString(b)
+	v.MarketName = readString(b)
+	v.TradingClass = readString(b)
+	v.Distance = readString(b)
+	v.Benchmark = readString(b)
+	v.Projection = readString(b)
+	v.Legs = readString(b)
+}
+
 type ContractData struct {
-	Id              RequestId
+	id              int64
 	Symbol          string
 	SecType         string
 	Expiry          string
@@ -500,7 +866,7 @@ type ContractData struct {
 	OrderTypes      string
 	ValidExchanges  string
 	PriceMagnifier  int64
-	UnderContractId int64
+	SpotContractId int64
 	LongName        string
 	PrimaryExchange string
 	ContractMonth   string
@@ -512,8 +878,46 @@ type ContractData struct {
 	LiquidHours     string
 }
 
+func (v *ContractData) Id() int64 {
+	return v.id
+}
+
+func (v *ContractData) code() int64 {
+	return mContractData
+}
+
+func (v *ContractData) read(b *bufio.Reader) {
+	v.id = readInt(b)
+	v.Symbol = readString(b)
+	v.SecType = readString(b)
+	v.Expiry = readString(b)
+	v.Strike = readFloat(b)
+	v.Right = readString(b)
+	v.Exchange = readString(b)
+	v.Currency = readString(b)
+	v.LocalSymbol = readString(b)
+	v.MarketName = readString(b)
+	v.TradingClass = readString(b)
+	v.ContractId = readInt(b)
+	v.MinTick = readFloat(b)
+	v.Multiplier = readString(b)
+	v.OrderTypes = readString(b)
+	v.ValidExchanges = readString(b)
+	v.PriceMagnifier = readInt(b)
+	v.SpotContractId = readInt(b)
+	v.LongName = readString(b)
+	v.PrimaryExchange = readString(b)
+	v.ContractMonth = readString(b)
+	v.Industry = readString(b)
+	v.Category = readString(b)
+	v.Subcategory = readString(b)
+	v.TimezoneId = readString(b)
+	v.TradingHours = readString(b)
+	v.LiquidHours = readString(b)
+}
+
 type BondContractData struct {
-	Id                RequestId
+	id                int64
 	Symbol            string
 	SecType           string
 	Cusip             string
@@ -542,8 +946,46 @@ type BondContractData struct {
 	LongName          string
 }
 
+func (v *BondContractData) Id() int64 {
+	return v.id
+}
+
+func (v *BondContractData) code() int64 {
+	return mBondContractData
+}
+
+func (v *BondContractData) read(b *bufio.Reader) {
+	v.id = readInt(b)
+	v.Symbol = readString(b)
+	v.SecType = readString(b)
+	v.Cusip = readString(b)
+	v.Coupon = readFloat(b)
+	v.Maturity = readString(b)
+	v.IssueDate = readString(b)
+	v.Ratings = readString(b)
+	v.BondType = readString(b)
+	v.CouponType = readString(b)
+	v.Convertible = readBool(b)
+	v.Callable = readBool(b)
+	v.Putable = readBool(b)
+	v.DescAppend = readString(b)
+	v.Exchange = readString(b)
+	v.Currency = readString(b)
+	v.MarketName = readString(b)
+	v.TradingClass = readString(b)
+	v.ContractId = readInt(b)
+	v.MinTick = readFloat(b)
+	v.OrderTypes = readString(b)
+	v.ValidExchanges = readString(b)
+	v.NextOptionDate = readString(b)
+	v.NextOptionType = readString(b)
+	v.NextOptionPartial = readBool(b)
+	v.Notes = readString(b)
+	v.LongName = readString(b)
+}
+
 type ExecutionData struct {
-	Id                RequestId
+	id                int64
 	OrderId           int64
 	ContractId        int64
 	Symbol            string
@@ -569,8 +1011,43 @@ type ExecutionData struct {
 	OrderRef          string
 }
 
+func (v *ExecutionData) Id() int64 {
+	return v.id
+}
+
+func (v *ExecutionData) code() int64 {
+	return mExecutionData
+}
+
+func (v *ExecutionData) read(b *bufio.Reader) {
+	v.id = readInt(b)
+	v.OrderId = readInt(b)
+	v.ContractId = readInt(b)
+	v.Symbol = readString(b)
+	v.SecType = readString(b)
+	v.Expiry = readString(b)
+	v.Strike = readFloat(b)
+	v.Right = readString(b)
+	v.Exchange = readString(b)
+	v.Currency = readString(b)
+	v.LocalSymbol = readString(b)
+	v.ExecutionId = readString(b)
+	v.Time = readString(b)
+	v.Account = readString(b)
+	v.ExecutionExchange = readString(b)
+	v.Side = readString(b)
+	v.Shares = readInt(b)
+	v.Price = readFloat(b)
+	v.PermId = readInt(b)
+	v.ClientId = readInt(b)
+	v.Liquidation = readInt(b)
+	v.CumQty = readInt(b)
+	v.AveragePrice = readFloat(b)
+	v.OrderRef = readString(b)
+}
+
 type MarketDepth struct {
-	Id        int64
+	id        int64
 	Position  int64
 	Operation int64
 	Side      int64
@@ -578,8 +1055,25 @@ type MarketDepth struct {
 	Size      int64
 }
 
+func (v *MarketDepth) Id() int64 {
+	return v.id
+}
+
+func (v *MarketDepth) code() int64 {
+	return mMarketDepth
+}
+
+func (v *MarketDepth) read(b *bufio.Reader) {
+	v.id = readInt(b)
+	v.Position = readInt(b)
+	v.Operation = readInt(b)
+	v.Side = readInt(b)
+	v.Price = readFloat(b)
+	v.Size = readInt(b)
+}
+
 type MarketDepthL2 struct {
-	Id          int64
+	id          int64
 	Position    int64
 	MarketMaker string
 	Operation   int64
@@ -588,15 +1082,60 @@ type MarketDepthL2 struct {
 	Size        int64
 }
 
+func (v *MarketDepthL2) Id() int64 {
+	return v.id
+}
+
+func (v *MarketDepthL2) code() int64 {
+	return mMarketDepthL2
+}
+
+func (v *MarketDepthL2) read(b *bufio.Reader) {
+	v.id = readInt(b)
+	v.Position = readInt(b)
+	v.MarketMaker = readString(b)
+	v.Operation = readInt(b)
+	v.Side = readInt(b)
+	v.Price = readFloat(b)
+	v.Size = readInt(b)
+}
+
 type NewsBulletins struct {
-	Id       int64
+	id       int64
 	Type     int64
 	Message  string
 	Exchange string
 }
 
+func (v *NewsBulletins) Id() int64 {
+	return v.id
+}
+
+func (v *NewsBulletins) code() int64 {
+	return mNewsBulletins
+}
+
+func (v *NewsBulletins) read(b *bufio.Reader) {
+	v.id = readInt(b)
+	v.Type = readInt(b)
+	v.Message = readString(b)
+	v.Exchange = readString(b)
+}
+
 type ManagedAccounts struct {
 	AccountsList string
+}
+
+func (v *ManagedAccounts) Id() int64 {
+	return 0
+}
+
+func (v *ManagedAccounts) code() int64 {
+	return mManagedAccounts
+}
+
+func (v *ManagedAccounts) read(b *bufio.Reader) {
+	v.AccountsList = readString(b)
 }
 
 type ReceiveFA struct {
@@ -604,11 +1143,42 @@ type ReceiveFA struct {
 	XML  string
 }
 
+func (v *ReceiveFA) Id() int64 {
+	return 0
+}
+
+func (v *ReceiveFA) code() int64 {
+	return mReceiveFA
+}
+
+func (v *ReceiveFA) read(b *bufio.Reader) {
+	v.Type = readInt(b)
+	v.XML = readString(b)
+}
+
 type HistoricalData struct {
-	Id        RequestId
+	id        int64
 	StartDate string
 	EndDate   string
 	Data      []HistoricalDataItem
+}
+
+func (v *HistoricalData) Id() int64 {
+	return v.id
+}
+
+func (v *HistoricalData) code() int64 {
+	return mHistoricalData
+}
+
+func (v *HistoricalData) read(b *bufio.Reader) {
+	v.id = readInt(b)
+	v.StartDate = readString(b)
+	v.EndDate = readString(b)
+	v.Data = make([]HistoricalDataItem, readInt(b))
+	for _, e := range v.Data {
+		e.read(b)
+	}
 }
 
 type HistoricalDataItem struct {
@@ -623,16 +1193,52 @@ type HistoricalDataItem struct {
 	BarCount int64
 }
 
+func (v *HistoricalDataItem) read(b *bufio.Reader) {
+	v.Date = readString(b)
+	v.Open = readFloat(b)
+	v.High = readFloat(b)
+	v.Low = readFloat(b)
+	v.Close = readFloat(b)
+	v.Volume = readInt(b)
+	v.WAP = readFloat(b)
+	v.HasGaps = readString(b)
+	v.BarCount = readInt(b)
+}
+
 type ScannerParameters struct {
 	XML string
+}
+
+func (v *ScannerParameters) Id() int64 {
+	return 0
+}
+
+func (v *ScannerParameters) code() int64 {
+	return 0
+}
+
+func (v *ScannerParameters) read(b *bufio.Reader) {
+	v.XML = readString(b)
 }
 
 type CurrentTime struct {
 	Time int64
 }
 
+func (v *CurrentTime) Id() int64 {
+	return 0
+}
+
+func (v *CurrentTime) code() int64 {
+	return mCurrentTime
+}
+
+func (v *CurrentTime) read(b *bufio.Reader) {
+	v.Time = readInt(b)
+}
+
 type RealtimeBars struct {
-	Id     RequestId
+	id     int64
 	Time   int64
 	Open   float64
 	High   float64
@@ -643,40 +1249,160 @@ type RealtimeBars struct {
 	Count  int64
 }
 
+func (v *RealtimeBars) Id() int64 {
+	return v.id
+}
+
+func (v *RealtimeBars) code() int64 {
+	return mRealtimeBars
+}
+
+func (v *RealtimeBars) read(b *bufio.Reader) {
+	v.id = readInt(b)
+	v.Time = readInt(b)
+	v.Open = readFloat(b)
+	v.High = readFloat(b)
+	v.Low = readFloat(b)
+	v.Close = readFloat(b)
+	v.Volume = readFloat(b)
+	v.WAP = readFloat(b)
+	v.Count = readInt(b)
+}
+
 type FundamentalData struct {
-	Id   RequestId
+	id   int64
 	Data string
 }
 
+func (v *FundamentalData) Id() int64 {
+	return v.id
+}
+
+func (v *FundamentalData) code() int64 {
+	return mFundamentalData
+}
+
+func (v *FundamentalData) read(b *bufio.Reader) {
+	v.id = readInt(b)
+	v.Data = readString(b)
+}
+
 type ContractDataEnd struct {
-	Id RequestId
+	id int64
+}
+
+func (v *ContractDataEnd) Id() int64 {
+	return v.id
+}
+
+func (v *ContractDataEnd) code() int64 {
+	return mContractDataEnd
+}
+
+func (v *ContractDataEnd) read(b *bufio.Reader) {
+	v.id = readInt(b)
 }
 
 type OpenOrderEnd struct {
+}
+
+func (v *OpenOrderEnd) Id() int64 {
+	return 0
+}
+
+func (v *OpenOrderEnd) code() int64 {
+	return mOpenOrderEnd
+}
+
+func (v *OpenOrderEnd) read(b *bufio.Reader) {
 }
 
 type AccountDownloadEnd struct {
 	Account string
 }
 
+func (v *AccountDownloadEnd) Id() int64 {
+	return 0
+}
+
+func (v *AccountDownloadEnd) code() int64 {
+	return mAccountDownloadEnd
+}
+
+func (v *AccountDownloadEnd) read(b *bufio.Reader) {
+	v.Account = readString(b)
+}
+
 type ExecutionDataEnd struct {
-	Id RequestId
+	id int64
+}
+
+func (v *ExecutionDataEnd) Id() int64 {
+	return v.id
+}
+
+func (v *ExecutionDataEnd) code() int64 {
+	return mExecutionDataEnd
+}
+
+func (v *ExecutionDataEnd) read(b *bufio.Reader) {
+	v.id = readInt(b)
 }
 
 type DeltaNeutralValidation struct {
-	Id         RequestId
+	id         int64
 	ContractId int64
 	Delta      float64
 	Price      float64
 }
 
+func (v *DeltaNeutralValidation) Id() int64 {
+	return v.id
+}
+
+func (v *DeltaNeutralValidation) code() int64 {
+	return mDeltaNeutralValidation
+}
+
+func (v *DeltaNeutralValidation) read(b *bufio.Reader) {
+	v.id = readInt(b)
+	v.ContractId = readInt(b)
+	v.Delta = readFloat(b)
+	v.Price = readFloat(b)
+}
+
 type TickSnapshotEnd struct {
-	Id RequestId
+	id int64
+}
+
+func (v *TickSnapshotEnd) Id() int64 {
+	return v.id
+}
+
+func (v *TickSnapshotEnd) code() int64 {
+	return mTickSnapshotEnd
+}
+
+func (v *TickSnapshotEnd) read(b *bufio.Reader) {
+	v.id = readInt(b)
 }
 
 type MarketDataType struct {
-	Id   RequestId
+	id   int64
 	Type int64
+}
+
+func (v *MarketDataType) Id() int64 {
+	return v.id
+}
+
+func (v *MarketDataType) code() int64 {
+	return mMarketDataType
+}
+
+func (v *MarketDataType) read(b *bufio.Reader) {
+	v.id = readInt(b)
+	v.Type = readInt(b)
 }
 
 ///
@@ -684,12 +1410,41 @@ type MarketDataType struct {
 ///
 
 type RequestMarketData struct {
-	Id RequestId
+	id int64
 	Contract
 	ComboLegs       []ComboLeg `when:"SecurityType" cond:"not" value:"BAG"`
 	Comp            *UnderComp
 	GenericTickList string
 	Snapshot        bool
+}
+
+func (v *RequestMarketData) SetId(id int64) {
+	v.id = id
+}
+
+func (v *RequestMarketData) code() int64 {
+	return mRequestMarketData
+}
+
+func (v *RequestMarketData) version() int64 {
+	return 9
+}
+
+func (v *RequestMarketData) write(b *bytes.Buffer) {
+	writeInt(b, v.id)
+	v.Contract.write(b)
+	if v.Contract.SecurityType == "BAG" {
+		for _, e := range v.ComboLegs {
+			e.write(b)
+		}
+	} else {
+		writeInt(b, int64(0))
+	}
+	if v.Comp != nil {
+		v.Comp.write(b)
+	}
+	writeString(b, v.GenericTickList)
+	writeBool(b, v.Snapshot)
 }
 
 type Contract struct {
@@ -706,12 +1461,42 @@ type Contract struct {
 	LocalSymbol     string
 }
 
+func (v *Contract) write(b *bytes.Buffer) {
+	writeInt(b, v.ContractId)
+	writeString(b, v.Symbol)
+	writeString(b, v.SecurityType)
+	writeString(b, v.Expiry)
+	writeFloat(b, v.Strike)
+	writeString(b, v.Right)
+	writeString(b, v.Multiplier)
+	writeString(b, v.Exchange)
+	writeString(b, v.PrimaryExchange)
+	writeString(b, v.Currency)
+	writeString(b, v.LocalSymbol)
+}
+
 type CancelMarketData struct {
-	Id RequestId
+	id int64
+}
+
+func (v *CancelMarketData) SetId(id int64) {
+	v.id = id
+}
+
+func (v *CancelMarketData) code() int64 {
+	return mCancelMarketData
+}
+
+func (v *CancelMarketData) version() int64 {
+	return 1
+}
+
+func (v *CancelMarketData) write(b *bytes.Buffer) {
+	writeInt(b, v.id)
 }
 
 type RequestContractData struct {
-	Id             RequestId
+	id             int64
 	ContractId     int64
 	Symbol         string
 	SecurityType   string
@@ -727,31 +1512,130 @@ type RequestContractData struct {
 	SecurityId     string
 }
 
+func (v *RequestContractData) SetId(id int64) {
+	v.id = id
+}
+
+func (v *RequestContractData) code() int64 {
+	return mRequestContractData
+}
+
+func (v *RequestContractData) version() int64 {
+	return 6
+}
+
+func (v *RequestContractData) write(b *bytes.Buffer) {
+	writeInt(b, v.id)
+	writeInt(b, v.ContractId)
+	writeString(b, v.Symbol)
+	writeString(b, v.SecurityType)
+	writeString(b, v.Expiry)
+	writeFloat(b, v.Strike)
+	writeString(b, v.Right)
+	writeString(b, v.Multiplier)
+	writeString(b, v.Exchange)
+	writeString(b, v.Currency)
+	writeString(b, v.LocalSymbol)
+	writeBool(b, v.IncludeExpired)
+	writeString(b, v.SecurityIdType)
+	writeString(b, v.SecurityId)
+}
+
 type RequestCalcImpliedVol struct {
-	Id RequestId
+	id int64
 	Contract
 	OptionPrice float64
 	// Underlying price
 	SpotPrice float64
 }
 
+func (v *RequestCalcImpliedVol) SetId(id int64) {
+	v.id = id
+}
+
+func (v *RequestCalcImpliedVol) code() int64 {
+	return mRequestCalcImpliedVol
+}
+
+func (v *RequestCalcImpliedVol) version() int64 {
+	return 1
+}
+
+func (v *RequestCalcImpliedVol) write(b *bytes.Buffer) {
+	writeInt(b, v.id)
+	v.Contract.write(b)
+	writeFloat(b, v.OptionPrice)
+	writeFloat(b, v.SpotPrice)
+}
+
 type RequestCalcOptionPrice struct {
-	Id RequestId
+	id int64
 	Contract
 	// Implied volatility
 	Volatility float64
 	SpotPrice  float64
 }
 
+func (v *RequestCalcOptionPrice) SetId(id int64) {
+	v.id = id
+}
+
+func (v *RequestCalcOptionPrice) code() int64 {
+	return mRequestCalcOptionPrice
+}
+
+func (v *RequestCalcOptionPrice) version() int64 {
+	return 1
+}
+
+func (v *RequestCalcOptionPrice) write(b *bytes.Buffer) {
+	writeInt(b, v.id)
+	v.Contract.write(b)
+	writeFloat(b, v.Volatility)
+	writeFloat(b, v.SpotPrice)
+}
+
 type CancelCalcImpliedVol struct {
-	Id RequestId
+	id int64
+}
+
+func (v *CancelCalcImpliedVol) SetId(id int64) {
+	v.id = id
+}
+
+func (v *CancelCalcImpliedVol) code() int64 {
+	return mCancelCalcImpliedVol
+}
+
+func (v *CancelCalcImpliedVol) version() int64 {
+	return 1
+}
+
+func (v *CancelCalcImpliedVol) write(b *bytes.Buffer) {
+	writeInt(b, v.id)
 }
 
 type CancelCalcOptionPrice struct {
-	Id RequestId
+	id int64
 }
 
-func code2Msg(code int64) interface{} {
+func (v *CancelCalcOptionPrice) SetId(id int64) {
+	v.id = id
+}
+
+func (v *CancelCalcOptionPrice) code() int64 {
+	return mCancelCalcOptionPrice
+}
+
+func (v *CancelCalcOptionPrice) version() int64 {
+	return 1
+}
+
+func (v *CancelCalcOptionPrice) write(b *bytes.Buffer) {
+	writeInt(b, v.id)
+}
+
+func code2Msg(code int64) reply {
 	switch code {
 	case mTickPrice:
 		return &TickPrice{}
@@ -825,11 +1709,10 @@ func code2Msg(code int64) interface{} {
 	return nil
 }
 
+/*
 func msg2Code(m interface{}) int64 {
 	switch m.(type) {
 	// incoming messages
-	case *TickPrice:
-		return mTickPrice
 	case *TickSize:
 		return mTickSize
 	case *TickOptionComputation:
@@ -914,18 +1797,5 @@ func msg2Code(m interface{}) int64 {
 	}
 	return 0
 }
+*/
 
-func code2Version(code int64) int64 {
-	switch code {
-	case mRequestMarketData:
-		return 9
-	case mRequestContractData:
-		return 6
-	case mRequestCalcImpliedVol, mRequestCalcOptionPrice:
-		return 1
-	case mCancelCalcImpliedVol, mCancelCalcOptionPrice:
-		return 1
-	}
-
-	return 0
-}
