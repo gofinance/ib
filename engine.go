@@ -4,9 +4,12 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"log"
 	"net"
 	"reflect"
+	"runtime"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -17,10 +20,10 @@ const (
 
 // Engine is the entry point to the IB TWS API
 type Engine struct {
+	sync.Mutex
 	timeout       time.Duration
 	tick          chan int64
-	data          chan reply
-	err           chan error
+	exit          chan bool
 	client        int64
 	con           net.Conn
 	reader        *bufio.Reader
@@ -29,6 +32,7 @@ type Engine struct {
 	serverTime    time.Time
 	clientVersion int64
 	serverVersion int64
+	subscribers   map[int64]chan<- reply
 }
 
 // Sink is intended to be a closure that 
@@ -79,6 +83,7 @@ func NewEngine(client int64) (*Engine, error) {
 		reader:  reader,
 		input:   input,
 		output:  output,
+		subscribers : make(map[int64]chan<- reply),
 	}
 
 	// write client version and id
@@ -95,24 +100,48 @@ func NewEngine(client int64) (*Engine, error) {
 
 	engine.serverVersion = serverShake.version
 	engine.serverTime = serverShake.time
-
-	engine.data = make(chan reply)
-	engine.err = make(chan error)
+	engine.exit = make(chan bool)
 
 	// receiver
+
+	data := make(chan reply)
+	error := make(chan error)
+
+	// we cannot force a timeout here
+	// so we need a separate goroutine
 	go func() {
+		runtime.LockOSThread()
 		for {
-			msg, err := engine.receive()
+			v, err := engine.receive()
 			if err != nil {
-				engine.err <- err
+				error <- err
 				break
 			}
-
-			engine.data <- msg
+			data <- v
 		}
+	}()
 
-		close(engine.data)
-		close(engine.err)
+	go func() {
+		for {
+			select {
+			case <-time.After(engine.timeout):
+				log.Printf("engine: timeout")
+				return
+			case err = <-error:
+				log.Printf("engine: error %s", err)
+				return
+			case v := <-data:
+				engine.Lock()
+				if sub, ok := engine.subscribers[v.Id()]; ok {
+					// send but do not block for it
+					select {
+					case sub <- v:
+					default:
+					}
+				}
+				engine.Unlock()
+			}
+		}
 	}()
 
 	return &engine, nil
@@ -125,18 +154,31 @@ func (engine *Engine) NextRequestId() int64 {
 
 // SetTimeout sets the timeout used when receiving messages.
 func (engine *Engine) SetTimeout(timeout time.Duration) {
+	engine.Lock()
+	defer engine.Unlock()
 	engine.timeout = timeout
 }
 
-// Receive a message from the engine.
-func (engine *Engine) Receive() (v reply, err error) {
-	select {
-	case <-time.After(engine.timeout):
-		err = timeout()
-	case v = <-engine.data:
-	case err = <-engine.err:
+// Subscribe will notify subscribers of future events with given id
+func (engine *Engine) Subscribe(c chan<- reply, id int64) {
+	if c == nil {
+		panic("trade: Notify using nil channel")
 	}
-	return
+
+	engine.Lock()
+	defer engine.Unlock()
+	engine.subscribers[id] = c
+}
+
+// Unsubscribe removes subscriber
+func (engine *Engine) Unsubscribe(id int64) {
+	engine.Lock()
+	defer engine.Unlock()
+	delete(engine.subscribers, id)
+}
+
+func (engine *Engine) Stop() {
+	engine.exit <- true
 }
 
 type header struct {
@@ -156,7 +198,8 @@ func (v *header) read(b *bufio.Reader) {
 
 // Send a message to the engine
 func (engine *Engine) Send(v request) error {
-
+	engine.Lock()
+	defer engine.Unlock()
 	engine.output.Reset()
 
 	// encode message type and client version
@@ -174,7 +217,7 @@ func (engine *Engine) Send(v request) error {
 		return err
 	}
 
-	dump(engine.output)
+	//dump(engine.output)
 
 	if _, err := engine.con.Write(engine.output.Bytes()); err != nil {
 		return err

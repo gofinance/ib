@@ -1,41 +1,33 @@
 package trade
 
-func (engine *Engine) GetPriceSnapshot(inst Quotable, sink Sink) (float64, error) {
+func (engine *Engine) GetPriceSnapshot(inst Quotable) (float64, error) {
 	id := engine.NextRequestId()
+	ch := make(chan reply)
+	engine.Subscribe(ch, id)	
+	defer engine.Unsubscribe(id)
 
 	if err := engine.Send(inst.MarketDataReq(id)); err != nil {
 		return 0, err
 	}
 
-	defer func() {
-		engine.Send(&CancelMarketData{id})
-	}()
+	defer engine.Send(&CancelMarketData{id})
 
 	var last float64
 
 done:
 
 	for {
-
-		v, err := engine.Receive()
-
-		if err != nil {
-			return 0, err
-		}
-
-		switch v.(type) {
-		case *TickPrice:
-			v := v.(*TickPrice)
-			switch v.Type {
-			case TickLast:
-				last = v.Price
-				break done
-			default:
-				sink(v)
+		select {
+		case v := <-ch:
+			switch v.(type) {
+			case *TickPrice:
+				v := v.(*TickPrice)
+				switch v.Type {
+				case TickLast:
+					last = v.Price
+					break done
+				}
 			}
-		default:
-			// handle somewhere else
-			sink(v)
 		}
 	}
 

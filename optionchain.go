@@ -18,9 +18,15 @@ type Strike struct {
 	Call  *Option
 }
 
-func (engine *Engine) GetOptionChains(spot Discoverable, sink Sink) (OptionChains, error) {
+func (engine *Engine) GetOptionChains(spot Discoverable) (OptionChains, error) {
 	req := spot.ContractDataReq()
 	req.SecurityType = "OPT"
+
+	id := engine.NextRequestId()
+	req.SetId(id)
+	ch := make(chan reply)
+	engine.Subscribe(ch, id)	
+	defer engine.Unsubscribe(id)
 
 	if err := engine.Send(req); err != nil {
 		return nil, err
@@ -33,33 +39,29 @@ done:
 
 	// message loop
 	for {
-		v, err := engine.Receive()
-
-		if err != nil {
-			return nil, err
-		}
-
-		switch v.(type) {
-		case *ContractDataEnd:
-			break done
-		case *ContractData:
-			v := v.(*ContractData)
-			expiry, err := time.Parse("20060102", v.Expiry)
-			if err != nil {
-				return nil, err
-			}
-			if chain, ok := chains[expiry]; ok {
-				chain.update(v)
-			} else {
-				chain := &OptionChain{
-					Expiry:  expiry,
-					Strikes: make(map[float64]*Strike),
+		select {
+			case v := <-ch:
+			switch v.(type) {
+			case *ContractDataEnd:
+				break done
+			case *ContractData:
+				v := v.(*ContractData)
+				expiry, err := time.Parse("20060102", v.Expiry)
+				if err != nil {
+					return nil, err
 				}
-				chain.update(v)
-				chains[expiry] = chain
+				if chain, ok := chains[expiry]; ok {
+					chain.update(v)
+				} else {
+					chain := &OptionChain{
+						Expiry:  expiry,
+						Strikes: make(map[float64]*Strike),
+					}
+					chain.update(v)
+					chains[expiry] = chain
+				}
+			default:
 			}
-		default:
-			sink(v)
 		}
 	}
 

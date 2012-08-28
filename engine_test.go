@@ -1,34 +1,32 @@
 package trade
 
 import (
+	"time"
 	"reflect"
 	"testing"
 )
 
-func (engine *Engine) expect(t *testing.T, expected int64) (v reply, err error) {
+func (engine *Engine) expect(t *testing.T, ch chan reply, expected int64) (reply, error) {
 	for {
-		v, err = engine.Receive()
+		select {
+		case <-time.After(engine.timeout):
+			return nil, timeout()
+		case v := <-ch:
+			if v.code() == 0 {
+				t.Fatalf("don't know message '%v'", v)
+			}
 
-		if err != nil {
-			t.Fatalf("error reading message from engine: %s", err)
-		}
-
-		code := v.code()
-
-		if code == 0 {
-			t.Fatalf("don't know message '%v'", v)
-		}
-
-		if code == expected {
-			break
-		} else {
-			// wrong message received
-			t.Logf("received message '%v' of type '%v'\n",
-				v, reflect.ValueOf(v).Type())
+			if v.code() == expected {
+				return v, nil
+			} else {
+				// wrong message received
+				t.Logf("received message '%v' of type '%v'\n",
+					v, reflect.ValueOf(v).Type())
+			}
 		}
 	}
 
-	return
+	return nil, nil
 }
 
 func TestConnect(t *testing.T) {
@@ -46,8 +44,6 @@ func TestMarketData(t *testing.T) {
 		t.Fatalf("cannot connect engine: %s", err)
 	}
 
-	id := engine.NextRequestId()
-
 	req1 := &RequestMarketData{
 		Contract: Contract{
 			Symbol:       "AAPL",
@@ -57,13 +53,17 @@ func TestMarketData(t *testing.T) {
 		},
 	}
 
+	id := engine.NextRequestId()
 	req1.SetId(id)
+	ch := make(chan reply)
+	engine.Subscribe(ch, id)	
+	defer engine.Unsubscribe(id)
 
 	if err := engine.Send(req1); err != nil {
 		t.Fatalf("cannot send market data request: %s", err)
 	}
 
-	rep1, err := engine.expect(t, mTickPrice)
+	rep1, err := engine.expect(t, ch, mTickPrice)
 
 	if err != nil {
 		t.Fatalf("cannot receive market data: %s", err)
@@ -83,8 +83,6 @@ func TestContractDetails(t *testing.T) {
 		t.Fatalf("cannot connect engine: %s", err)
 	}
 
-	id := engine.NextRequestId()
-
 	req1 := &RequestContractData{
 		Symbol:       "AAPL",
 		SecurityType: "STK",
@@ -92,13 +90,17 @@ func TestContractDetails(t *testing.T) {
 		Currency:     "USD",
 	}
 
+	id := engine.NextRequestId()
 	req1.SetId(id)
+	ch := make(chan reply)
+	engine.Subscribe(ch, id)	
+	defer engine.Unsubscribe(id)
 
 	if err := engine.Send(req1); err != nil {
 		t.Fatalf("cannot send contract data request: %s", err)
 	}
 
-	rep1, err := engine.expect(t, mContractData)
+	rep1, err := engine.expect(t, ch, mContractData)
 
 	if err != nil {
 		t.Fatalf("cannot receive contract details: %s", err)
@@ -106,7 +108,7 @@ func TestContractDetails(t *testing.T) {
 
 	t.Logf("received packet '%v' of type %v\n", rep1, reflect.ValueOf(rep1).Type())
 
-	rep2, err := engine.expect(t, mContractDataEnd)
+	rep2, err := engine.expect(t, ch, mContractDataEnd)
 
 	if err != nil {
 		t.Fatalf("cannot receive end of contract details: %s", err)
@@ -129,13 +131,17 @@ func TestOptionChainRequest(t *testing.T) {
 		Currency:     "USD",
 	}
 
-	req1.SetId(engine.NextRequestId())
+	id := engine.NextRequestId()
+	req1.SetId(id)
+	ch := make(chan reply)
+	engine.Subscribe(ch, id)	
+	defer engine.Unsubscribe(id)
 
 	if err := engine.Send(req1); err != nil {
 		t.Fatalf("cannot send contract data request: %s", err)
 	}
 
-	rep1, err := engine.expect(t, mContractDataEnd)
+	rep1, err := engine.expect(t, ch, mContractDataEnd)
 
 	if err != nil {
 		t.Fatalf("cannot receive contract details: %s", err)
@@ -151,8 +157,6 @@ func TestPriceSnapshot(t *testing.T) {
 		t.Fatalf("cannot connect engine: %s", err)
 	}
 
-	sink := func(v interface{}) {}
-
 	stock := &Stock{
 		Contract{
 			Symbol:   "AAPL",
@@ -161,7 +165,7 @@ func TestPriceSnapshot(t *testing.T) {
 		},
 	}
 
-	price, err := engine.GetPriceSnapshot(stock, sink)
+	price, err := engine.GetPriceSnapshot(stock)
 
 	if err != nil {
 		t.Fatalf("cannot get price snapshot: %s", err)
@@ -179,8 +183,6 @@ func TestOptionChain(t *testing.T) {
 		t.Fatalf("cannot connect engine: %s", err)
 	}
 
-	sink := func(v interface{}) {}
-
 	stock := &Stock{
 		Contract{
 			Symbol:   "AAPL",
@@ -189,7 +191,7 @@ func TestOptionChain(t *testing.T) {
 		},
 	}
 
-	chains, err := engine.GetOptionChains(stock, sink)
+	chains, err := engine.GetOptionChains(stock)
 
 	if err != nil {
 		t.Fatalf("cannot get option chains: %s", err)
