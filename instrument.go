@@ -5,7 +5,7 @@ import (
 )
 
 type Instrument interface {
-	GetContract() *Contract
+	Contract() *Contract
 }
 
 type Quotable interface {
@@ -21,29 +21,31 @@ type Discoverable interface {
 // Stock
 
 type Stock struct {
-	Contract
+	contract Contract
 }
 
-func (stock *Stock) GetContract() *Contract {
-	return &stock.Contract
+func (stock *Stock) Contract() *Contract {
+	return &stock.contract
 }
 
 func (stock *Stock) ContractDataReq() *RequestContractData {
+	c := stock.Contract()
 	return &RequestContractData{
-		Symbol:       stock.Symbol,
+		Symbol:       c.Symbol,
 		SecurityType: "STK",
-		Exchange:     stock.Exchange,
-		Currency:     stock.Currency,
+		Exchange:     c.Exchange,
+		Currency:     c.Currency,
 	}
 }
 
 func (stock *Stock) MarketDataReq(id int64) *RequestMarketData {
+	c := stock.Contract()
 	req := &RequestMarketData{
 		Contract: Contract{
-			Symbol:       stock.Symbol,
+			Symbol:       c.Symbol,
 			SecurityType: "STK",
-			Exchange:     stock.Exchange,
-			Currency:     stock.Currency,
+			Exchange:     c.Exchange,
+			Currency:     c.Currency,
 		},
 	}
 	req.SetId(id)
@@ -60,33 +62,35 @@ const (
 )
 
 type Option struct {
-	Contract
-	Expiry time.Time
-	Strike float64
-	Type   OptionType
+	contract Contract
+	Expiry   time.Time
+	Strike   float64
+	Type     OptionType
 }
 
-func (option *Option) GetContract() *Contract {
-	return &option.Contract
+func (option *Option) Contract() *Contract {
+	return &option.contract
 }
 
 func (option *Option) ContractDataReq() *RequestContractData {
+	c := option.Contract()
 	return &RequestContractData{
-		Symbol:       option.Symbol,
+		Symbol:       c.Symbol,
 		SecurityType: "OPT",
-		Exchange:     option.Exchange,
-		Currency:     option.Currency,
+		Exchange:     c.Exchange,
+		Currency:     c.Currency,
 	}
 }
 
 func (option *Option) MarketDataReq(id int64) *RequestMarketData {
+	c := option.Contract()
 	req := &RequestMarketData{
 		Contract: Contract{
-			ContractId:   option.ContractId,
-			Symbol:       option.Symbol,
+			Id:           c.Id,
+			Symbol:       c.Symbol,
 			SecurityType: "OPT",
-			Exchange:     option.Exchange,
-			Currency:     option.Currency,
+			Exchange:     c.Exchange,
+			Currency:     c.Currency,
 		},
 	}
 	req.SetId(id)

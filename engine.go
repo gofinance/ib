@@ -76,14 +76,14 @@ func NewEngine(client int64) (*Engine, error) {
 	tick := uniqueId()
 
 	engine := Engine{
-		timeout: 60 * time.Second,
-		client:  client,
-		tick:    tick,
-		con:     con,
-		reader:  reader,
-		input:   input,
-		output:  output,
-		subscribers : make(map[int64]chan<- reply),
+		timeout:     60 * time.Second,
+		client:      client,
+		tick:        tick,
+		con:         con,
+		reader:      reader,
+		input:       input,
+		output:      output,
+		subscribers: make(map[int64]chan<- reply),
 	}
 
 	// write client version and id

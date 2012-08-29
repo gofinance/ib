@@ -1,9 +1,9 @@
 package trade
 
 import (
-	"time"
 	"reflect"
 	"testing"
+	"time"
 )
 
 func (engine *Engine) expect(t *testing.T, ch chan reply, expected int64) (reply, error) {
@@ -56,7 +56,7 @@ func TestMarketData(t *testing.T) {
 	id := engine.NextRequestId()
 	req1.SetId(id)
 	ch := make(chan reply)
-	engine.Subscribe(ch, id)	
+	engine.Subscribe(ch, id)
 	defer engine.Unsubscribe(id)
 
 	if err := engine.Send(req1); err != nil {
@@ -93,7 +93,7 @@ func TestContractDetails(t *testing.T) {
 	id := engine.NextRequestId()
 	req1.SetId(id)
 	ch := make(chan reply)
-	engine.Subscribe(ch, id)	
+	engine.Subscribe(ch, id)
 	defer engine.Unsubscribe(id)
 
 	if err := engine.Send(req1); err != nil {
@@ -134,7 +134,7 @@ func TestOptionChainRequest(t *testing.T) {
 	id := engine.NextRequestId()
 	req1.SetId(id)
 	ch := make(chan reply)
-	engine.Subscribe(ch, id)	
+	engine.Subscribe(ch, id)
 	defer engine.Unsubscribe(id)
 
 	if err := engine.Send(req1); err != nil {
@@ -201,5 +201,3 @@ func TestOptionChain(t *testing.T) {
 		t.Fatalf("not option chains retrieved")
 	}
 }
-
-

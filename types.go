@@ -1,9 +1,9 @@
 package trade
 
 import (
-	"time"
 	"bufio"
 	"bytes"
+	"time"
 )
 
 const (
@@ -161,7 +161,7 @@ type reply interface {
 
 type serverHandshake struct {
 	version int64
-	time time.Time
+	time    time.Time
 }
 
 func (v *serverHandshake) read(b *bufio.Reader) {
@@ -171,7 +171,7 @@ func (v *serverHandshake) read(b *bufio.Reader) {
 
 type clientHandshake struct {
 	version int64
-	id int64
+	id      int64
 }
 
 func (v *clientHandshake) write(b *bytes.Buffer) {
@@ -559,7 +559,7 @@ func (v *HedgeParam) read(b *bufio.Reader) {
 }
 
 type OpenOrder struct {
-	id                 int64
+	id                      int64
 	ContractId              int64
 	Symbol                  string
 	SecType                 string
@@ -790,7 +790,7 @@ func (v *NextValidId) read(b *bufio.Reader) {
 }
 
 type ScannerData struct {
-	id            int64
+	id     int64
 	Detail []ScannerDetail
 }
 
@@ -866,7 +866,7 @@ type ContractData struct {
 	OrderTypes      string
 	ValidExchanges  string
 	PriceMagnifier  int64
-	SpotContractId int64
+	SpotContractId  int64
 	LongName        string
 	PrimaryExchange string
 	ContractMonth   string
@@ -1448,7 +1448,7 @@ func (v *RequestMarketData) write(b *bytes.Buffer) {
 }
 
 type Contract struct {
-	ContractId      int64
+	Id              int64
 	Symbol          string
 	SecurityType    string
 	Expiry          string
@@ -1462,7 +1462,7 @@ type Contract struct {
 }
 
 func (v *Contract) write(b *bytes.Buffer) {
-	writeInt(b, v.ContractId)
+	writeInt(b, v.Id)
 	writeString(b, v.Symbol)
 	writeString(b, v.SecurityType)
 	writeString(b, v.Expiry)
@@ -1798,4 +1798,3 @@ func msg2Code(m interface{}) int64 {
 	return 0
 }
 */
-

@@ -36,7 +36,7 @@ func TestWriteTime(t *testing.T) {
 	writeTime(b, ts)
 	expected := ts.Format(ibTimeFormat) + "\000"
 	if b.String() != expected {
-		t.Fatalf("writeTime(%s) = %s, want %s", ts, b.String(), expected)		
+		t.Fatalf("writeTime(%s) = %s, want %s", ts, b.String(), expected)
 	}
 }
 
@@ -78,7 +78,7 @@ func TestReadInt(t *testing.T) {
 
 func TestReadTime(t *testing.T) {
 	x := time.Now()
-	x = x.Add(time.Duration(-1 * x.Nanosecond()))	
+	x = x.Add(time.Duration(-1 * x.Nanosecond()))
 	b := makebuf()
 
 	writeTime(b, x)
