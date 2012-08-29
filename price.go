@@ -2,8 +2,8 @@ package trade
 
 func (engine *Engine) GetPriceSnapshot(inst Quotable) (float64, error) {
 	id := engine.NextRequestId()
-	ch := make(chan reply)
-	engine.Subscribe(ch, id)	
+	ch := make(chan Reply)
+	engine.Subscribe(ch, id)
 	defer engine.Unsubscribe(id)
 
 	if err := engine.Send(inst.MarketDataReq(id)); err != nil {

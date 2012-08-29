@@ -24,8 +24,8 @@ func (engine *Engine) GetOptionChains(spot Discoverable) (OptionChains, error) {
 
 	id := engine.NextRequestId()
 	req.SetId(id)
-	ch := make(chan reply)
-	engine.Subscribe(ch, id)	
+	ch := make(chan Reply)
+	engine.Subscribe(ch, id)
 	defer engine.Unsubscribe(id)
 
 	if err := engine.Send(req); err != nil {
@@ -40,7 +40,7 @@ done:
 	// message loop
 	for {
 		select {
-			case v := <-ch:
+		case v := <-ch:
 			switch v.(type) {
 			case *ContractDataEnd:
 				break done
@@ -70,12 +70,12 @@ done:
 
 func (strike *Strike) update(v *ContractData) {
 	option := &Option{
-		Contract: Contract{
+		contract: Contract{
 			Symbol:      v.Symbol,
 			LocalSymbol: v.LocalSymbol,
 			Exchange:    v.Exchange,
 			Currency:    v.Currency,
-			ContractId:  v.ContractId,
+			Id:          v.Id(),
 		},
 	}
 
@@ -108,7 +108,7 @@ func (strike *Strike) String() string {
 			return ""
 		}
 
-		return fmt.Sprintf("%s %d", label, v.ContractId)
+		return fmt.Sprintf("%s %d", label, v.Contract().Id)
 	}
 
 	options := toString(strike.Call, "CALL") + " " + toString(strike.Put, "PUT")

@@ -32,7 +32,7 @@ type Engine struct {
 	serverTime    time.Time
 	clientVersion int64
 	serverVersion int64
-	subscribers   map[int64]chan<- reply
+	subscribers   map[int64]chan<- Reply
 }
 
 // Sink is intended to be a closure that 
@@ -76,14 +76,14 @@ func NewEngine(client int64) (*Engine, error) {
 	tick := uniqueId()
 
 	engine := Engine{
-		timeout: 60 * time.Second,
-		client:  client,
-		tick:    tick,
-		con:     con,
-		reader:  reader,
-		input:   input,
-		output:  output,
-		subscribers : make(map[int64]chan<- reply),
+		timeout:     60 * time.Second,
+		client:      client,
+		tick:        tick,
+		con:         con,
+		reader:      reader,
+		input:       input,
+		output:      output,
+		subscribers: make(map[int64]chan<- Reply),
 	}
 
 	// write client version and id
@@ -104,7 +104,7 @@ func NewEngine(client int64) (*Engine, error) {
 
 	// receiver
 
-	data := make(chan reply)
+	data := make(chan Reply)
 	error := make(chan error)
 
 	// we cannot force a timeout here
@@ -160,7 +160,7 @@ func (engine *Engine) SetTimeout(timeout time.Duration) {
 }
 
 // Subscribe will notify subscribers of future events with given id
-func (engine *Engine) Subscribe(c chan<- reply, id int64) {
+func (engine *Engine) Subscribe(c chan<- Reply, id int64) {
 	if c == nil {
 		panic("trade: Notify using nil channel")
 	}
@@ -197,7 +197,7 @@ func (v *header) read(b *bufio.Reader) {
 }
 
 // Send a message to the engine
-func (engine *Engine) Send(v request) error {
+func (engine *Engine) Send(v Request) error {
 	engine.Lock()
 	defer engine.Unlock()
 	engine.output.Reset()
@@ -248,7 +248,7 @@ func dump(b *bytes.Buffer) {
 	fmt.Printf("Buffer = '%s'\n", s)
 }
 
-func (engine *Engine) receive() (reply, error) {
+func (engine *Engine) receive() (Reply, error) {
 	engine.input.Reset()
 	hdr := &header{}
 

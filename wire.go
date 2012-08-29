@@ -119,4 +119,3 @@ func writeBool(buf *bytes.Buffer, v bool) {
 func writeTime(buf *bytes.Buffer, v time.Time) {
 	writeString(buf, v.Format(ibTimeFormat))
 }
-

@@ -1,12 +1,12 @@
 package trade
 
 import (
-	"time"
 	"reflect"
 	"testing"
+	"time"
 )
 
-func (engine *Engine) expect(t *testing.T, ch chan reply, expected int64) (reply, error) {
+func (engine *Engine) expect(t *testing.T, ch chan Reply, expected int64) (Reply, error) {
 	for {
 		select {
 		case <-time.After(engine.timeout):
@@ -55,8 +55,8 @@ func TestMarketData(t *testing.T) {
 
 	id := engine.NextRequestId()
 	req1.SetId(id)
-	ch := make(chan reply)
-	engine.Subscribe(ch, id)	
+	ch := make(chan Reply)
+	engine.Subscribe(ch, id)
 	defer engine.Unsubscribe(id)
 
 	if err := engine.Send(req1); err != nil {
@@ -92,8 +92,8 @@ func TestContractDetails(t *testing.T) {
 
 	id := engine.NextRequestId()
 	req1.SetId(id)
-	ch := make(chan reply)
-	engine.Subscribe(ch, id)	
+	ch := make(chan Reply)
+	engine.Subscribe(ch, id)
 	defer engine.Unsubscribe(id)
 
 	if err := engine.Send(req1); err != nil {
@@ -133,8 +133,8 @@ func TestOptionChainRequest(t *testing.T) {
 
 	id := engine.NextRequestId()
 	req1.SetId(id)
-	ch := make(chan reply)
-	engine.Subscribe(ch, id)	
+	ch := make(chan Reply)
+	engine.Subscribe(ch, id)
 	defer engine.Unsubscribe(id)
 
 	if err := engine.Send(req1); err != nil {
@@ -201,5 +201,3 @@ func TestOptionChain(t *testing.T) {
 		t.Fatalf("not option chains retrieved")
 	}
 }
-
-
