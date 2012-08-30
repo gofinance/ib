@@ -1,6 +1,6 @@
-package trade
+package engine
 
-func (engine *Engine) GetPriceSnapshot(inst Quotable) (float64, error) {
+func (engine *Handle) GetPriceSnapshot(inst Quotable) (float64, error) {
 	id := engine.NextRequestId()
 	ch := make(chan Reply)
 	engine.Subscribe(ch, id)

@@ -1,4 +1,4 @@
-package trade
+package engine
 
 import (
 	"reflect"
@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-func (engine *Engine) expect(t *testing.T, ch chan Reply, expected int64) (Reply, error) {
+func (engine *Handle) expect(t *testing.T, ch chan Reply, expected int64) (Reply, error) {
 	for {
 		select {
 		case <-time.After(engine.timeout):
@@ -30,7 +30,7 @@ func (engine *Engine) expect(t *testing.T, ch chan Reply, expected int64) (Reply
 }
 
 func TestConnect(t *testing.T) {
-	_, err := NewEngine(1)
+	_, err := Make(1)
 
 	if err != nil {
 		t.Fatalf("cannot connect engine: %s", err)
@@ -38,7 +38,7 @@ func TestConnect(t *testing.T) {
 }
 
 func TestMarketData(t *testing.T) {
-	engine, err := NewEngine(2)
+	engine, err := Make(2)
 
 	if err != nil {
 		t.Fatalf("cannot connect engine: %s", err)
@@ -77,7 +77,7 @@ func TestMarketData(t *testing.T) {
 }
 
 func TestContractDetails(t *testing.T) {
-	engine, err := NewEngine(3)
+	engine, err := Make(3)
 
 	if err != nil {
 		t.Fatalf("cannot connect engine: %s", err)
@@ -118,7 +118,7 @@ func TestContractDetails(t *testing.T) {
 }
 
 func TestOptionChainRequest(t *testing.T) {
-	engine, err := NewEngine(4)
+	engine, err := Make(4)
 
 	if err != nil {
 		t.Fatalf("cannot connect engine: %s", err)
@@ -148,56 +148,4 @@ func TestOptionChainRequest(t *testing.T) {
 	}
 
 	t.Logf("received packet '%v' of type %v\n", rep1, reflect.ValueOf(rep1).Type())
-}
-
-func TestPriceSnapshot(t *testing.T) {
-	engine, err := NewEngine(5)
-
-	if err != nil {
-		t.Fatalf("cannot connect engine: %s", err)
-	}
-
-	stock := &Stock{
-		Contract{
-			Symbol:   "AAPL",
-			Exchange: "SMART",
-			Currency: "USD",
-		},
-	}
-
-	price, err := engine.GetPriceSnapshot(stock)
-
-	if err != nil {
-		t.Fatalf("cannot get price snapshot: %s", err)
-	}
-
-	if price <= 0 {
-		t.Fatalf("wrong price in snapshot")
-	}
-}
-
-func TestOptionChain(t *testing.T) {
-	engine, err := NewEngine(6)
-
-	if err != nil {
-		t.Fatalf("cannot connect engine: %s", err)
-	}
-
-	stock := &Stock{
-		Contract{
-			Symbol:   "AAPL",
-			Exchange: "SMART",
-			Currency: "USD",
-		},
-	}
-
-	chains, err := engine.GetOptionChains(stock)
-
-	if err != nil {
-		t.Fatalf("cannot get option chains: %s", err)
-	}
-
-	if len(chains) == 0 {
-		t.Fatalf("not option chains retrieved")
-	}
 }

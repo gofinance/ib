@@ -1,8 +1,9 @@
 package portfolio
 
 import (
-	"sync"
 	"github.com/wagerlabs/go.trade"
+	"github.com/wagerlabs/go.trade/engine"
+	"sync"
 )
 
 // Position aggregates the P&L and other parameters
@@ -50,21 +51,21 @@ func (x *Position) Vega() float64          { return x.vega }
 type Portfolio struct {
 	mutex       sync.Mutex
 	Name        string
-	engine      *trade.Engine
-	ch          chan trade.Reply
+	engine      *engine.Handle
+	ch          chan engine.Reply
 	exit        chan bool
 	contracts   map[string]int // symbol to position index
-	requests    map[int64]int // market data request id to position index
-	pending     map[int64]int // not updated with market data
+	requests    map[int64]int  // market data request id to position index
+	pending     map[int64]int  // not updated with market data
 	positions   []*Position
 	subscribers []chan bool
 }
 
 // Make creates a new empty portfolio
-func Make(engine *trade.Engine) *Portfolio {
+func Make(e *engine.Handle) *Portfolio {
 	x := &Portfolio{
-		engine:      engine,
-		ch:          make(chan trade.Reply),
+		engine:      e,
+		ch:          make(chan engine.Reply),
 		exit:        make(chan bool),
 		contracts:   make(map[string]int),
 		requests:    make(map[int64]int),
@@ -114,11 +115,11 @@ func (x *Portfolio) Notify(c chan bool) {
 	x.subscribers = append(x.subscribers, c)
 }
 
-func symbol(contract *trade.Contract) (symbol string) {
-	if contract.LocalSymbol != "" {
-		symbol = contract.LocalSymbol
+func symbol(inst trade.Instrument) (symbol string) {
+	if inst.LocalSymbol() != "" {
+		symbol = inst.LocalSymbol()
 	} else {
-		symbol = contract.Symbol
+		symbol = inst.Symbol()
 	}
 
 	return
@@ -133,11 +134,11 @@ func (x *Portfolio) Lookup(symbol string) (*Position, bool) {
 }
 
 // Add will set up a new position or update an existing one
-func (x *Portfolio) Add(inst trade.Quotable, qty int64, price float64) error {
+func (x *Portfolio) Add(inst engine.Quotable, qty int64, price float64) error {
 	x.mutex.Lock()
 	defer x.mutex.Unlock()
 
-	if ix, ok := x.contracts[symbol(inst.Contract())]; ok {
+	if ix, ok := x.contracts[symbol(inst)]; ok {
 		x.positions[ix].update(qty, price)
 		return nil
 	}
@@ -146,7 +147,7 @@ func (x *Portfolio) Add(inst trade.Quotable, qty int64, price float64) error {
 }
 
 // Add new position
-func (x *Portfolio) add(inst trade.Quotable, qty int64, price float64) error {
+func (x *Portfolio) add(inst engine.Quotable, qty int64, price float64) error {
 	id := x.engine.NextRequestId()
 	pos := &Position{
 		id:       id,
@@ -162,7 +163,7 @@ func (x *Portfolio) add(inst trade.Quotable, qty int64, price float64) error {
 	x.engine.Subscribe(x.ch, id)
 
 	ix := len(x.positions)
-	x.contracts[symbol(inst.Contract())] = ix
+	x.contracts[symbol(inst)] = ix
 	x.requests[id] = ix
 	x.pending[id] = ix // no market data received
 	x.positions = append(x.positions, pos)
@@ -188,7 +189,7 @@ func (x *Portfolio) cleanup(pos *Position) {
 	// unsubscribe from engine notifications
 	x.engine.Unsubscribe(pos.id)
 	// unsubscribe from market data updates
-	req := &trade.CancelMarketData{}
+	req := &engine.CancelMarketData{}
 	req.SetId(pos.id)
 	x.engine.Send(req)
 }
@@ -203,26 +204,26 @@ func (x *Position) update(qty int64, price float64) {
 }
 
 // update position from a market data event
-func (x *Position) process(v trade.Reply) {
+func (x *Position) process(v engine.Reply) {
 	x.mutex.Lock()
 	defer x.mutex.Unlock()
 
 	switch v.(type) {
-	case *trade.TickPrice:
-		v := v.(*trade.TickPrice)
+	case *engine.TickPrice:
+		v := v.(*engine.TickPrice)
 		switch v.Type {
-		case trade.TickLast:
+		case engine.TickLast:
 			x.last = v.Price
-		case trade.TickBid:
+		case engine.TickBid:
 			x.bid = v.Price
-		case trade.TickAsk:
+		case engine.TickAsk:
 			x.ask = v.Price
 		}
-	case *trade.TickOptionComputation:
-		v := v.(*trade.TickOptionComputation)
+	case *engine.TickOptionComputation:
+		v := v.(*engine.TickOptionComputation)
 		switch v.Type {
-		case trade.TickLastOptionComputation,
-			trade.TickCustOptionComputation:
+		case engine.TickLastOptionComputation,
+			engine.TickCustOptionComputation:
 			if v.Delta == -2 {
 				x.volatility = v.ImpliedVol
 				x.spotPrice = v.SpotPrice
