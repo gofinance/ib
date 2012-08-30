@@ -24,7 +24,7 @@ func (engine *Engine) GetOptionChains(spot Discoverable) (OptionChains, error) {
 
 	id := engine.NextRequestId()
 	req.SetId(id)
-	ch := make(chan reply)
+	ch := make(chan Reply)
 	engine.Subscribe(ch, id)
 	defer engine.Unsubscribe(id)
 

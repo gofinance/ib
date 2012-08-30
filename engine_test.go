@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-func (engine *Engine) expect(t *testing.T, ch chan reply, expected int64) (reply, error) {
+func (engine *Engine) expect(t *testing.T, ch chan Reply, expected int64) (Reply, error) {
 	for {
 		select {
 		case <-time.After(engine.timeout):
@@ -55,7 +55,7 @@ func TestMarketData(t *testing.T) {
 
 	id := engine.NextRequestId()
 	req1.SetId(id)
-	ch := make(chan reply)
+	ch := make(chan Reply)
 	engine.Subscribe(ch, id)
 	defer engine.Unsubscribe(id)
 
@@ -92,7 +92,7 @@ func TestContractDetails(t *testing.T) {
 
 	id := engine.NextRequestId()
 	req1.SetId(id)
-	ch := make(chan reply)
+	ch := make(chan Reply)
 	engine.Subscribe(ch, id)
 	defer engine.Unsubscribe(id)
 
@@ -133,7 +133,7 @@ func TestOptionChainRequest(t *testing.T) {
 
 	id := engine.NextRequestId()
 	req1.SetId(id)
-	ch := make(chan reply)
+	ch := make(chan Reply)
 	engine.Subscribe(ch, id)
 	defer engine.Unsubscribe(id)
 

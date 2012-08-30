@@ -146,14 +146,14 @@ const (
 	TickNotSet
 )
 
-type request interface {
+type Request interface {
 	writable
 	SetId(id int64)
 	code() int64
 	version() int64
 }
 
-type reply interface {
+type Reply interface {
 	readable
 	Id() int64
 	code() int64
@@ -1635,7 +1635,7 @@ func (v *CancelCalcOptionPrice) write(b *bytes.Buffer) {
 	writeInt(b, v.id)
 }
 
-func code2Msg(code int64) reply {
+func code2Msg(code int64) Reply {
 	switch code {
 	case mTickPrice:
 		return &TickPrice{}
