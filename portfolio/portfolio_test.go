@@ -22,6 +22,7 @@ func TestPortfolio(t *testing.T) {
 	p := Make(engine)
 	p.Notify(ch)
 	p.Add(stock, 1, 0)
+	p.StartUpdate()
 	select {
 	case <-time.After(15 * time.Second):
 		t.Fatalf("did not receive portfolio ready notification")

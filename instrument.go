@@ -9,4 +9,3 @@ type Instrument interface {
 	Exchange() string
 	Currency() string
 }
-

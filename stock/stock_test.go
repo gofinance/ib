@@ -1,8 +1,8 @@
 package stock
 
 import (
-	"testing"
 	"github.com/wagerlabs/go.trade/engine"
+	"testing"
 )
 
 func TestPriceSnapshot(t *testing.T) {

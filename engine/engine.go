@@ -19,14 +19,10 @@ const (
 	gateway = "127.0.0.1:4001"
 )
 
-type Quotable interface {
-	trade.Instrument
-	MarketDataReq(tick int64) *RequestMarketData
-}
-
-type Discoverable interface {
+type Instrument interface {
 	trade.Instrument
 	ContractDataReq() *RequestContractData
+	MarketDataReq(tick int64) *RequestMarketData
 }
 
 // Engine is the entry point to the IB TWS API
@@ -59,7 +55,7 @@ func timeout() error {
 
 func uniqueId() chan int64 {
 	ch := make(chan int64)
-	id := int64(0)
+	id := int64(1000)
 	go func() {
 		for {
 			ch <- id
