@@ -9,7 +9,7 @@ import (
 type Sink interface {
 	Id() int64
 	Start(e *engine.Handle) error
-	Stop(e *engine.Handle) error
+	Stop() error
 	Update(v engine.Reply) bool
 	Unique() string
 }
@@ -141,7 +141,7 @@ func (self *Collection) Cleanup() error {
 	self.requests = make(map[int64]int)
 
 	for _, v := range self.items {
-		v.Stop(self.e)
+		v.Stop()
 	}
 
 	self.ids = make([]int64, 0)

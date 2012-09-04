@@ -88,6 +88,7 @@ func (self *Portfolio) Cleanup() {
 // of multiple trades once they have been executed.
 type Position struct {
 	mutex         sync.Mutex
+	e             *engine.Handle
 	spot          engine.Instrument // underlying instrument
 	id            int64             // market data request id
 	qty           int64             // #contracts bought or sold
@@ -128,14 +129,15 @@ func (self *Position) Theta() float64         { return self.theta }
 func (self *Position) Vega() float64          { return self.vega }
 
 func (self *Position) Start(e *engine.Handle) error {
+	self.e = e
 	req := self.spot.MarketDataReq(self.id)
 	return e.Send(req)
 }
 
-func (self *Position) Stop(e *engine.Handle) error {
+func (self *Position) Stop() error {
 	req := &engine.CancelMarketData{}
 	req.SetId(self.id)
-	return e.Send(req)
+	return self.e.Send(req)
 }
 
 // update position from a market data event

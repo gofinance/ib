@@ -9,6 +9,7 @@ import (
 type symbol struct {
 	id   int64
 	name string
+	e    *engine.Handle
 	data *engine.ContractData
 }
 
@@ -17,6 +18,7 @@ func (self *symbol) Id() int64 {
 }
 
 func (self *symbol) Start(e *engine.Handle) error {
+	self.e = e
 	req := &engine.RequestContractData{
 		Symbol:       "SX7E",
 		SecurityType: "IND",
@@ -30,10 +32,10 @@ func (self *symbol) Start(e *engine.Handle) error {
 	return nil
 }
 
-func (self *symbol) Stop(e *engine.Handle) error {
+func (self *symbol) Stop() error {
 	req := &engine.CancelMarketData{}
 	req.SetId(self.id)
-	return e.Send(req)
+	return self.e.Send(req)
 }
 
 func (self *symbol) Update(v engine.Reply) bool {
