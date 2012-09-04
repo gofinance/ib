@@ -21,6 +21,7 @@ type Symbol struct {
 	SecType  string
 	Exchange string
 	Currency string
+	Valid    bool
 	Data     []*engine.ContractData
 	e        *engine.Handle
 	fn       stateFn
@@ -117,11 +118,15 @@ func (self *Symbol) Stop() error {
 func (self *Symbol) Update(v engine.Reply) (int64, bool) {
 	switch v.(type) {
 	case *engine.ContractDataEnd:
+		self.Valid = true
 		return self.id, true
 	case *engine.ContractData:
 		self.Data = append(self.Data, v.(*engine.ContractData))
 	case *engine.ErrorMessage:
 		self.step()
+		if self.fn == nil {
+			return self.id, true
+		}
 	}
 
 	return self.id, false
@@ -134,6 +139,10 @@ func (self *Symbol) Unique() string {
 // state machine
 
 func (self *Symbol) step() (int64, error) {
+	if self.fn == nil {
+		return self.id, nil
+	}
+
 	fn, err := self.fn(self)
 
 	if err == nil {
