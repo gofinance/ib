@@ -38,15 +38,15 @@ func (self *symbol) Stop() error {
 	return self.e.Send(req)
 }
 
-func (self *symbol) Update(v engine.Reply) bool {
+func (self *symbol) Update(v engine.Reply) (int64, bool) {
 	switch v.(type) {
 	case *engine.ContractDataEnd:
-		return true
+		return self.id, true
 	case *engine.ContractData:
 		self.data = v.(*engine.ContractData)
 	}
 
-	return false
+	return self.id, false
 }
 
 func (self *symbol) Unique() string {

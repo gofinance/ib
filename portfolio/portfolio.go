@@ -141,7 +141,7 @@ func (self *Position) Stop() error {
 }
 
 // update position from a market data event
-func (self *Position) Update(v engine.Reply) bool {
+func (self *Position) Update(v engine.Reply) (int64, bool) {
 	self.mutex.Lock()
 	defer self.mutex.Unlock()
 
@@ -177,7 +177,7 @@ func (self *Position) Update(v engine.Reply) bool {
 		}
 	}
 
-	return true
+	return self.id, true
 }
 
 func (self *Position) Unique() string {

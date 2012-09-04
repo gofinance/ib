@@ -10,7 +10,7 @@ type Sink interface {
 	Id() int64
 	Start(e *engine.Handle) error
 	Stop() error
-	Update(v engine.Reply) bool
+	Update(v engine.Reply) (int64, bool)
 	Unique() string
 }
 
@@ -22,7 +22,6 @@ type Collection struct {
 	xref        map[string]int // unique id to position index
 	requests    map[int64]int  // market data request id to position index
 	pending     map[int64]int  // not updated with market data
-	ids         []int64
 	items       []Sink
 	subscribers []chan bool
 }
@@ -36,7 +35,6 @@ func Make(e *engine.Handle) *Collection {
 		xref:        make(map[string]int),
 		requests:    make(map[int64]int),
 		pending:     make(map[int64]int),
-		ids:         make([]int64, 0),
 		items:       make([]Sink, 0),
 		subscribers: make([]chan bool, 0),
 	}
@@ -48,7 +46,20 @@ func Make(e *engine.Handle) *Collection {
 			case v := <-self.ch:
 				id := v.Id()
 				if ix, ok := self.requests[id]; ok {
-					if updated := self.items[ix].Update(v); !updated {
+					id1, updated := self.items[ix].Update(v)
+					// update it if changed
+					if id1 != id {
+						self.mutex.Lock()
+						self.requests[id1] = self.requests[id]
+						delete(self.requests, id)
+						if _, ok := self.pending[id]; ok {
+							self.pending[id1] = self.pending[id]
+							delete(self.pending, id)
+						}
+						self.mutex.Unlock()
+						id = id1
+					}
+					if !updated {
 						continue
 					}
 					if _, ok := self.pending[id]; ok {
@@ -127,7 +138,6 @@ func (self *Collection) Add(v Sink) {
 	ix := len(self.items)
 	self.xref[v.Unique()] = ix
 	self.items = append(self.items, v)
-	self.ids = append(self.ids, id)
 	self.requests[id] = ix
 	self.pending[id] = ix
 }
@@ -144,7 +154,6 @@ func (self *Collection) Cleanup() error {
 		v.Stop()
 	}
 
-	self.ids = make([]int64, 0)
 	self.items = make([]Sink, 0)
 
 	return nil
