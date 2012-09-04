@@ -128,10 +128,11 @@ func (self *Position) Gamma() float64         { return self.gamma }
 func (self *Position) Theta() float64         { return self.theta }
 func (self *Position) Vega() float64          { return self.vega }
 
-func (self *Position) Start(e *engine.Handle) error {
+func (self *Position) Start(e *engine.Handle) (int64, error) {
 	self.e = e
 	req := self.spot.MarketDataReq(self.id)
-	return e.Send(req)
+	err := e.Send(req)
+	return self.id, err
 }
 
 func (self *Position) Stop() error {

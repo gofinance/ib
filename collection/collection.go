@@ -2,13 +2,14 @@ package collection
 
 import (
 	"fmt"
+	//"log"
 	"github.com/wagerlabs/go.trade/engine"
 	"sync"
 )
 
 type Sink interface {
 	Id() int64
-	Start(e *engine.Handle) error
+	Start(e *engine.Handle) (int64, error)
 	Stop() error
 	Update(v engine.Reply) (int64, bool)
 	Unique() string
@@ -49,14 +50,7 @@ func Make(e *engine.Handle) *Items {
 					id1, updated := self.items[ix].Update(v)
 					// update it if changed
 					if id1 != id {
-						self.mutex.Lock()
-						self.requests[id1] = self.requests[id]
-						delete(self.requests, id)
-						if _, ok := self.pending[id]; ok {
-							self.pending[id1] = self.pending[id]
-							delete(self.pending, id)
-						}
-						self.mutex.Unlock()
+						self.updateId(id, id1)
 						id = id1
 					}
 					if !updated {
@@ -99,9 +93,16 @@ func sinkError(v Sink, err error) error {
 
 func (self *Items) StartUpdate() error {
 	for _, sink := range self.items {
-		self.e.Subscribe(self.ch, sink.Id())
-		if err := sink.Start(self.e); err != nil {
+		id := sink.Id()
+		self.e.Subscribe(self.ch, id)
+		id1, err := sink.Start(self.e)
+
+		if err != nil {
 			return err
+		}
+
+		if id1 != id {
+			self.updateId(id, id1)
 		}
 	}
 
@@ -161,4 +162,17 @@ func (self *Items) Cleanup() error {
 
 func (self *Items) Items() []Sink {
 	return self.items // make a copy?
+}
+
+func (self *Items) updateId(oldId int64, newId int64) {
+	self.mutex.Lock()
+	defer self.mutex.Unlock()
+	self.e.Unsubscribe(oldId)
+	self.e.Subscribe(self.ch, newId)
+	self.requests[newId] = self.requests[oldId]
+	delete(self.requests, oldId)
+	if _, ok := self.pending[oldId]; ok {
+		self.pending[newId] = self.pending[oldId]
+		delete(self.pending, oldId)
+	}
 }

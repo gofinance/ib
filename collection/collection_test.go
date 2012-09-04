@@ -17,7 +17,7 @@ func (self *symbol) Id() int64 {
 	return self.id
 }
 
-func (self *symbol) Start(e *engine.Handle) error {
+func (self *symbol) Start(e *engine.Handle) (int64, error) {
 	self.e = e
 	req := &engine.RequestContractData{
 		Symbol:       "SX7E",
@@ -26,10 +26,10 @@ func (self *symbol) Start(e *engine.Handle) error {
 	req.SetId(self.id)
 
 	if err := e.Send(req); err != nil {
-		return err
+		return 0, err
 	}
 
-	return nil
+	return self.id, nil
 }
 
 func (self *symbol) Stop() error {
