@@ -1,4 +1,4 @@
-package sink
+package collection
 
 import (
 	"github.com/wagerlabs/go.trade/engine"

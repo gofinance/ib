@@ -2,8 +2,8 @@ package portfolio
 
 import (
 	"github.com/wagerlabs/go.trade"
+	"github.com/wagerlabs/go.trade/collection"
 	"github.com/wagerlabs/go.trade/engine"
-	"github.com/wagerlabs/go.trade/sink"
 	"sync"
 )
 
@@ -11,14 +11,14 @@ type Portfolio struct {
 	mutex     sync.Mutex
 	Name      string
 	e         *engine.Handle
-	positions *sink.Collection
+	positions *collection.Items
 }
 
 // Make creates a new empty portfolio
 func Make(e *engine.Handle) *Portfolio {
 	return &Portfolio{
 		e:         e,
-		positions: sink.Make(e),
+		positions: collection.Make(e),
 	}
 }
 
@@ -81,7 +81,7 @@ func (self *Portfolio) Cleanup() {
 	self.mutex.Lock()
 	defer self.mutex.Unlock()
 	self.positions.Cleanup()
-	self.positions = sink.Make(self.e)
+	self.positions = collection.Make(self.e)
 }
 
 // Position aggregates the P&L and other parameters

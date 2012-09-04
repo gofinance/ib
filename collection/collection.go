@@ -1,4 +1,4 @@
-package sink
+package collection
 
 import (
 	"fmt"
@@ -14,7 +14,7 @@ type Sink interface {
 	Unique() string
 }
 
-type Collection struct {
+type Items struct {
 	mutex       sync.Mutex
 	e           *engine.Handle
 	ch          chan engine.Reply
@@ -26,9 +26,9 @@ type Collection struct {
 	subscribers []chan bool
 }
 
-// Make creates an empty collection of updatable items
-func Make(e *engine.Handle) *Collection {
-	self := &Collection{
+// Make creates an empty Items of updatable items
+func Make(e *engine.Handle) *Items {
+	self := &Items{
 		e:           e,
 		ch:          make(chan engine.Reply),
 		exit:        make(chan bool),
@@ -90,14 +90,14 @@ type SinkError struct {
 }
 
 func (e *SinkError) Error() string {
-	return fmt.Sprintf("collection: item error %s for item %v", e.err, e.sink)
+	return fmt.Sprintf("Items: item error %s for item %v", e.err, e.sink)
 }
 
 func sinkError(v Sink, err error) error {
 	return &SinkError{v, err}
 }
 
-func (self *Collection) StartUpdate() error {
+func (self *Items) StartUpdate() error {
 	for _, sink := range self.items {
 		self.e.Subscribe(self.ch, sink.Id())
 		if err := sink.Start(self.e); err != nil {
@@ -108,13 +108,13 @@ func (self *Collection) StartUpdate() error {
 	return nil
 }
 
-func (self *Collection) Notify(c chan bool) {
+func (self *Items) Notify(c chan bool) {
 	self.mutex.Lock()
 	defer self.mutex.Unlock()
 	self.subscribers = append(self.subscribers, c)
 }
 
-func (self *Collection) Lookup(unique string) (Sink, bool) {
+func (self *Items) Lookup(unique string) (Sink, bool) {
 	ix, ok := self.xref[unique]
 
 	if !ok {
@@ -124,7 +124,7 @@ func (self *Collection) Lookup(unique string) (Sink, bool) {
 	return self.items[ix], true
 }
 
-func (self *Collection) Add(v Sink) {
+func (self *Items) Add(v Sink) {
 	self.mutex.Lock()
 	defer self.mutex.Unlock()
 
@@ -142,7 +142,7 @@ func (self *Collection) Add(v Sink) {
 	self.pending[id] = ix
 }
 
-func (self *Collection) Cleanup() error {
+func (self *Items) Cleanup() error {
 	self.mutex.Lock()
 	defer self.mutex.Unlock()
 
@@ -159,6 +159,6 @@ func (self *Collection) Cleanup() error {
 	return nil
 }
 
-func (self *Collection) Items() []Sink {
+func (self *Items) Items() []Sink {
 	return self.items // make a copy?
 }
