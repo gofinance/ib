@@ -12,15 +12,15 @@ type Chains struct {
 	chains *collection.Items
 }
 
-type Chain struct {
-	id      int64
-	spot    trade.Instrument
-	e       *engine.Handle
-	Strikes map[time.Time]*Strikes
-	Valid   bool
+type Root struct {
+	id     int64
+	e      *engine.Handle
+	Chains map[time.Time]*Chain
+	Spot   trade.Instrument
+	Valid  bool
 }
 
-type Strikes struct {
+type Chain struct {
 	Expiry  time.Time
 	Strikes map[float64]*Strike
 }
@@ -39,12 +39,12 @@ func MakeChains(e *engine.Handle) *Chains {
 	}
 }
 
-func (self *Chains) Chains() []*Chain {
+func (self *Chains) Chains() []*Root {
 	src := self.chains.Items()
 	n := len(src)
-	dst := make([]*Chain, n)
-	for ix, pos := range src {
-		dst[ix] = pos.(*Chain)
+	dst := make([]*Root, n)
+	for ix, v := range src {
+		dst[ix] = v.(*Root)
 	}
 	return dst
 }
@@ -58,25 +58,25 @@ func (self *Chains) StartUpdate() error {
 }
 
 func (self *Chains) Add(spot trade.Instrument) {
-	chain := &Chain{
-		id:      self.e.NextRequestId(),
-		spot:    spot,
-		e:       self.e,
-		Strikes: make(map[time.Time]*Strikes),
+	root := &Root{
+		id:     self.e.NextRequestId(),
+		e:      self.e,
+		Spot:   spot,
+		Chains: make(map[time.Time]*Chain),
 	}
-	self.chains.Add(chain)
+	self.chains.Add(root)
 }
 
-func (self *Chain) Id() int64 {
+func (self *Root) Id() int64 {
 	return self.id
 }
 
-func (self *Chain) Start(e *engine.Handle) (int64, error) {
+func (self *Root) Start(e *engine.Handle) (int64, error) {
 	req := &engine.RequestContractData{
-		Symbol:       self.spot.Symbol(),
+		Symbol:       self.Spot.Symbol(),
 		SecurityType: "OPT",
-		Exchange:     self.spot.Exchange(),
-		Currency:     self.spot.Currency(),
+		Exchange:     self.Spot.Exchange(),
+		Currency:     self.Spot.Currency(),
 	}
 	req.SetId(self.id)
 
@@ -87,11 +87,11 @@ func (self *Chain) Start(e *engine.Handle) (int64, error) {
 	return self.id, nil
 }
 
-func (self *Chain) Stop() error {
+func (self *Root) Stop() error {
 	return nil
 }
 
-func (self *Chain) Update(v engine.Reply) (int64, bool) {
+func (self *Root) Update(v engine.Reply) (int64, bool) {
 	switch v.(type) {
 	case *engine.ContractDataEnd:
 		self.Valid = true
@@ -103,26 +103,26 @@ func (self *Chain) Update(v engine.Reply) (int64, bool) {
 			// keep chain invalid
 			return self.id, true
 		}
-		if x, ok := self.Strikes[expiry]; ok {
-			x.update(v)
+		if chain, ok := self.Chains[expiry]; ok {
+			chain.update(v)
 		} else {
-			strikes := &Strikes{
+			chain := &Chain{
 				Expiry:  expiry,
 				Strikes: make(map[float64]*Strike),
 			}
-			strikes.update(v)
-			self.Strikes[expiry] = strikes
+			chain.update(v)
+			self.Chains[expiry] = chain
 		}
 	}
 
 	return self.id, false
 }
 
-func (self *Chain) Unique() string {
-	return self.spot.Symbol()
+func (self *Root) Unique() string {
+	return self.Spot.Symbol()
 }
 
-func (self *Strikes) update(v *engine.ContractData) {
+func (self *Chain) update(v *engine.ContractData) {
 	if strike, ok := self.Strikes[v.Strike]; ok {
 		// strike exists
 		strike.update(v)

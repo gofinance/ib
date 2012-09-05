@@ -32,7 +32,7 @@ func TestChains(t *testing.T) {
 		t.Fatalf("chain is invalid")
 	}
 
-	if len(chains[0].Strikes) == 0 {
+	if len(chains[0].Chains) == 0 {
 		t.Fatalf("expected at least 1 chain")
 	}
 }
