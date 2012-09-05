@@ -1,7 +1,6 @@
 package option
 
 import (
-	"github.com/wagerlabs/go.trade/engine"
 	"time"
 )
 
@@ -15,7 +14,7 @@ const (
 type Contract struct {
 	id          int64
 	symbol      string
-	LocalSymbol string
+	localSymbol string
 	exchange    string
 	currency    string
 	expiry      time.Time
@@ -37,31 +36,14 @@ func Make(symbol string, exchange string, currency string,
 	}
 }
 
-func (v *Contract) Expiry() time.Time { return v.expiry }
-func (v *Contract) Strike() float64   { return v.strike }
-func (v *Contract) Kind() Kind        { return v.kind }
-func (v *Contract) Id() int64         { return v.id }
-func (v *Contract) SetId(id int64)    { v.id = id }
-
-func (v *Contract) ContractDataReq() *engine.RequestContractData {
-	return &engine.RequestContractData{
-		Symbol:       v.symbol,
-		SecurityType: "OPT",
-		Exchange:     v.exchange,
-		Currency:     v.currency,
-	}
-}
-
-func (v *Contract) MarketDataReq(id int64) *engine.RequestMarketData {
-	req := &engine.RequestMarketData{
-		Contract: engine.Contract{
-			Id:           id,
-			Symbol:       v.symbol,
-			SecurityType: "OPT",
-			Exchange:     v.exchange,
-			Currency:     v.currency,
-		},
-	}
-	req.SetId(id)
-	return req
-}
+func (self *Contract) Symbol() string               { return self.symbol }
+func (self *Contract) Exchange() string             { return self.exchange }
+func (self *Contract) Currency() string             { return self.currency }
+func (self *Contract) Id() int64                    { return self.id }
+func (self *Contract) SetId(id int64)               { self.id = id }
+func (self *Contract) LocalSymbol() string          { return self.localSymbol }
+func (self *Contract) SetLocalSymbol(symbol string) { self.localSymbol = symbol }
+func (self *Contract) Expiry() time.Time            { return self.expiry }
+func (self *Contract) Strike() float64              { return self.strike }
+func (self *Contract) Kind() Kind                   { return self.kind }
+func (self *Contract) SecType() string              { return "OPT" }

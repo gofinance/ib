@@ -147,7 +147,7 @@ func (self *Strike) update(v *engine.ContractData) {
 	}
 
 	option := Make(v.Symbol, v.Exchange, v.Currency, self.expiry, self.Price, kind)
-	option.LocalSymbol = v.LocalSymbol
+	option.SetLocalSymbol(v.LocalSymbol)
 	option.SetId(v.Id())
 
 	if v.Right == "C" {
