@@ -3,7 +3,6 @@ package collection
 import (
 	"github.com/wagerlabs/go.trade/engine"
 	"testing"
-	"time"
 )
 
 type symbol struct {
@@ -64,16 +63,12 @@ func TestCollection(t *testing.T) {
 		id:   e.NextRequestId(),
 		name: "sx7e",
 	}
-	ch := make(chan bool)
-	col := Make(e)
-	col.Notify(ch)
-	col.Add(sym)
-	col.StartUpdate()
 
-	select {
-	case <-time.After(15 * time.Second):
+	col := Make(e)
+	col.Add(sym)
+
+	if !Wait(col) {
 		t.Fatalf("did not receive collection ready notification")
-	case <-ch:
 	}
 
 	if sym.data == nil {

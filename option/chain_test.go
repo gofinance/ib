@@ -1,10 +1,10 @@
 package option
 
 import (
+	"github.com/wagerlabs/go.trade"
+	"github.com/wagerlabs/go.trade/collection"
 	"github.com/wagerlabs/go.trade/engine"
-	"github.com/wagerlabs/go.trade/stock"
 	"testing"
-	"time"
 )
 
 func TestChains(t *testing.T) {
@@ -14,17 +14,12 @@ func TestChains(t *testing.T) {
 		t.Fatalf("cannot connect to engine: %s", err)
 	}
 
-	spot := stock.Make("AAPL", "SMART", "USD")
-	ch := make(chan bool)
+	spot := trade.NewStock("AAPL", "SMART", "USD")
 	col := MakeChains(e)
-	col.Notify(ch)
 	col.Add(spot)
-	col.StartUpdate()
 
-	select {
-	case <-time.After(15 * time.Second):
+	if !collection.Wait(col) {
 		t.Fatalf("did not receive chains ready notification")
-	case <-ch:
 	}
 
 	chains := col.Chains()

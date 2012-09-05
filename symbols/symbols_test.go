@@ -1,9 +1,9 @@
 package symbols
 
 import (
+	"github.com/wagerlabs/go.trade/collection"
 	"github.com/wagerlabs/go.trade/engine"
 	"testing"
-	"time"
 )
 
 func TestSymbols(t *testing.T) {
@@ -19,14 +19,8 @@ func TestSymbols(t *testing.T) {
 		t.Fatalf("error reading symbols: %s", err)
 	}
 
-	ch := make(chan bool)
-	syms.Notify(ch)
-	syms.StartUpdate()
-
-	select {
-	case <-time.After(15 * time.Second):
+	if !collection.Wait(syms) {
 		t.Fatalf("did not receive symbols ready notification")
-	case <-ch:
 	}
 
 	symbols := syms.Symbols()

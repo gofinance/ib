@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/wagerlabs/go.trade/engine"
 	"sync"
+	"time"
 )
 
 type Sink interface {
@@ -24,6 +25,11 @@ type Items struct {
 	pending     map[int64]int  // not updated with market data
 	items       []Sink
 	subscribers []chan bool
+}
+
+type Waitable interface {
+	StartUpdate() error
+	Notify(chan bool)
 }
 
 // Make creates an empty Items of updatable items
@@ -167,4 +173,17 @@ func (self *Items) updateId(oldId int64, newId int64) {
 		self.pending[newId] = self.pending[oldId]
 		delete(self.pending, oldId)
 	}
+}
+
+// Wait will start collection updates and wait for them to finish
+func Wait(v Waitable) bool {
+	ch := make(chan bool)
+	v.Notify(ch)
+	v.StartUpdate()
+	select {
+	case <-time.After(15 * time.Second):
+		return false
+	case <-ch:
+	}
+	return true
 }

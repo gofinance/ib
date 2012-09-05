@@ -1,10 +1,10 @@
 package portfolio
 
 import (
+	"github.com/wagerlabs/go.trade"
+	"github.com/wagerlabs/go.trade/collection"
 	"github.com/wagerlabs/go.trade/engine"
-	"github.com/wagerlabs/go.trade/stock"
 	"testing"
-	"time"
 )
 
 // create empty portfolio, add position, make sure we are notified when it's been updated
@@ -16,18 +16,13 @@ func TestPortfolio(t *testing.T) {
 		t.Fatalf("cannot connect engine: %s", err)
 	}
 
-	stock := stock.Make("AAPL", "SMART", "USD")
+	stock := trade.NewStock("AAPL", "SMART", "USD")
 
-	ch := make(chan bool)
 	p := Make(engine)
-	p.Notify(ch)
 	p.Add(stock, 1, 0)
-	p.StartUpdate()
 
-	select {
-	case <-time.After(15 * time.Second):
+	if !collection.Wait(p) {
 		t.Fatalf("did not receive portfolio ready notification")
-	case <-ch:
 	}
 
 	positions := p.Positions()

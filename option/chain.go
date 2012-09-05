@@ -53,8 +53,8 @@ func (self *Chains) Notify(c chan bool) {
 	self.chains.Notify(c)
 }
 
-func (self *Chains) StartUpdate() {
-	self.chains.StartUpdate()
+func (self *Chains) StartUpdate() error {
+	return self.chains.StartUpdate()
 }
 
 func (self *Chains) Add(spot trade.Instrument) {

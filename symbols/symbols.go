@@ -97,8 +97,8 @@ func (self *Collection) Notify(c chan bool) {
 	self.symbols.Notify(c)
 }
 
-func (self *Collection) StartUpdate() {
-	self.symbols.StartUpdate()
+func (self *Collection) StartUpdate() error {
+	return self.symbols.StartUpdate()
 }
 
 func (self *Symbol) Id() int64 {

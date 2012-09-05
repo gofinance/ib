@@ -71,8 +71,8 @@ func (self *Portfolio) Add(inst trade.Instrument, qty int64, price float64) {
 	self.positions.Add(pos)
 }
 
-func (self *Portfolio) StartUpdate() {
-	self.positions.StartUpdate()
+func (self *Portfolio) StartUpdate() error {
+	return self.positions.StartUpdate()
 }
 
 // Cleanup removes all positions from portfolio
