@@ -138,6 +138,7 @@ func (self *Position) Start(e *engine.Handle) (int64, error) {
 			Currency:     self.spot.Currency(),
 		},
 	}
+	self.id = e.NextRequestId()
 	req.SetId(self.id)
 	err := e.Send(req)
 	return self.id, err

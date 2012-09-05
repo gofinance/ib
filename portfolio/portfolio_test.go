@@ -23,12 +23,15 @@ func TestPortfolio(t *testing.T) {
 	p.Notify(ch)
 	p.Add(stock, 1, 0)
 	p.StartUpdate()
+
 	select {
 	case <-time.After(15 * time.Second):
 		t.Fatalf("did not receive portfolio ready notification")
 	case <-ch:
 	}
+
 	positions := p.Positions()
+
 	if len(positions) != 1 {
 		t.Fatalf("expected 1 position, got %d", len(positions))
 	}

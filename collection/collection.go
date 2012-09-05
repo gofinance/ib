@@ -2,7 +2,6 @@ package collection
 
 import (
 	"fmt"
-	//"log"
 	"github.com/wagerlabs/go.trade/engine"
 	"sync"
 )
@@ -92,17 +91,13 @@ func sinkError(v Sink, err error) error {
 }
 
 func (self *Items) StartUpdate() error {
-	for _, sink := range self.items {
-		id := sink.Id()
+	for ix, sink := range self.items {
+		id, err := sink.Start(self.e)
+		self.requests[id] = ix
+		self.pending[id] = ix
 		self.e.Subscribe(self.ch, id)
-		id1, err := sink.Start(self.e)
-
 		if err != nil {
 			return err
-		}
-
-		if id1 != id {
-			self.updateId(id, id1)
 		}
 	}
 
@@ -135,12 +130,9 @@ func (self *Items) Add(v Sink) {
 		return
 	}
 
-	id := v.Id()
 	ix := len(self.items)
 	self.xref[v.Unique()] = ix
 	self.items = append(self.items, v)
-	self.requests[id] = ix
-	self.pending[id] = ix
 }
 
 func (self *Items) Cleanup() error {
