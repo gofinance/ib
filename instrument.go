@@ -8,4 +8,5 @@ type Instrument interface {
 	SetLocalSymbol(symbol string)
 	Exchange() string
 	Currency() string
+    SecType() string
 }

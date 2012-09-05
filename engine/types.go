@@ -1508,8 +1508,8 @@ type RequestContractData struct {
 	Currency       string
 	LocalSymbol    string
 	IncludeExpired bool
-	SecurityIdType string
-	SecurityId     string
+	//SecurityIdType string
+	//SecurityId     string
 }
 
 func (v *RequestContractData) SetId(id int64) {
@@ -1521,7 +1521,7 @@ func (v *RequestContractData) code() int64 {
 }
 
 func (v *RequestContractData) version() int64 {
-	return 6
+	return 5
 }
 
 func (v *RequestContractData) write(b *bytes.Buffer) {
@@ -1537,8 +1537,6 @@ func (v *RequestContractData) write(b *bytes.Buffer) {
 	writeString(b, v.Currency)
 	writeString(b, v.LocalSymbol)
 	writeBool(b, v.IncludeExpired)
-	writeString(b, v.SecurityIdType)
-	writeString(b, v.SecurityId)
 }
 
 type RequestCalcImpliedVol struct {

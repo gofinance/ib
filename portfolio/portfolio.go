@@ -49,7 +49,7 @@ func (self *Portfolio) Lookup(symbol string) (*Position, bool) {
 }
 
 // Add will set up a new position or update an existing one
-func (self *Portfolio) Add(inst engine.Instrument, qty int64, price float64) {
+func (self *Portfolio) Add(inst trade.Instrument, qty int64, price float64) {
 	self.mutex.Lock()
 	defer self.mutex.Unlock()
 
@@ -89,9 +89,9 @@ func (self *Portfolio) Cleanup() {
 type Position struct {
 	mutex         sync.Mutex
 	e             *engine.Handle
-	spot          engine.Instrument // underlying instrument
-	id            int64             // market data request id
-	qty           int64             // #contracts bought or sold
+	spot          trade.Instrument // underlying instrument
+	id            int64            // market data request id
+	qty           int64            // #contracts bought or sold
 	bid           float64
 	ask           float64
 	last          float64 // price of last trade in the underlying
@@ -130,7 +130,15 @@ func (self *Position) Vega() float64          { return self.vega }
 
 func (self *Position) Start(e *engine.Handle) (int64, error) {
 	self.e = e
-	req := self.spot.MarketDataReq(self.id)
+	req := &engine.RequestMarketData{
+		Contract: engine.Contract{
+			Symbol:       self.spot.Symbol(),
+			SecurityType: self.spot.SecType(),
+			Exchange:     self.spot.Exchange(),
+			Currency:     self.spot.Currency(),
+		},
+	}
+	req.SetId(self.id)
 	err := e.Send(req)
 	return self.id, err
 }
@@ -185,7 +193,7 @@ func (self *Position) Unique() string {
 	return symbol(self.spot)
 }
 
-func symbol(inst engine.Instrument) (symbol string) {
+func symbol(inst trade.Instrument) (symbol string) {
 	if inst.LocalSymbol() != "" {
 		symbol = inst.LocalSymbol()
 	} else {

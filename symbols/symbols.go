@@ -110,9 +110,7 @@ func (self *Symbol) Start(e *engine.Handle) (int64, error) {
 }
 
 func (self *Symbol) Stop() error {
-	req := &engine.CancelMarketData{}
-	req.SetId(self.id)
-	return self.e.Send(req)
+	return nil
 }
 
 func (self *Symbol) Update(v engine.Reply) (int64, bool) {

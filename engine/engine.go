@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"github.com/wagerlabs/go.trade"
 	"log"
 	"net"
 	"reflect"
@@ -18,12 +17,6 @@ const (
 	version = 48
 	gateway = "127.0.0.1:4001"
 )
-
-type Instrument interface {
-	trade.Instrument
-	ContractDataReq() *RequestContractData
-	MarketDataReq(tick int64) *RequestMarketData
-}
 
 // Engine is the entry point to the IB TWS API
 type Handle struct {
