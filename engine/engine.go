@@ -129,11 +129,7 @@ func Make(client int64) (*Handle, error) {
 			case v := <-data:
 				engine.Lock()
 				if sub, ok := engine.subscribers[v.Id()]; ok {
-					// send but do not block for it
-					select {
-					case sub <- v:
-					default:
-					}
+					sub <- v
 				}
 				engine.Unlock()
 			}
