@@ -176,12 +176,12 @@ func (self *Items) updateId(oldId int64, newId int64) {
 }
 
 // Wait will start collection updates and wait for them to finish
-func Wait(v Waitable) bool {
+func Wait(v Waitable, timeout time.Duration) bool {
 	ch := make(chan bool)
 	v.Notify(ch)
 	v.StartUpdate()
 	select {
-	case <-time.After(15 * time.Second):
+	case <-time.After(timeout):
 		return false
 	case <-ch:
 	}

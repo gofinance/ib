@@ -5,6 +5,7 @@ import (
 	"github.com/wagerlabs/go.trade/collection"
 	"github.com/wagerlabs/go.trade/engine"
 	"testing"
+	"time"
 )
 
 func TestChains(t *testing.T) {
@@ -18,7 +19,7 @@ func TestChains(t *testing.T) {
 	col := MakeChains(e)
 	col.Add(spot)
 
-	if !collection.Wait(col) {
+	if !collection.Wait(col, 15*time.Second) {
 		t.Fatalf("did not receive chains ready notification")
 	}
 

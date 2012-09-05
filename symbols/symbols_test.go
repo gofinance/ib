@@ -4,6 +4,7 @@ import (
 	"github.com/wagerlabs/go.trade/collection"
 	"github.com/wagerlabs/go.trade/engine"
 	"testing"
+	"time"
 )
 
 func TestSymbols(t *testing.T) {
@@ -19,7 +20,7 @@ func TestSymbols(t *testing.T) {
 		t.Fatalf("error reading symbols: %s", err)
 	}
 
-	if !collection.Wait(syms) {
+	if !collection.Wait(syms, 15*time.Second) {
 		t.Fatalf("did not receive symbols ready notification")
 	}
 

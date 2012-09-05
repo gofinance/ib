@@ -3,6 +3,7 @@ package collection
 import (
 	"github.com/wagerlabs/go.trade/engine"
 	"testing"
+	"time"
 )
 
 type symbol struct {
@@ -67,7 +68,7 @@ func TestCollection(t *testing.T) {
 	col := Make(e)
 	col.Add(sym)
 
-	if !Wait(col) {
+	if !Wait(col, 15*time.Second) {
 		t.Fatalf("did not receive collection ready notification")
 	}
 

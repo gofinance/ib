@@ -158,13 +158,17 @@ func (self *Position) Update(v engine.Reply) (int64, bool) {
 	switch v.(type) {
 	case *engine.TickPrice:
 		v := v.(*engine.TickPrice)
+		// we want either last or bid and ask
 		switch v.Type {
 		case engine.TickLast:
 			self.last = v.Price
+			return self.id, true
 		case engine.TickBid:
 			self.bid = v.Price
+			return self.id, (self.ask != 0)
 		case engine.TickAsk:
 			self.ask = v.Price
+			return self.id, (self.bid != 0)
 		}
 	case *engine.TickOptionComputation:
 		v := v.(*engine.TickOptionComputation)
@@ -185,9 +189,10 @@ func (self *Position) Update(v engine.Reply) (int64, bool) {
 				self.volatility = v.ImpliedVol
 			}
 		}
+		return self.id, true
 	}
 
-	return self.id, true
+	return self.id, false
 }
 
 func (self *Position) Unique() string {
