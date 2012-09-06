@@ -136,6 +136,7 @@ func (self *Position) Start(e *engine.Handle) (int64, error) {
 			SecurityType: self.spot.SecType(),
 			Exchange:     self.spot.Exchange(),
 			Currency:     self.spot.Currency(),
+			LocalSymbol:  self.spot.LocalSymbol(),
 		},
 	}
 	self.id = e.NextRequestId()
