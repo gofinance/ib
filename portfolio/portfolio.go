@@ -100,13 +100,6 @@ type Position struct {
 	marketValue   float64 // current value of this position	
 	realizedPNL   float64 // realized profit and loss
 	unrealizedPNL float64 // unrealized profit and loss
-	volatility    float64 // implied volatility
-	spotPrice     float64 // price of the underlying used with greeks
-	optionPrice   float64 // option price used with greeks
-	delta         float64
-	gamma         float64
-	theta         float64
-	vega          float64
 }
 
 func (self *Position) Id() int64              { return self.id }
@@ -120,13 +113,6 @@ func (self *Position) CostBasis() float64     { return self.costBasis }
 func (self *Position) MarketValue() float64   { return self.marketValue }
 func (self *Position) RealizedPNL() float64   { return self.realizedPNL }
 func (self *Position) UnrealizedPNL() float64 { return self.unrealizedPNL }
-func (self *Position) Volatility() float64    { return self.volatility }
-func (self *Position) SpotPrice() float64     { return self.spotPrice }
-func (self *Position) OptionPrice() float64   { return self.optionPrice }
-func (self *Position) Delta() float64         { return self.delta }
-func (self *Position) Gamma() float64         { return self.gamma }
-func (self *Position) Theta() float64         { return self.theta }
-func (self *Position) Vega() float64          { return self.vega }
 
 func (self *Position) Start(e *engine.Handle) (int64, error) {
 	self.e = e
@@ -171,26 +157,6 @@ func (self *Position) Update(v engine.Reply) (int64, bool) {
 			self.ask = v.Price
 			return self.id, (self.bid != 0)
 		}
-	case *engine.TickOptionComputation:
-		v := v.(*engine.TickOptionComputation)
-		switch v.Type {
-		case engine.TickLastOptionComputation,
-			engine.TickCustOptionComputation:
-			if v.Delta == -2 {
-				self.volatility = v.ImpliedVol
-				self.spotPrice = v.SpotPrice
-				self.optionPrice = v.OptionPrice
-			} else {
-				self.spotPrice = v.SpotPrice
-				self.optionPrice = v.OptionPrice
-				self.delta = v.Delta
-				self.gamma = v.Gamma
-				self.theta = v.Theta
-				self.vega = v.Vega
-				self.volatility = v.ImpliedVol
-			}
-		}
-		return self.id, true
 	}
 
 	return self.id, false
