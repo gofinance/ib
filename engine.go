@@ -45,9 +45,9 @@ func timeout() error {
 	return &timeoutError{}
 }
 
-func uniqueId() chan int64 {
+func uniqueId(start int64) chan int64 {
 	ch := make(chan int64)
-	id := int64(1000)
+	id := start
 	go func() {
 		for {
 			ch <- id
@@ -57,9 +57,12 @@ func uniqueId() chan int64 {
 	return ch
 }
 
+// Next client id
+var client = uniqueId(1)
+
 // NewEngine takes a client id and returns a new connection 
 // to IB Gateway or IB Trader Workstation.
-func NewEngine(client int64) (*Engine, error) {
+func NewEngine() (*Engine, error) {
 	con, err := net.Dial("tcp", gateway)
 	if err != nil {
 		return nil, err
@@ -68,7 +71,9 @@ func NewEngine(client int64) (*Engine, error) {
 	reader := bufio.NewReader(con)
 	input := bytes.NewBuffer(make([]byte, 0, 4096))
 	output := bytes.NewBuffer(make([]byte, 0, 4096))
-	reqid := uniqueId()
+	reqid := uniqueId(100)
+
+	client := <-client
 
 	engine := Engine{
 		timeout:     60 * time.Second,

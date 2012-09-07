@@ -30,7 +30,7 @@ func (engine *Engine) expect(t *testing.T, ch chan Reply, expected []int64) (Rep
 }
 
 func TestConnect(t *testing.T) {
-	engine, err := NewEngine(1)
+	engine, err := NewEngine()
 
 	if err != nil {
 		t.Fatalf("cannot connect engine: %s", err)
@@ -40,7 +40,7 @@ func TestConnect(t *testing.T) {
 }
 
 func TestMarketData(t *testing.T) {
-	engine, err := NewEngine(2)
+	engine, err := NewEngine()
 
 	if err != nil {
 		t.Fatalf("cannot connect engine: %s", err)
@@ -80,7 +80,7 @@ func TestMarketData(t *testing.T) {
 }
 
 func TestContractDetails(t *testing.T) {
-	engine, err := NewEngine(3)
+	engine, err := NewEngine()
 
 	if err != nil {
 		t.Fatalf("cannot connect engine: %s", err)
@@ -123,7 +123,7 @@ func TestContractDetails(t *testing.T) {
 }
 
 func TestOptionChainRequest(t *testing.T) {
-	engine, err := NewEngine(4)
+	engine, err := NewEngine()
 
 	if err != nil {
 		t.Fatalf("cannot connect engine: %s", err)
