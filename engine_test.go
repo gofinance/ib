@@ -4,7 +4,6 @@ import (
 	"reflect"
 	"testing"
 	"time"
-	"log"
 )
 
 func (engine *Engine) expect(t *testing.T, ch chan Reply, expected []int64) (Reply, error) {
@@ -13,14 +12,11 @@ func (engine *Engine) expect(t *testing.T, ch chan Reply, expected []int64) (Rep
 		case <-time.After(engine.timeout):
 			return nil, timeout()
 		case v := <-ch:
-			log.Printf("XX received message '%v' of type '%v' with code %d vs %v\n",
-				v, reflect.ValueOf(v).Type(), v.code(), expected)
 			if v.code() == 0 {
 				t.Fatalf("don't know message '%v'", v)
 			}
 			for _, code := range expected {
 				if v.code() == code {
-					log.Printf("XX found our code, returning")
 					return v, nil
 				}
 			}
@@ -34,11 +30,13 @@ func (engine *Engine) expect(t *testing.T, ch chan Reply, expected []int64) (Rep
 }
 
 func TestConnect(t *testing.T) {
-	_, err := NewEngine(1)
+	engine, err := NewEngine(1)
 
 	if err != nil {
 		t.Fatalf("cannot connect engine: %s", err)
 	}
+
+	engine.Stop()
 }
 
 func TestMarketData(t *testing.T) {
@@ -47,6 +45,8 @@ func TestMarketData(t *testing.T) {
 	if err != nil {
 		t.Fatalf("cannot connect engine: %s", err)
 	}
+
+	defer engine.Stop()
 
 	req1 := &RequestMarketData{
 		Contract: Contract{
@@ -61,8 +61,6 @@ func TestMarketData(t *testing.T) {
 	req1.SetId(id)
 	ch := make(chan Reply)
 	engine.Subscribe(ch, id)
-	log.Printf("subscribing to req #%d via chan %v", id, ch)
-	defer engine.Unsubscribe(id)
 
 	if err := engine.Send(req1); err != nil {
 		t.Fatalf("cannot send market data request: %s", err)
@@ -76,21 +74,19 @@ func TestMarketData(t *testing.T) {
 
 	t.Logf("received packet '%v' of type %v\n", rep1, reflect.ValueOf(rep1).Type())
 
-	log.Printf("YYY we right here!")
 	if err := engine.Send(&CancelMarketData{id}); err != nil {
 		t.Fatalf("cannot send cancel request: %s", err)
 	}
-	log.Printf("ZZZ we are done!")	
-	engine.Stop()
 }
 
-/*
 func TestContractDetails(t *testing.T) {
 	engine, err := NewEngine(3)
 
 	if err != nil {
 		t.Fatalf("cannot connect engine: %s", err)
 	}
+
+	defer engine.Stop()
 
 	req1 := &RequestContractData{
 		Symbol:       "AAPL",
@@ -133,6 +129,8 @@ func TestOptionChainRequest(t *testing.T) {
 		t.Fatalf("cannot connect engine: %s", err)
 	}
 
+	defer engine.Stop()
+
 	req1 := &RequestContractData{
 		Symbol:       "AAPL",
 		SecurityType: "OPT",
@@ -158,5 +156,3 @@ func TestOptionChainRequest(t *testing.T) {
 
 	t.Logf("received packet '%v' of type %v\n", rep1, reflect.ValueOf(rep1).Type())
 }
-
-*/

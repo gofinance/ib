@@ -9,7 +9,6 @@ import (
 	"reflect"
 	"runtime"
 	"strings"
-	"sync"
 	"time"
 )
 
@@ -20,10 +19,10 @@ const (
 
 // Engine is the entry point to the IB TWS API
 type Engine struct {
-	sync.Mutex
 	timeout       time.Duration
-	tick          chan int64
+	id            chan int64
 	exit          chan bool
+	ch            chan func()
 	client        int64
 	con           net.Conn
 	reader        *bufio.Reader
@@ -69,12 +68,12 @@ func NewEngine(client int64) (*Engine, error) {
 	reader := bufio.NewReader(con)
 	input := bytes.NewBuffer(make([]byte, 0, 4096))
 	output := bytes.NewBuffer(make([]byte, 0, 4096))
-	tick := uniqueId()
+	reqid := uniqueId()
 
 	engine := Engine{
 		timeout:     60 * time.Second,
 		client:      client,
-		tick:        tick,
+		id:          reqid,
 		con:         con,
 		reader:      reader,
 		input:       input,
@@ -97,6 +96,7 @@ func NewEngine(client int64) (*Engine, error) {
 	engine.serverVersion = serverShake.version
 	engine.serverTime = serverShake.time
 	engine.exit = make(chan bool)
+	engine.ch = make(chan func())
 
 	// receiver
 
@@ -124,19 +124,19 @@ func NewEngine(client int64) (*Engine, error) {
 				log.Printf("engine: timeout")
 				return
 			case <-engine.exit:
-				log.Printf("engine exiting...")
 				return
-			case err = <-error:
+			case err := <-error:
 				log.Printf("engine: error %s", err)
 				return
+			case req := <-engine.ch:
+				req()
 			case v := <-data:
-				engine.Lock()
-				log.Printf(">> engine received %v of type %v", v, reflect.ValueOf(v).Type())
 				if sub, ok := engine.subscribers[v.Id()]; ok {
-					log.Printf(">> found subscriber for req #%d, pushing to %v", v.Id(), sub)
-					sub <- v
+					select {
+					case sub <- v:
+					default:
+					}
 				}
-				engine.Unlock()
 			}
 		}
 	}()
@@ -146,32 +146,26 @@ func NewEngine(client int64) (*Engine, error) {
 
 // NextRequestId returns a unique request id.
 func (engine *Engine) NextRequestId() int64 {
-	return <-engine.tick
+	return <-engine.id
 }
 
 // SetTimeout sets the timeout used when receiving messages.
 func (engine *Engine) SetTimeout(timeout time.Duration) {
-	engine.Lock()
-	defer engine.Unlock()
-	engine.timeout = timeout
+	engine.ch <- func() { engine.timeout = timeout }
 }
 
 // Subscribe will notify subscribers of future events with given id
-func (engine *Engine) Subscribe(c chan<- Reply, id int64) {
-	if c == nil {
-		panic("trade: Notify using nil channel")
+func (engine *Engine) Subscribe(ch chan<- Reply, id int64) {
+	engine.ch <- func() {
+		if ch != nil {
+			engine.subscribers[id] = ch
+		}
 	}
-
-	engine.Lock()
-	defer engine.Unlock()
-	engine.subscribers[id] = c
 }
 
 // Unsubscribe removes subscriber
 func (engine *Engine) Unsubscribe(id int64) {
-	engine.Lock()
-	defer engine.Unlock()
-	delete(engine.subscribers, id)
+	engine.ch <- func() { delete(engine.subscribers, id) }
 }
 
 func (engine *Engine) Stop() {
@@ -195,8 +189,6 @@ func (v *header) read(b *bufio.Reader) {
 
 // Send a message to the engine
 func (engine *Engine) Send(v Request) error {
-	engine.Lock()
-	defer engine.Unlock()
 	engine.output.Reset()
 
 	// encode message type and client version
