@@ -22,9 +22,9 @@ func NewInstrument(engine *Engine, contract *Contract) (*Instrument, error) {
 		id:          0,
 		contract:    contract,
 		engine:      engine,
-		data:        make(chan Reply),
-		ch:          make(chan func()),
-		exit:        make(chan bool),
+		data:        make(chan Reply, 1),
+		ch:          make(chan func(), 1),
+		exit:        make(chan bool, 1),
 		subscribers: make([]chan bool, 0),
 	}
 
@@ -74,33 +74,9 @@ func (self *Instrument) Wait(timeout time.Duration) bool {
 	return true
 }
 
-func (self *Instrument) Symbol() string {
-	ch := make(chan string)
-	self.ch <- func() { ch <- self.contract.Symbol }
-	return <-ch
-}
-
-func (self *Instrument) LocalSymbol() string {
-	ch := make(chan string)
-	self.ch <- func() { ch <- self.contract.LocalSymbol }
-	return <-ch
-}
-
-func (self *Instrument) Exchange() string {
-	ch := make(chan string)
-	self.ch <- func() { ch <- self.contract.Exchange }
-	return <-ch
-}
-
-func (self *Instrument) Currency() string {
-	ch := make(chan string)
-	self.ch <- func() { ch <- self.contract.Currency }
-	return <-ch
-}
-
-func (self *Instrument) SecurityType() string {
-	ch := make(chan string)
-	self.ch <- func() { ch <- self.contract.SecurityType }
+func (self *Instrument) Contract() Contract {
+	ch := make(chan Contract)
+	self.ch <- func() { ch <- *self.contract }
 	return <-ch
 }
 

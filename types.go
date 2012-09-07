@@ -849,26 +849,17 @@ func (v *ScannerDetail) read(b *bufio.Reader) {
 }
 
 type ContractData struct {
-	id              int64
-	Symbol          string
-	SecType         string
-	Expiry          string
-	Strike          float64
-	Right           string
-	Exchange        string
-	Currency        string
-	LocalSymbol     string
+	id int64
+  	Contract
 	MarketName      string
 	TradingClass    string
 	ContractId      int64
 	MinTick         float64
-	Multiplier      string
 	OrderTypes      string
 	ValidExchanges  string
 	PriceMagnifier  int64
 	SpotContractId  int64
 	LongName        string
-	PrimaryExchange string
 	ContractMonth   string
 	Industry        string
 	Category        string
@@ -889,7 +880,7 @@ func (v *ContractData) code() int64 {
 func (v *ContractData) read(b *bufio.Reader) {
 	v.id = readInt(b)
 	v.Symbol = readString(b)
-	v.SecType = readString(b)
+	v.SecurityType = readString(b)
 	v.Expiry = readString(b)
 	v.Strike = readFloat(b)
 	v.Right = readString(b)
@@ -1448,7 +1439,7 @@ func (v *RequestMarketData) write(b *bytes.Buffer) {
 }
 
 type Contract struct {
-	Id              int64
+	id int64
 	Symbol          string
 	SecurityType    string
 	Expiry          string
@@ -1462,7 +1453,7 @@ type Contract struct {
 }
 
 func (v *Contract) write(b *bytes.Buffer) {
-	writeInt(b, v.Id)
+	writeInt(b, v.id)
 	writeString(b, v.Symbol)
 	writeString(b, v.SecurityType)
 	writeString(b, v.Expiry)
@@ -1496,20 +1487,10 @@ func (v *CancelMarketData) write(b *bytes.Buffer) {
 }
 
 type RequestContractData struct {
-	id             int64
+	id int64
+	Contract
 	ContractId     int64
-	Symbol         string
-	SecurityType   string
-	Expiry         string
-	Strike         float64
-	Right          string
-	Multiplier     string
-	Exchange       string
-	Currency       string
-	LocalSymbol    string
 	IncludeExpired bool
-	//SecurityIdType string
-	//SecurityId     string
 }
 
 func (v *RequestContractData) SetId(id int64) {

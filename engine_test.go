@@ -89,10 +89,12 @@ func TestContractDetails(t *testing.T) {
 	defer engine.Stop()
 
 	req1 := &RequestContractData{
+		Contract : Contract {
 		Symbol:       "AAPL",
 		SecurityType: "STK",
 		Exchange:     "SMART",
 		Currency:     "USD",
+		},
 	}
 
 	id := engine.NextRequestId()
@@ -132,10 +134,12 @@ func TestOptionChainRequest(t *testing.T) {
 	defer engine.Stop()
 
 	req1 := &RequestContractData{
+		Contract : Contract{
 		Symbol:       "AAPL",
 		SecurityType: "OPT",
 		Exchange:     "SMART",
 		Currency:     "USD",
+		},
 	}
 
 	id := engine.NextRequestId()

@@ -100,13 +100,13 @@ func NewEngine() (*Engine, error) {
 
 	engine.serverVersion = serverShake.version
 	engine.serverTime = serverShake.time
-	engine.exit = make(chan bool)
-	engine.ch = make(chan func())
+	engine.exit = make(chan bool, 1)
+	engine.ch = make(chan func(), 1)
 
 	// receiver
 
-	data := make(chan Reply)
-	error := make(chan error)
+	data := make(chan Reply, 1)
+	error := make(chan error, 1)
 
 	// we cannot force a timeout here
 	// so we need a separate goroutine
@@ -137,10 +137,13 @@ func NewEngine() (*Engine, error) {
 				req()
 			case v := <-data:
 				if sub, ok := engine.subscribers[v.Id()]; ok {
+					/*
 					select {
 					case sub <- v:
 					default:
 					}
+					*/
+					sub <- v
 				}
 			}
 		}
