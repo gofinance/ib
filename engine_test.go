@@ -39,6 +39,14 @@ func TestConnect(t *testing.T) {
 	engine.Stop()
 }
 
+type Sink struct {
+	ch  chan Reply
+}
+
+func (self *Sink) Consume(v Reply) {
+	self.ch <- v
+}
+
 func TestMarketData(t *testing.T) {
 	engine, err := NewEngine()
 
@@ -60,7 +68,7 @@ func TestMarketData(t *testing.T) {
 	id := engine.NextRequestId()
 	req1.SetId(id)
 	ch := make(chan Reply)
-	engine.Subscribe(ch, id)
+	engine.Subscribe(&Sink{ch}, id)
 
 	if err := engine.Send(req1); err != nil {
 		t.Fatalf("cannot send market data request: %s", err)
@@ -100,7 +108,7 @@ func TestContractDetails(t *testing.T) {
 	id := engine.NextRequestId()
 	req1.SetId(id)
 	ch := make(chan Reply)
-	engine.Subscribe(ch, id)
+	engine.Subscribe(&Sink{ch}, id)
 	defer engine.Unsubscribe(id)
 
 	if err := engine.Send(req1); err != nil {
@@ -145,7 +153,7 @@ func TestOptionChainRequest(t *testing.T) {
 	id := engine.NextRequestId()
 	req1.SetId(id)
 	ch := make(chan Reply)
-	engine.Subscribe(ch, id)
+	engine.Subscribe(&Sink{ch}, id)
 	defer engine.Unsubscribe(id)
 
 	if err := engine.Send(req1); err != nil {

@@ -31,7 +31,11 @@ type Engine struct {
 	serverTime    time.Time
 	clientVersion int64
 	serverVersion int64
-	subscribers   map[int64]chan<- Reply
+	subscribers   map[int64]EventSink
+}
+
+type EventSink interface {
+	Consume(Reply)
 }
 
 type timeoutError struct {
@@ -83,7 +87,7 @@ func NewEngine() (*Engine, error) {
 		reader:      reader,
 		input:       input,
 		output:      output,
-		subscribers: make(map[int64]chan<- Reply),
+		subscribers: make(map[int64]EventSink),
 	}
 
 	// write client version and id
@@ -137,13 +141,7 @@ func NewEngine() (*Engine, error) {
 				req()
 			case v := <-data:
 				if sub, ok := engine.subscribers[v.Id()]; ok {
-					/*
-					select {
-					case sub <- v:
-					default:
-					}
-					*/
-					sub <- v
+					sub.Consume(v)
 				}
 			}
 		}
@@ -163,10 +161,10 @@ func (engine *Engine) SetTimeout(timeout time.Duration) {
 }
 
 // Subscribe will notify subscribers of future events with given id
-func (engine *Engine) Subscribe(ch chan<- Reply, id int64) {
+func (engine *Engine) Subscribe(sink EventSink, id int64) {
 	engine.ch <- func() {
-		if ch != nil {
-			engine.subscribers[id] = ch
+		if sink != nil {
+			engine.subscribers[id] = sink
 		}
 	}
 }

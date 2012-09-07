@@ -11,7 +11,6 @@ type Instrument struct {
 	ask         float64
 	last        float64
 	engine      *Engine
-	data        chan Reply
 	ch          chan func()
 	exit        chan bool
 	subscribers []chan bool
@@ -22,7 +21,6 @@ func NewInstrument(engine *Engine, contract *Contract) (*Instrument, error) {
 		id:          0,
 		contract:    contract,
 		engine:      engine,
-		data:        make(chan Reply, 1),
 		ch:          make(chan func(), 1),
 		exit:        make(chan bool, 1),
 		subscribers: make([]chan bool, 0),
@@ -35,8 +33,6 @@ func NewInstrument(engine *Engine, contract *Contract) (*Instrument, error) {
 				return
 			case f := <-self.ch:
 				f()
-			case v := <-self.data:
-				self.process(v)
 			}
 		}
 	}()
@@ -46,7 +42,7 @@ func NewInstrument(engine *Engine, contract *Contract) (*Instrument, error) {
 	}
 	self.id = engine.NextRequestId()
 	req.SetId(self.id)
-	engine.Subscribe(self.data, self.id)
+	engine.Subscribe(self, self.id)
 
 	return self, engine.Send(req)
 }
@@ -57,6 +53,10 @@ func (self *Instrument) Cleanup() {
 	req.SetId(self.id)
 	self.engine.Send(req)
 	self.exit <- true
+}
+
+func (self *Instrument) Consume(v Reply) {
+	self.ch <- func() { self.process(v) }
 }
 
 func (self *Instrument) Notify(ch chan bool) {

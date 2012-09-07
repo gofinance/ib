@@ -8,7 +8,6 @@ type MetaData struct {
 	id          int64
 	metadata    []ContractData
 	engine      *Engine
-	data        chan Reply
 	ch          chan func()
 	exit        chan bool
 	subscribers []chan bool
@@ -19,7 +18,6 @@ func NewMetaData(engine *Engine, contract *Contract) (*MetaData, error) {
 		id:          0,
 		metadata : make([]ContractData, 0),
 		engine:      engine,
-		data:        make(chan Reply, 1),
 		ch:          make(chan func(), 1),
 		exit:        make(chan bool, 1),
 		subscribers: make([]chan bool, 0),
@@ -32,8 +30,6 @@ func NewMetaData(engine *Engine, contract *Contract) (*MetaData, error) {
 				return
 			case f := <-self.ch:
 				f()
-			case v := <-self.data:
-				self.process(v)
 			}
 		}
 	}()
@@ -43,7 +39,7 @@ func NewMetaData(engine *Engine, contract *Contract) (*MetaData, error) {
 	}
 	self.id = engine.NextRequestId()
 	req.SetId(self.id)
-	engine.Subscribe(self.data, self.id)
+	engine.Subscribe(self, self.id)
 
 	return self, engine.Send(req)
 }
@@ -51,6 +47,10 @@ func NewMetaData(engine *Engine, contract *Contract) (*MetaData, error) {
 func (self *MetaData) Cleanup() {
 	self.engine.Unsubscribe(self.id)
 	self.exit <- true
+}
+
+func (self *MetaData) Consume(v Reply) {
+	self.ch <- func() { self.process(v) }
 }
 
 func (self *MetaData) Notify(ch chan bool) {
