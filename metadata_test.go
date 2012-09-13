@@ -21,7 +21,7 @@ func TestMetadata(t *testing.T) {
 		Currency:     "USD",
 	}
 
-	stock, err := NewMetaData(engine, contract)
+	stock, err := NewMetadata(engine, contract)
 
 	if err != nil {
 		t.Fatalf("error creating instrument: %s", err)

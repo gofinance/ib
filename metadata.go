@@ -4,23 +4,23 @@ import (
 	"time"
 )
 
-type MetaData struct {
+type Metadata struct {
 	id          int64
 	metadata    []ContractData
 	engine      *Engine
 	ch          chan func()
 	exit        chan bool
-	subscribers []chan bool
+	observers []chan bool
 }
 
-func NewMetaData(engine *Engine, contract *Contract) (*MetaData, error) {
-	self := &MetaData{
+func NewMetadata(engine *Engine, contract *Contract) (*Metadata, error) {
+	self := &Metadata{
 		id:          0,
 		metadata : make([]ContractData, 0),
 		engine:      engine,
 		ch:          make(chan func(), 1),
 		exit:        make(chan bool, 1),
-		subscribers: make([]chan bool, 0),
+		observers: make([]chan bool, 0),
 	}
 
 	go func() {
@@ -44,22 +44,22 @@ func NewMetaData(engine *Engine, contract *Contract) (*MetaData, error) {
 	return self, engine.Send(req)
 }
 
-func (self *MetaData) Cleanup() {
+func (self *Metadata) Cleanup() {
 	self.engine.Unsubscribe(self.id)
 	self.exit <- true
 }
 
-func (self *MetaData) Consume(v Reply) {
+func (self *Metadata) Notify(v Reply) {
 	self.ch <- func() { self.process(v) }
 }
 
-func (self *MetaData) Notify(ch chan bool) {
-	self.ch <- func() { self.subscribers = append(self.subscribers, ch) }
+func (self *Metadata) Observe(ch chan bool) {
+	self.ch <- func() { self.observers = append(self.observers, ch) }
 }
 
-func (self *MetaData) Wait(timeout time.Duration) bool {
+func (self *Metadata) Wait(timeout time.Duration) bool {
 	ch := make(chan bool)
-	self.Notify(ch)
+	self.Observe(ch)
 	select {
 	case <-time.After(timeout):
 		return false
@@ -68,20 +68,20 @@ func (self *MetaData) Wait(timeout time.Duration) bool {
 	return true
 }
 
-func (self *MetaData) ContractData() []ContractData {
+func (self *Metadata) ContractData() []ContractData {
 	ch := make(chan []ContractData)
 	self.ch <- func() { ch <- self.metadata }
 	return <-ch
 }
 
-func (self *MetaData) process(v Reply) {
+func (self *Metadata) process(v Reply) {
 	switch v.(type) {
 	case *ContractData:
 		v := v.(*ContractData)
 		self.metadata = append(self.metadata, *v)
 	case *ContractDataEnd:
 		// all items have been updated
-		for _, ch := range self.subscribers {
+		for _, ch := range self.observers {
 			ch <- true
 		}
 	}

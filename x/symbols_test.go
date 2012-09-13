@@ -1,4 +1,4 @@
-package symbols
+package trade
 
 import (
 	"github.com/wagerlabs/go.trade/collection"

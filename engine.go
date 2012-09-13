@@ -31,11 +31,11 @@ type Engine struct {
 	serverTime    time.Time
 	clientVersion int64
 	serverVersion int64
-	subscribers   map[int64]EventSink
+	observers   map[int64]Observer
 }
 
-type EventSink interface {
-	Consume(Reply)
+type Observer interface {
+	Notify(Reply)
 }
 
 type timeoutError struct {
@@ -79,7 +79,7 @@ func NewEngine() (*Engine, error) {
 
 	client := <-client
 
-	engine := Engine{
+	self := Engine{
 		timeout:     60 * time.Second,
 		client:      client,
 		id:          reqid,
@@ -87,25 +87,25 @@ func NewEngine() (*Engine, error) {
 		reader:      reader,
 		input:       input,
 		output:      output,
-		subscribers: make(map[int64]EventSink),
+		observers: make(map[int64]Observer),
 	}
 
 	// write client version and id
 	clientShake := &clientHandshake{version, client}
-	if err := engine.write(clientShake); err != nil {
+	if err := self.write(clientShake); err != nil {
 		return nil, err
 	}
 
 	// read server version and time
 	serverShake := &serverHandshake{}
-	if err := engine.read(serverShake); err != nil {
+	if err := self.read(serverShake); err != nil {
 		return nil, err
 	}
 
-	engine.serverVersion = serverShake.version
-	engine.serverTime = serverShake.time
-	engine.exit = make(chan bool, 1)
-	engine.ch = make(chan func(), 1)
+	self.serverVersion = serverShake.version
+	self.serverTime = serverShake.time
+	self.exit = make(chan bool, 1)
+	self.ch = make(chan func(), 1)
 
 	// receiver
 
@@ -117,7 +117,7 @@ func NewEngine() (*Engine, error) {
 	go func() {
 		runtime.LockOSThread()
 		for {
-			v, err := engine.receive()
+			v, err := self.receive()
 			if err != nil {
 				error <- err
 				break
@@ -129,53 +129,57 @@ func NewEngine() (*Engine, error) {
 	go func() {
 		for {
 			select {
-			case <-time.After(engine.timeout):
+			case <-time.After(self.timeout):
 				log.Printf("engine: timeout")
 				return
-			case <-engine.exit:
+			case <-self.exit:
 				return
 			case err := <-error:
 				log.Printf("engine: error %s", err)
 				return
-			case req := <-engine.ch:
+			case req := <-self.ch:
 				req()
 			case v := <-data:
-				if sub, ok := engine.subscribers[v.Id()]; ok {
-					sub.Consume(v)
+				if sub, ok := self.observers[v.Id()]; ok {
+					sub.Notify(v)
 				}
 			}
 		}
 	}()
 
-	return &engine, nil
+	return &self, nil
 }
 
 // NextRequestId returns a unique request id.
-func (engine *Engine) NextRequestId() int64 {
-	return <-engine.id
+func (self *Engine) NextRequestId() int64 {
+	return <-self.id
+}
+
+func (self *Engine) ClientId() int64 {
+	return self.client
 }
 
 // SetTimeout sets the timeout used when receiving messages.
-func (engine *Engine) SetTimeout(timeout time.Duration) {
-	engine.ch <- func() { engine.timeout = timeout }
+func (self *Engine) SetTimeout(timeout time.Duration) {
+	self.ch <- func() { self.timeout = timeout }
 }
 
 // Subscribe will notify subscribers of future events with given id
-func (engine *Engine) Subscribe(sink EventSink, id int64) {
-	engine.ch <- func() {
-		if sink != nil {
-			engine.subscribers[id] = sink
+func (self *Engine) Subscribe(observer Observer, id int64) {
+	self.ch <- func() {
+		if observer != nil {
+			self.observers[id] = observer
 		}
 	}
 }
 
 // Unsubscribe removes subscriber
-func (engine *Engine) Unsubscribe(id int64) {
-	engine.ch <- func() { delete(engine.subscribers, id) }
+func (self *Engine) Unsubscribe(id int64) {
+	self.ch <- func() { delete(self.observers, id) }
 }
 
-func (engine *Engine) Stop() {
-	engine.exit <- true
+func (self *Engine) Stop() {
+	self.exit <- true
 }
 
 type header struct {
@@ -194,8 +198,8 @@ func (v *header) read(b *bufio.Reader) {
 }
 
 // Send a message to the engine
-func (engine *Engine) Send(v Request) error {
-	engine.output.Reset()
+func (self *Engine) Send(v Request) error {
+	self.output.Reset()
 
 	// encode message type and client version
 	hdr := &header{
@@ -203,18 +207,18 @@ func (engine *Engine) Send(v Request) error {
 		version: v.version(),
 	}
 
-	if err := write(engine.output, hdr); err != nil {
+	if err := write(self.output, hdr); err != nil {
 		return err
 	}
 
 	// encode the message itself
-	if err := write(engine.output, v); err != nil {
+	if err := write(self.output, v); err != nil {
 		return err
 	}
 
-	//dump(engine.output)
+	//dump(self.output)
 
-	if _, err := engine.con.Write(engine.output.Bytes()); err != nil {
+	if _, err := self.con.Write(self.output.Bytes()); err != nil {
 		return err
 	}
 
@@ -243,42 +247,42 @@ func dump(b *bytes.Buffer) {
 	fmt.Printf("Buffer = '%s'\n", s)
 }
 
-func (engine *Engine) receive() (Reply, error) {
-	engine.input.Reset()
+func (self *Engine) receive() (Reply, error) {
+	self.input.Reset()
 	hdr := &header{}
 
 	// decode header
-	if err := read(engine.reader, hdr); err != nil {
+	if err := read(self.reader, hdr); err != nil {
 		return nil, err
 	}
 
 	// decode message
 	v := code2Msg(hdr.code)
-	if err := read(engine.reader, v); err != nil {
+	if err := read(self.reader, v); err != nil {
 		return nil, err
 	}
 
 	return v, nil
 }
 
-func (engine *Engine) write(v writable) error {
-	engine.output.Reset()
+func (self *Engine) write(v writable) error {
+	self.output.Reset()
 
-	if err := write(engine.output, v); err != nil {
+	if err := write(self.output, v); err != nil {
 		return err
 	}
 
-	if _, err := engine.con.Write(engine.output.Bytes()); err != nil {
+	if _, err := self.con.Write(self.output.Bytes()); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (engine *Engine) read(v readable) error {
-	engine.input.Reset()
+func (self *Engine) read(v readable) error {
+	self.input.Reset()
 
-	if err := read(engine.reader, v); err != nil {
+	if err := read(self.reader, v); err != nil {
 		return err
 	}
 	return nil

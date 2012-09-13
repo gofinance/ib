@@ -13,7 +13,7 @@ type Instrument struct {
 	engine      *Engine
 	ch          chan func()
 	exit        chan bool
-	subscribers []chan bool
+	observers []chan bool
 }
 
 func NewInstrument(engine *Engine, contract *Contract) (*Instrument, error) {
@@ -23,7 +23,7 @@ func NewInstrument(engine *Engine, contract *Contract) (*Instrument, error) {
 		engine:      engine,
 		ch:          make(chan func(), 1),
 		exit:        make(chan bool, 1),
-		subscribers: make([]chan bool, 0),
+		observers: make([]chan bool, 0),
 	}
 
 	go func() {
@@ -55,17 +55,17 @@ func (self *Instrument) Cleanup() {
 	self.exit <- true
 }
 
-func (self *Instrument) Consume(v Reply) {
+func (self *Instrument) Notify(v Reply) {
 	self.ch <- func() { self.process(v) }
 }
 
-func (self *Instrument) Notify(ch chan bool) {
-	self.ch <- func() { self.subscribers = append(self.subscribers, ch) }
+func (self *Instrument) Observe(ch chan bool) {
+	self.ch <- func() { self.observers = append(self.observers, ch) }
 }
 
 func (self *Instrument) Wait(timeout time.Duration) bool {
 	ch := make(chan bool)
-	self.Notify(ch)
+	self.Observe(ch)
 	select {
 	case <-time.After(timeout):
 		return false
@@ -117,7 +117,7 @@ func (self *Instrument) process(v Reply) {
 	}
 
 	// all items have been updated
-	for _, ch := range self.subscribers {
+	for _, ch := range self.observers {
 		ch <- true
 	}
 }

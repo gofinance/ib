@@ -43,7 +43,7 @@ type Sink struct {
 	ch  chan Reply
 }
 
-func (self *Sink) Consume(v Reply) {
+func (self *Sink) Notify(v Reply) {
 	self.ch <- v
 }
 
@@ -71,19 +71,19 @@ func TestMarketData(t *testing.T) {
 	engine.Subscribe(&Sink{ch}, id)
 
 	if err := engine.Send(req1); err != nil {
-		t.Fatalf("cannot send market data request: %s", err)
+		t.Fatalf("client %d: cannot send market data request: %s", engine.ClientId(), err)
 	}
 
 	rep1, err := engine.expect(t, ch, []int64{mTickPrice, mTickSize})
 
 	if err != nil {
-		t.Fatalf("cannot receive market data: %s", err)
+		t.Fatalf("client %d: cannot receive market data: %s", engine.ClientId(), err)
 	}
 
 	t.Logf("received packet '%v' of type %v\n", rep1, reflect.ValueOf(rep1).Type())
 
 	if err := engine.Send(&CancelMarketData{id}); err != nil {
-		t.Fatalf("cannot send cancel request: %s", err)
+		t.Fatalf("client %d: cannot send cancel request: %s", engine.ClientId(), err)
 	}
 }
 
@@ -112,13 +112,13 @@ func TestContractDetails(t *testing.T) {
 	defer engine.Unsubscribe(id)
 
 	if err := engine.Send(req1); err != nil {
-		t.Fatalf("cannot send contract data request: %s", err)
+		t.Fatalf("client %d: cannot send contract data request: %s", engine.ClientId(), err)
 	}
 
 	rep1, err := engine.expect(t, ch, []int64{mContractData})
 
 	if err != nil {
-		t.Fatalf("cannot receive contract details: %s", err)
+		t.Fatalf("client %d: cannot receive contract details: %s", engine.ClientId(), err)
 	}
 
 	t.Logf("received packet '%v' of type %v\n", rep1, reflect.ValueOf(rep1).Type())
@@ -126,7 +126,7 @@ func TestContractDetails(t *testing.T) {
 	rep2, err := engine.expect(t, ch, []int64{mContractDataEnd})
 
 	if err != nil {
-		t.Fatalf("cannot receive end of contract details: %s", err)
+		t.Fatalf("client %d: cannot receive end of contract details: %s", engine.ClientId(), err)
 	}
 
 	t.Logf("received packet '%v' of type %v\n", rep2, reflect.ValueOf(rep2).Type())
