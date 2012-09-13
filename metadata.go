@@ -4,23 +4,42 @@ import (
 	"time"
 )
 
+type option struct {
+	sectype  string
+	exchange string
+}
+
 type Metadata struct {
-	id          int64
-	metadata    []ContractData
-	engine      *Engine
-	ch          chan func()
-	exit        chan bool
+	id        int64
+	metadata  []ContractData
+	engine    *Engine
+	contract  *Contract
+	options   []option
+	ch        chan func()
+	exit      chan bool
 	observers []chan bool
 }
 
+type stateFn func(*Metadata) (stateFn, error)
+
 func NewMetadata(engine *Engine, contract *Contract) (*Metadata, error) {
+	options := []option{
+		{"", ""}, // send as per contract
+		{"STK", "SMART"},
+		{"IND", "SMART"},
+		{"FUT", "GLOBEX"},
+		{"IND", "DTB"},
+		{"FUT", "DTB"},
+	}
 	self := &Metadata{
-		id:          0,
-		metadata : make([]ContractData, 0),
-		engine:      engine,
-		ch:          make(chan func(), 1),
-		exit:        make(chan bool, 1),
+		id:        0,
+		metadata:  make([]ContractData, 0),
+		contract:  contract,
+		engine:    engine,
+		ch:        make(chan func(), 1),
+		exit:      make(chan bool, 1),
 		observers: make([]chan bool, 0),
+		options:   options,
 	}
 
 	go func() {
@@ -34,14 +53,7 @@ func NewMetadata(engine *Engine, contract *Contract) (*Metadata, error) {
 		}
 	}()
 
-	req := &RequestContractData{
-		Contract : *contract,
-	}
-	self.id = engine.NextRequestId()
-	req.SetId(self.id)
-	engine.Subscribe(self, self.id)
-
-	return self, engine.Send(req)
+	return self, self.request()
 }
 
 func (self *Metadata) Cleanup() {
@@ -76,6 +88,11 @@ func (self *Metadata) ContractData() []ContractData {
 
 func (self *Metadata) process(v Reply) {
 	switch v.(type) {
+	case *ErrorMessage:
+		v := v.(*ErrorMessage)
+		if v.Code == 321 || v.Code == 200 {
+			self.request()
+		}
 	case *ContractData:
 		v := v.(*ContractData)
 		self.metadata = append(self.metadata, *v)
@@ -85,4 +102,31 @@ func (self *Metadata) process(v Reply) {
 			ch <- true
 		}
 	}
+}
+
+func (self *Metadata) request() error {
+	if len(self.options) == 0 {
+		return nil
+	}
+
+	opt := self.options[0]
+	self.options = self.options[1:]
+
+	if opt.sectype != "" {
+		self.contract.SecurityType = opt.sectype
+	}
+
+	if opt.exchange != "" {
+		self.contract.Exchange = opt.exchange
+	}
+
+	self.engine.Unsubscribe(self.id)
+	self.id = self.engine.NextRequestId()
+	req := &RequestContractData{
+		Contract: *self.contract,
+	}
+	req.SetId(self.id)
+	self.engine.Subscribe(self, self.id)
+
+	return self.engine.Send(req)
 }

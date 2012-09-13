@@ -850,23 +850,23 @@ func (v *ScannerDetail) read(b *bufio.Reader) {
 
 type ContractData struct {
 	id int64
-  	Contract
-	MarketName      string
-	TradingClass    string
-	ContractId      int64
-	MinTick         float64
-	OrderTypes      string
-	ValidExchanges  string
-	PriceMagnifier  int64
-	SpotContractId  int64
-	LongName        string
-	ContractMonth   string
-	Industry        string
-	Category        string
-	Subcategory     string
-	TimezoneId      string
-	TradingHours    string
-	LiquidHours     string
+	Contract
+	MarketName     string
+	TradingClass   string
+	ContractId     int64
+	MinTick        float64
+	OrderTypes     string
+	ValidExchanges string
+	PriceMagnifier int64
+	SpotContractId int64
+	LongName       string
+	ContractMonth  string
+	Industry       string
+	Category       string
+	Subcategory    string
+	TimezoneId     string
+	TradingHours   string
+	LiquidHours    string
 }
 
 func (v *ContractData) Id() int64 {
@@ -1439,7 +1439,7 @@ func (v *RequestMarketData) write(b *bytes.Buffer) {
 }
 
 type Contract struct {
-	id int64
+	id              int64
 	Symbol          string
 	SecurityType    string
 	Expiry          string

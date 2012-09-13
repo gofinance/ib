@@ -31,7 +31,7 @@ type Engine struct {
 	serverTime    time.Time
 	clientVersion int64
 	serverVersion int64
-	observers   map[int64]Observer
+	observers     map[int64]Observer
 }
 
 type Observer interface {
@@ -80,13 +80,13 @@ func NewEngine() (*Engine, error) {
 	client := <-client
 
 	self := Engine{
-		timeout:     60 * time.Second,
-		client:      client,
-		id:          reqid,
-		con:         con,
-		reader:      reader,
-		input:       input,
-		output:      output,
+		timeout:   60 * time.Second,
+		client:    client,
+		id:        reqid,
+		con:       con,
+		reader:    reader,
+		input:     input,
+		output:    output,
 		observers: make(map[int64]Observer),
 	}
 

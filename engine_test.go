@@ -40,7 +40,7 @@ func TestConnect(t *testing.T) {
 }
 
 type Sink struct {
-	ch  chan Reply
+	ch chan Reply
 }
 
 func (self *Sink) Notify(v Reply) {
@@ -97,11 +97,11 @@ func TestContractDetails(t *testing.T) {
 	defer engine.Stop()
 
 	req1 := &RequestContractData{
-		Contract : Contract {
-		Symbol:       "AAPL",
-		SecurityType: "STK",
-		Exchange:     "SMART",
-		Currency:     "USD",
+		Contract: Contract{
+			Symbol:       "AAPL",
+			SecurityType: "STK",
+			Exchange:     "SMART",
+			Currency:     "USD",
 		},
 	}
 
@@ -142,11 +142,11 @@ func TestOptionChainRequest(t *testing.T) {
 	defer engine.Stop()
 
 	req1 := &RequestContractData{
-		Contract : Contract{
-		Symbol:       "AAPL",
-		SecurityType: "OPT",
-		Exchange:     "SMART",
-		Currency:     "USD",
+		Contract: Contract{
+			Symbol:       "AAPL",
+			SecurityType: "OPT",
+			Exchange:     "SMART",
+			Currency:     "USD",
 		},
 	}
 

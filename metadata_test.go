@@ -33,3 +33,30 @@ func TestMetadata(t *testing.T) {
 		t.Fatalf("timeout waiting for contract description")
 	}
 }
+
+func TestIncomplete(t *testing.T) {
+	engine, err := NewEngine()
+
+	if err != nil {
+		t.Fatalf("cannot connect engine: %s", err)
+	}
+
+	defer engine.Stop()
+
+	contract := &Contract{
+		Symbol:   "SX7E",
+		Exchange: "DTB",
+	}
+
+	stock, err := NewMetadata(engine, contract)
+
+	if err != nil {
+		t.Fatalf("error creating instrument: %s", err)
+	}
+
+	defer stock.Cleanup()
+
+	if !stock.Wait(15 * time.Second) {
+		t.Fatalf("timeout waiting for contract description")
+	}
+}

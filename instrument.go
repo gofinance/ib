@@ -5,24 +5,24 @@ import (
 )
 
 type Instrument struct {
-	id          int64
-	contract    *Contract
-	bid         float64
-	ask         float64
-	last        float64
-	engine      *Engine
-	ch          chan func()
-	exit        chan bool
+	id        int64
+	contract  *Contract
+	bid       float64
+	ask       float64
+	last      float64
+	engine    *Engine
+	ch        chan func()
+	exit      chan bool
 	observers []chan bool
 }
 
 func NewInstrument(engine *Engine, contract *Contract) (*Instrument, error) {
 	self := &Instrument{
-		id:          0,
-		contract:    contract,
-		engine:      engine,
-		ch:          make(chan func(), 1),
-		exit:        make(chan bool, 1),
+		id:        0,
+		contract:  contract,
+		engine:    engine,
+		ch:        make(chan func(), 1),
+		exit:      make(chan bool, 1),
 		observers: make([]chan bool, 0),
 	}
 
