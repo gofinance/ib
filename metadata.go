@@ -11,7 +11,7 @@ type option struct {
 
 type Metadata struct {
 	id        int64
-	metadata  []ContractData
+	metadata  []*ContractData
 	engine    *Engine
 	contract  *Contract
 	options   []option
@@ -33,7 +33,7 @@ func NewMetadata(engine *Engine, contract *Contract) (*Metadata, error) {
 	}
 	self := &Metadata{
 		id:        0,
-		metadata:  make([]ContractData, 0),
+		metadata:  make([]*ContractData, 0),
 		contract:  contract,
 		engine:    engine,
 		ch:        make(chan func(), 1),
@@ -80,8 +80,8 @@ func (self *Metadata) Wait(timeout time.Duration) bool {
 	return true
 }
 
-func (self *Metadata) ContractData() []ContractData {
-	ch := make(chan []ContractData)
+func (self *Metadata) ContractData() []*ContractData {
+	ch := make(chan []*ContractData)
 	self.ch <- func() { ch <- self.metadata }
 	return <-ch
 }
@@ -95,7 +95,7 @@ func (self *Metadata) process(v Reply) {
 		}
 	case *ContractData:
 		v := v.(*ContractData)
-		self.metadata = append(self.metadata, *v)
+		self.metadata = append(self.metadata, v)
 	case *ContractDataEnd:
 		// all items have been updated
 		for _, ch := range self.observers {
