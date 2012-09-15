@@ -82,6 +82,7 @@ func NewOptionChain(engine *Engine, contract *Contract) (*OptionChain, error) {
 		Contract: *contract,
 	}
 	req.Contract.SecurityType = "OPT"
+	req.Contract.LocalSymbol = ""
 	req.SetId(self.id)
 
 	if err := engine.Send(req); err != nil {
