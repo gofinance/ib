@@ -16,7 +16,7 @@ type Instrument struct {
 	observers []chan bool
 }
 
-func NewInstrument(engine *Engine, contract *Contract) (*Instrument, error) {
+func NewInstrument(engine *Engine, contract *Contract) *Instrument {
 	self := &Instrument{
 		id:        0,
 		contract:  contract,
@@ -37,41 +37,35 @@ func NewInstrument(engine *Engine, contract *Contract) (*Instrument, error) {
 		}
 	}()
 
-	req := &RequestMarketData{
-		Contract: *contract,
-	}
-	self.id = engine.NextRequestId()
-	req.SetId(self.id)
-	engine.Subscribe(self, self.id)
-
-	return self, engine.Send(req)
+	return self
 }
 
 func (self *Instrument) Cleanup() {
+	self.StopUpdate()
+	self.exit <- true
+}
+
+func (self *Instrument) StartUpdate() error {
+	req := &RequestMarketData{ Contract: *self.contract, }
+	self.id = self.engine.NextRequestId()
+	req.SetId(self.id)
+	self.engine.Subscribe(self, self.id)
+	return self.engine.Send(req)
+}
+
+func (self *Instrument) StopUpdate() {
 	self.engine.Unsubscribe(self.id)
 	req := &CancelMarketData{}
 	req.SetId(self.id)
 	self.engine.Send(req)
-	self.exit <- true
 }
 
 func (self *Instrument) Notify(v Reply) {
 	self.ch <- func() { self.process(v) }
 }
 
-func (self *Instrument) Observe(ch chan bool) {
+func (self *Instrument) NotifyWhenUpdated(ch chan bool) {
 	self.ch <- func() { self.observers = append(self.observers, ch) }
-}
-
-func (self *Instrument) Wait(timeout time.Duration) bool {
-	ch := make(chan bool)
-	self.Observe(ch)
-	select {
-	case <-time.After(timeout):
-		return false
-	case <-ch:
-	}
-	return true
 }
 
 func (self *Instrument) Contract() Contract {
@@ -121,3 +115,22 @@ func (self *Instrument) process(v Reply) {
 		ch <- true
 	}
 }
+
+type Quotable interface {
+	StartUpdate() error
+	StopUpdate()
+	NotifyWhenUpdated(ch chan bool)
+}
+
+func WaitForUpdate(v Quotable, timeout time.Duration) bool {
+	ch := make(chan bool)
+	v.NotifyWhenUpdated(ch)
+	select {
+	case <-time.After(timeout):
+		return false
+	case <-ch:
+	}
+	return true
+}
+
+
