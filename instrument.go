@@ -46,7 +46,7 @@ func (self *Instrument) Cleanup() {
 }
 
 func (self *Instrument) StartUpdate() error {
-	req := &RequestMarketData{ Contract: *self.contract, }
+	req := &RequestMarketData{Contract: *self.contract}
 	self.id = self.engine.NextRequestId()
 	req.SetId(self.id)
 	self.engine.Subscribe(self, self.id)
@@ -132,5 +132,3 @@ func WaitForUpdate(v Quotable, timeout time.Duration) bool {
 	}
 	return true
 }
-
-
