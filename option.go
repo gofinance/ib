@@ -20,11 +20,7 @@ type Option struct {
 
 func NewOption(engine *Engine, contract *Contract,
 	expiry time.Time, strike float64, kind Kind) (*Option, error) {
-	inst, err := NewInstrument(engine, contract)
-
-	if err != nil {
-		return nil, err
-	}
+	inst := NewInstrument(engine, contract)
 
 	self := &Option{
 		Instrument: *inst,
@@ -53,8 +49,8 @@ type OptionStrikes struct {
 type OptionStrike struct {
 	expiry time.Time
 	Price  float64
-	Put    *Option
-	Call   *Option
+	Put    *ContractData
+	Call   *ContractData
 }
 
 func NewOptionChain(engine *Engine, contract *Contract) (*OptionChain, error) {
@@ -139,22 +135,22 @@ func (self *OptionChain) process(v Reply) {
 			return
 		}
 		if chain, ok := self.chains[expiry]; ok {
-			chain.update(self.engine, v)
+			chain.update(v)
 		} else {
 			chain := &OptionStrikes{
 				Expiry:  expiry,
 				Strikes: make(map[float64]*OptionStrike),
 			}
-			chain.update(self.engine, v)
+			chain.update(v)
 			self.chains[expiry] = chain
 		}
 	}
 }
 
-func (self *OptionStrikes) update(engine *Engine, v *ContractData) {
+func (self *OptionStrikes) update(v *ContractData) {
 	if strike, ok := self.Strikes[v.Strike]; ok {
 		// strike exists
-		strike.update(engine, v)
+		strike.update(v)
 	} else {
 		// no strike exists
 		strike := &OptionStrike{
@@ -162,28 +158,14 @@ func (self *OptionStrikes) update(engine *Engine, v *ContractData) {
 			Price:  v.Strike,
 		}
 		self.Strikes[v.Strike] = strike
-		strike.update(engine, v)
+		strike.update(v)
 	}
 }
 
-func (self *OptionStrike) update(engine *Engine, v *ContractData) {
-	var kind Kind
-
+func (self *OptionStrike) update(v *ContractData) {
 	if v.Right == "C" {
-		kind = CALL_OPTION
+		self.Call = v
 	} else {
-		kind = PUT_OPTION
-	}
-
-	option, err := NewOption(engine, &v.Contract, self.expiry, self.Price, kind)
-
-	if err != nil {
-		return
-	}
-
-	if v.Right == "C" {
-		self.Call = option
-	} else {
-		self.Put = option
+		self.Put = v
 	}
 }
