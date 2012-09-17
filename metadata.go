@@ -65,13 +65,13 @@ func (self *Metadata) Notify(v Reply) {
 	self.ch <- func() { self.process(v) }
 }
 
-func (self *Metadata) Observe(ch chan bool) {
+func (self *Metadata) NotifyWhenUpdated(ch chan bool) {
 	self.ch <- func() { self.observers = append(self.observers, ch) }
 }
 
-func (self *Metadata) Wait(timeout time.Duration) bool {
+func (self *Metadata) WaitForUpdate(timeout time.Duration) bool {
 	ch := make(chan bool)
-	self.Observe(ch)
+	self.NotifyWhenUpdated(ch)
 	select {
 	case <-time.After(timeout):
 		return false

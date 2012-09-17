@@ -32,16 +32,18 @@ func NewOption(engine *Engine, contract *Contract,
 	return self, nil
 }
 
-type OptionChain struct {
+type OptionChains map[time.Time]*OptionChain
+
+type OptionRoot struct {
 	id        int64
 	engine    *Engine
-	chains    map[time.Time]*OptionStrikes
+	chains    OptionChains
 	ch        chan func()
 	exit      chan bool
 	observers []chan bool
 }
 
-type OptionStrikes struct {
+type OptionChain struct {
 	Expiry  time.Time
 	Strikes map[float64]*OptionStrike
 }
@@ -53,10 +55,10 @@ type OptionStrike struct {
 	Call   *ContractData
 }
 
-func NewOptionChain(engine *Engine, contract *Contract) (*OptionChain, error) {
-	self := &OptionChain{
+func NewOptionChain(engine *Engine, contract *Contract) (*OptionRoot, error) {
+	self := &OptionRoot{
 		id:        engine.NextRequestId(),
-		chains:    make(map[time.Time]*OptionStrikes),
+		chains:    make(OptionChains),
 		engine:    engine,
 		ch:        make(chan func(), 1),
 		exit:      make(chan bool, 1),
@@ -90,22 +92,22 @@ func NewOptionChain(engine *Engine, contract *Contract) (*OptionChain, error) {
 	return self, nil
 }
 
-func (self *OptionChain) Cleanup() {
+func (self *OptionRoot) Cleanup() {
 	self.engine.Unsubscribe(self.id)
 	self.exit <- true
 }
 
-func (self *OptionChain) Notify(v Reply) {
+func (self *OptionRoot) Notify(v Reply) {
 	self.ch <- func() { self.process(v) }
 }
 
-func (self *OptionChain) Observe(ch chan bool) {
+func (self *OptionRoot) NotifyWhenUpdated(ch chan bool) {
 	self.ch <- func() { self.observers = append(self.observers, ch) }
 }
 
-func (self *OptionChain) Wait(timeout time.Duration) bool {
+func (self *OptionRoot) WaitForUpdate(timeout time.Duration) bool {
 	ch := make(chan bool)
-	self.Observe(ch)
+	self.NotifyWhenUpdated(ch)
 	select {
 	case <-time.After(timeout):
 		return false
@@ -114,13 +116,13 @@ func (self *OptionChain) Wait(timeout time.Duration) bool {
 	return true
 }
 
-func (self *OptionChain) Chains() map[time.Time]*OptionStrikes {
-	ch := make(chan map[time.Time]*OptionStrikes)
+func (self *OptionRoot) Chains() map[time.Time]*OptionChain {
+	ch := make(chan OptionChains)
 	self.ch <- func() { ch <- self.chains }
 	return <-ch
 }
 
-func (self *OptionChain) process(v Reply) {
+func (self *OptionRoot) process(v Reply) {
 	switch v.(type) {
 	case *ContractDataEnd:
 		// all items have been updated
@@ -137,7 +139,7 @@ func (self *OptionChain) process(v Reply) {
 		if chain, ok := self.chains[expiry]; ok {
 			chain.update(v)
 		} else {
-			chain := &OptionStrikes{
+			chain := &OptionChain{
 				Expiry:  expiry,
 				Strikes: make(map[float64]*OptionStrike),
 			}
@@ -147,7 +149,7 @@ func (self *OptionChain) process(v Reply) {
 	}
 }
 
-func (self *OptionStrikes) update(v *ContractData) {
+func (self *OptionChain) update(v *ContractData) {
 	if strike, ok := self.Strikes[v.Strike]; ok {
 		// strike exists
 		strike.update(v)
