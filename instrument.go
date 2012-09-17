@@ -14,11 +14,11 @@ type Instrument struct {
 	ch        chan func()
 	exit      chan bool
 	observers []chan bool
+	updated   bool
 }
 
 func NewInstrument(engine *Engine, contract *Contract) *Instrument {
 	self := &Instrument{
-		id:        0,
 		contract:  contract,
 		engine:    engine,
 		ch:        make(chan func(), 1),
@@ -106,13 +106,16 @@ func (self *Instrument) process(v Reply) {
 		}
 	}
 
-	if self.last == 0 || self.bid == 0 || self.ask == 0 {
+	if self.last <= 0 && (self.bid <= 0 || self.ask <= 0) {
 		return
 	}
 
-	// all items have been updated
-	for _, ch := range self.observers {
-		ch <- true
+	if !self.updated {
+		// all items have been updated
+		for _, ch := range self.observers {
+			ch <- true
+		}
+		self.updated = true
 	}
 }
 
