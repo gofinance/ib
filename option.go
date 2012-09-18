@@ -18,8 +18,7 @@ type Option struct {
 	kind   Kind
 }
 
-func NewOption(engine *Engine, contract *Contract,
-	expiry time.Time, strike float64, kind Kind) (*Option, error) {
+func NewOption(engine *Engine, contract *Contract, expiry time.Time, strike float64, kind Kind) *Option {
 	inst := NewInstrument(engine, contract)
 
 	self := &Option{
@@ -29,18 +28,20 @@ func NewOption(engine *Engine, contract *Contract,
 		kind:       kind,
 	}
 
-	return self, nil
+	return self
 }
 
 type OptionChains map[time.Time]*OptionChain
 
 type OptionRoot struct {
-	id        int64
-	engine    *Engine
-	chains    OptionChains
-	ch        chan func()
-	exit      chan bool
-	observers []chan bool
+	id       int64
+	contract *Contract
+	engine   *Engine
+	chains   OptionChains
+	ch       chan func()
+	exit     chan bool
+	update   chan bool
+	error    chan error
 }
 
 type OptionChain struct {
@@ -55,14 +56,16 @@ type OptionStrike struct {
 	Call   *ContractData
 }
 
-func NewOptionChain(engine *Engine, contract *Contract) (*OptionRoot, error) {
+func NewOptionChain(engine *Engine, contract *Contract) *OptionRoot {
 	self := &OptionRoot{
-		id:        engine.NextRequestId(),
-		chains:    make(OptionChains),
-		engine:    engine,
-		ch:        make(chan func(), 1),
-		exit:      make(chan bool, 1),
-		observers: make([]chan bool, 0),
+		id:       engine.NextRequestId(),
+		contract: contract,
+		chains:   make(OptionChains),
+		engine:   engine,
+		ch:       make(chan func(), 1),
+		exit:     make(chan bool, 1),
+		update:   make(chan bool),
+		error:    make(chan error),
 	}
 
 	go func() {
@@ -76,20 +79,7 @@ func NewOptionChain(engine *Engine, contract *Contract) (*OptionRoot, error) {
 		}
 	}()
 
-	req := &RequestContractData{
-		Contract: *contract,
-	}
-	req.Contract.SecurityType = "OPT"
-	req.Contract.LocalSymbol = ""
-	req.SetId(self.id)
-
-	if err := engine.Send(req); err != nil {
-		return nil, err
-	}
-
-	self.engine.Subscribe(self, self.id)
-
-	return self, nil
+	return self
 }
 
 func (self *OptionRoot) Cleanup() {
@@ -97,23 +87,31 @@ func (self *OptionRoot) Cleanup() {
 	self.exit <- true
 }
 
-func (self *OptionRoot) Notify(v Reply) {
-	self.ch <- func() { self.process(v) }
-}
+func (self *OptionRoot) Update() chan bool { return self.update }
+func (self *OptionRoot) Error() chan error { return self.error }
 
-func (self *OptionRoot) NotifyWhenUpdated(ch chan bool) {
-	self.ch <- func() { self.observers = append(self.observers, ch) }
-}
-
-func (self *OptionRoot) WaitForUpdate(timeout time.Duration) bool {
-	ch := make(chan bool)
-	self.NotifyWhenUpdated(ch)
-	select {
-	case <-time.After(timeout):
-		return false
-	case <-ch:
+func (self *OptionRoot) StartUpdate() error {
+	req := &RequestContractData{
+		Contract: *self.contract,
 	}
-	return true
+	req.Contract.SecurityType = "OPT"
+	req.Contract.LocalSymbol = ""
+	req.SetId(self.id)
+
+	if err := self.engine.Send(req); err != nil {
+		return err
+	}
+
+	self.engine.Subscribe(self, self.id)
+
+	return nil
+}
+
+func (self *OptionRoot) StopUpdate() {
+}
+
+func (self *OptionRoot) Observe(v Reply) {
+	self.ch <- func() { self.process(v) }
 }
 
 func (self *OptionRoot) Chains() map[time.Time]*OptionChain {
@@ -125,15 +123,13 @@ func (self *OptionRoot) Chains() map[time.Time]*OptionChain {
 func (self *OptionRoot) process(v Reply) {
 	switch v.(type) {
 	case *ContractDataEnd:
-		// all items have been updated
-		for _, ch := range self.observers {
-			ch <- true
-		}
+		self.update <- true
 		return
 	case *ContractData:
 		v := v.(*ContractData)
 		expiry, err := time.Parse("20060102", v.Expiry)
 		if err != nil {
+			self.error <- err
 			return
 		}
 		if chain, ok := self.chains[expiry]; ok {

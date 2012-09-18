@@ -29,7 +29,7 @@ func TestInstrument(t *testing.T) {
 
 	defer stock.Cleanup()
 
-	if !WaitForUpdate(stock, 15*time.Second) {
-		t.Fatalf("timeout waiting for price notification")
+	if err := WaitForUpdate(stock, 15*time.Second); err != nil {
+		t.Fatalf("error waiting for price notification: %s", err)
 	}
 }

@@ -35,18 +35,18 @@ type Engine struct {
 }
 
 type Observer interface {
-	Notify(Reply)
+	Observe(Reply)
 }
 
-type timeoutError struct {
+type TimeoutError struct {
 }
 
-func (e *timeoutError) Error() string {
-	return fmt.Sprintf("tradine engine: timeout while trying to receive message")
+func (e *TimeoutError) Error() string {
+	return fmt.Sprintf("trading engine: timeout while trying to receive message")
 }
 
-func timeout() error {
-	return &timeoutError{}
+func timeoutError() error {
+	return &TimeoutError{}
 }
 
 func uniqueId(start int64) chan int64 {
@@ -141,7 +141,7 @@ func NewEngine() (*Engine, error) {
 				req()
 			case v := <-data:
 				if sub, ok := self.observers[v.Id()]; ok {
-					sub.Notify(v)
+					sub.Observe(v)
 				}
 			}
 		}

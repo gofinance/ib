@@ -1,29 +1,27 @@
 package trade
 
-import (
-	"time"
-)
-
 type Instrument struct {
-	id        int64
-	contract  *Contract
-	bid       float64
-	ask       float64
-	last      float64
-	engine    *Engine
-	ch        chan func()
-	exit      chan bool
-	observers []chan bool
-	updated   bool
+	id       int64
+	contract *Contract
+	bid      float64
+	ask      float64
+	last     float64
+	engine   *Engine
+	ch       chan func()
+	exit     chan bool
+	update   chan bool
+	error    chan error
+	updated  bool
 }
 
 func NewInstrument(engine *Engine, contract *Contract) *Instrument {
 	self := &Instrument{
-		contract:  contract,
-		engine:    engine,
-		ch:        make(chan func(), 1),
-		exit:      make(chan bool, 1),
-		observers: make([]chan bool, 0),
+		contract: contract,
+		engine:   engine,
+		ch:       make(chan func(), 1),
+		exit:     make(chan bool, 1),
+		update:   make(chan bool),
+		error:    make(chan error),
 	}
 
 	go func() {
@@ -45,7 +43,14 @@ func (self *Instrument) Cleanup() {
 	self.exit <- true
 }
 
+func (self *Instrument) Update() chan bool { return self.update }
+func (self *Instrument) Error() chan error { return self.error }
+
 func (self *Instrument) StartUpdate() error {
+	self.updated = false
+	self.last = 0
+	self.bid = 0
+	self.ask = 0
 	req := &RequestMarketData{Contract: *self.contract}
 	self.id = self.engine.NextRequestId()
 	req.SetId(self.id)
@@ -60,12 +65,8 @@ func (self *Instrument) StopUpdate() {
 	self.engine.Send(req)
 }
 
-func (self *Instrument) Notify(v Reply) {
+func (self *Instrument) Observe(v Reply) {
 	self.ch <- func() { self.process(v) }
-}
-
-func (self *Instrument) NotifyWhenUpdated(ch chan bool) {
-	self.ch <- func() { self.observers = append(self.observers, ch) }
 }
 
 func (self *Instrument) Contract() Contract {
@@ -111,27 +112,7 @@ func (self *Instrument) process(v Reply) {
 	}
 
 	if !self.updated {
-		// all items have been updated
-		for _, ch := range self.observers {
-			ch <- true
-		}
+		self.update <- true
 		self.updated = true
 	}
-}
-
-type Quotable interface {
-	StartUpdate() error
-	StopUpdate()
-	NotifyWhenUpdated(ch chan bool)
-}
-
-func WaitForUpdate(v Quotable, timeout time.Duration) bool {
-	ch := make(chan bool)
-	v.NotifyWhenUpdated(ch)
-	select {
-	case <-time.After(timeout):
-		return false
-	case <-ch:
-	}
-	return true
 }

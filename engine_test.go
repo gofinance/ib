@@ -10,7 +10,7 @@ func (engine *Engine) expect(t *testing.T, ch chan Reply, expected []int64) (Rep
 	for {
 		select {
 		case <-time.After(engine.timeout):
-			return nil, timeout()
+			return nil, timeoutError()
 		case v := <-ch:
 			if v.code() == 0 {
 				t.Fatalf("don't know message '%v'", v)
@@ -43,7 +43,7 @@ type Sink struct {
 	ch chan Reply
 }
 
-func (self *Sink) Notify(v Reply) {
+func (self *Sink) Observe(v Reply) {
 	self.ch <- v
 }
 

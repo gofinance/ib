@@ -21,16 +21,16 @@ func TestMetadata(t *testing.T) {
 		Currency:     "USD",
 	}
 
-	stock, err := NewMetadata(engine, contract)
+	meta := NewMetadata(engine, contract)
 
-	if err != nil {
-		t.Fatalf("error creating instrument: %s", err)
+	if err := meta.StartUpdate(); err != nil {
+		t.Fatalf("error starting metadata update: %s", err)
 	}
 
-	defer stock.Cleanup()
+	defer meta.Cleanup()
 
-	if !stock.Wait(15 * time.Second) {
-		t.Fatalf("timeout waiting for contract description")
+	if err := WaitForUpdate(meta, 15*time.Second); err != nil {
+		t.Fatalf("error waiting for contract description", err)
 	}
 }
 
@@ -48,15 +48,15 @@ func TestIncomplete(t *testing.T) {
 		Exchange: "DTB",
 	}
 
-	stock, err := NewMetadata(engine, contract)
+	meta := NewMetadata(engine, contract)
 
-	if err != nil {
-		t.Fatalf("error creating instrument: %s", err)
+	if err := meta.StartUpdate(); err != nil {
+		t.Fatalf("error starting metadata update: %s", err)
 	}
 
-	defer stock.Cleanup()
+	defer meta.Cleanup()
 
-	if !stock.Wait(15 * time.Second) {
-		t.Fatalf("timeout waiting for contract description")
+	if err := WaitForUpdate(meta, 15*time.Second); err != nil {
+		t.Fatalf("error waiting for contract description: %s", err)
 	}
 }

@@ -21,15 +21,15 @@ func TestOptionChains(t *testing.T) {
 		Currency:     "USD",
 	}
 
-	chain, err := NewOptionChain(engine, contract)
+	chain := NewOptionChain(engine, contract)
 
-	if err != nil {
-		t.Fatalf("error creating option chain: %s", err)
+	if err := chain.StartUpdate(); err != nil {
+		t.Fatalf("error starting option chain update: %s", err)
 	}
 
 	defer chain.Cleanup()
 
-	if !chain.Wait(15 * time.Second) {
-		t.Fatalf("timeout waiting for option chain")
+	if err := WaitForUpdate(chain, 15*time.Second); err != nil {
+		t.Fatalf("error waiting for option chain update: %s", err)
 	}
 }

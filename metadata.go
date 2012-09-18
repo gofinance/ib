@@ -1,45 +1,34 @@
 package trade
 
-import (
-	"time"
-)
-
 type option struct {
 	sectype  string
 	exchange string
 }
 
 type Metadata struct {
-	id        int64
-	metadata  []*ContractData
-	engine    *Engine
-	contract  *Contract
-	options   []option
-	ch        chan func()
-	exit      chan bool
-	observers []chan bool
+	id       int64
+	metadata []*ContractData
+	engine   *Engine
+	contract *Contract
+	options  []option
+	ch       chan func()
+	exit     chan bool
+	update   chan bool
+	error    chan error
 }
 
 type stateFn func(*Metadata) (stateFn, error)
 
-func NewMetadata(engine *Engine, contract *Contract) (*Metadata, error) {
-	options := []option{
-		{"", ""}, // send as per contract
-		{"STK", "SMART"},
-		{"IND", "SMART"},
-		{"FUT", "GLOBEX"},
-		{"IND", "DTB"},
-		{"FUT", "DTB"},
-	}
+func NewMetadata(engine *Engine, contract *Contract) *Metadata {
 	self := &Metadata{
-		id:        0,
-		metadata:  make([]*ContractData, 0),
-		contract:  contract,
-		engine:    engine,
-		ch:        make(chan func(), 1),
-		exit:      make(chan bool, 1),
-		observers: make([]chan bool, 0),
-		options:   options,
+		id:       0,
+		metadata: make([]*ContractData, 0),
+		contract: contract,
+		engine:   engine,
+		ch:       make(chan func(), 1),
+		exit:     make(chan bool, 1),
+		update:   make(chan bool),
+		error:    make(chan error),
 	}
 
 	go func() {
@@ -53,37 +42,41 @@ func NewMetadata(engine *Engine, contract *Contract) (*Metadata, error) {
 		}
 	}()
 
-	return self, self.request()
+	return self
 }
+
+func (self *Metadata) Update() chan bool { return self.update }
+func (self *Metadata) Error() chan error { return self.error }
 
 func (self *Metadata) Cleanup() {
 	self.engine.Unsubscribe(self.id)
 	self.exit <- true
 }
 
-func (self *Metadata) Notify(v Reply) {
+func (self *Metadata) Observe(v Reply) {
 	self.ch <- func() { self.process(v) }
-}
-
-func (self *Metadata) NotifyWhenUpdated(ch chan bool) {
-	self.ch <- func() { self.observers = append(self.observers, ch) }
-}
-
-func (self *Metadata) WaitForUpdate(timeout time.Duration) bool {
-	ch := make(chan bool)
-	self.NotifyWhenUpdated(ch)
-	select {
-	case <-time.After(timeout):
-		return false
-	case <-ch:
-	}
-	return true
 }
 
 func (self *Metadata) ContractData() []*ContractData {
 	ch := make(chan []*ContractData)
 	self.ch <- func() { ch <- self.metadata }
 	return <-ch
+}
+
+func (self *Metadata) StartUpdate() error {
+	self.options = []option{
+		{"", ""}, // send as per contract
+		{"STK", "SMART"},
+		{"IND", "SMART"},
+		{"FUT", "GLOBEX"},
+		{"IND", "DTB"},
+		{"FUT", "DTB"},
+	}
+
+	return self.request()
+}
+
+func (self *Metadata) StopUpdate() {
 }
 
 func (self *Metadata) process(v Reply) {
@@ -97,10 +90,7 @@ func (self *Metadata) process(v Reply) {
 		v := v.(*ContractData)
 		self.metadata = append(self.metadata, v)
 	case *ContractDataEnd:
-		// all items have been updated
-		for _, ch := range self.observers {
-			ch <- true
-		}
+		self.update <- true
 	}
 }
 
