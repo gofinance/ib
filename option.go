@@ -12,9 +12,8 @@ const (
 )
 
 type Option struct {
-	Instrument
-	iv_id     int64
-	greeks_id int64
+	id int64
+	contract Contract
 	expiry    time.Time
 	strike    float64
 	kind      Kind
@@ -29,29 +28,76 @@ type Option struct {
 	vega      float64
 	price     float64
 	spotPrice float64
-	update    chan bool
-	error     chan error
-	updated   bool
+	engine   *Engine
+	ch       chan func()
+	exit     chan bool
+	update   chan bool
+	error    chan error
+	updated  bool
 }
 
 func NewOption(engine *Engine, contract *Contract, spot *Instrument,
 	expiry time.Time, strike float64, kind Kind) *Option {
-	inst := NewInstrument(engine, contract)
 	self := &Option{
-		Instrument: *inst,
+		contract : *contract,
+		engine : engine,
 		spot:       spot,
 		expiry:     expiry,
 		strike:     strike,
 		kind:       kind,
+		ch:       make(chan func(), 1),
+		exit:     make(chan bool, 1),
 		update:     make(chan bool),
 		error:      make(chan error),
 	}
 
+	go func() {
+		for {
+			select {
+			case <-self.exit:
+				return
+			case f := <-self.ch:
+				f()
+			}
+		}
+	}()
+
 	return self
 }
 
+func (self *Option) Last() float64 {
+	ch := make(chan float64)
+	self.ch <- func() { ch <- self.last }
+	return <-ch
+}
+
+func (self *Option) IV() float64 {
+	ch := make(chan float64)
+	self.ch <- func() { ch <- self.iv }
+	return <-ch
+}
+
+func (self *Option) Delta() float64 {
+	ch := make(chan float64)
+	self.ch <- func() { ch <- self.delta }
+	return <-ch
+}
+
+/*
+func (self *Option) Last() float64 { return self.last }
+func (self *Option) Bid() float64 { return self.bid }
+func (self *Option) Ask() float64 { return self.ask }
+func (self *Option) IV() float64 { return self.iv }
+func (self *Option) Delta() float64 { return self.iv }
+	delta     float64
+	gamma     float64
+	theta     float64
+	vega      float64
+	price     float64
+	spotPrice float64
+*/
+
 func (self *Option) Cleanup() {
-	self.Instrument.Cleanup()
 	self.StopUpdate()
 	self.exit <- true
 }
@@ -60,31 +106,26 @@ func (self *Option) Update() chan bool { return self.update }
 func (self *Option) Error() chan error { return self.error }
 
 func (self *Option) StartUpdate() error {
-	// price ourselves
-	if err := self.Instrument.StartUpdate(); err != nil {
-		return err
-	}
-
-	// wait for price update
-	go func() {
-		if err := WaitForUpdate(&self.Instrument, time.Second*5); err != nil {
-			self.error <- err
-			return
-		}
-		// have option price, request iv
-		if err := self.requestImpliedVol(); err != nil {
-			self.error <- err
-			return
-		}
-	}()
-
-	return nil
+	self.updated = false
+	self.last = 0
+	self.bid = 0
+	self.ask = 0
+	self.delta = 0
+	self.gamma = 0
+	self.theta = 0
+	self.vega = 0
+	req := &RequestMarketData{Contract: self.contract}
+	self.id = self.engine.NextRequestId()
+	req.SetId(self.id)
+	self.engine.Subscribe(self, self.id)
+	return self.engine.Send(req)
 }
 
 func (self *Option) StopUpdate() {
-	self.Instrument.StopUpdate()
-	self.engine.Send(&CancelCalcImpliedVol{self.iv_id})
-	self.engine.Send(&CancelCalcOptionPrice{self.greeks_id})
+	self.engine.Unsubscribe(self.id)
+	req := &CancelMarketData{}
+	req.SetId(self.id)
+	self.engine.Send(req)
 }
 
 func (self *Option) Observe(v Reply) {
@@ -96,15 +137,8 @@ func (self *Option) process(v Reply) {
 	case *TickOptionComputation:
 		v := v.(*TickOptionComputation)
 		switch v.Type {
-		case TickLastOptionComputation,
-			TickCustOptionComputation:
-			if v.Id() == self.iv_id {
+		case TickModelOption:
 				self.iv = v.ImpliedVol
-				if err := self.requestGreeks(); err != nil {
-					self.error <- err
-					return
-				}
-			} else {
 				self.price = v.OptionPrice
 				self.spotPrice = v.SpotPrice
 				self.iv = v.ImpliedVol
@@ -112,11 +146,10 @@ func (self *Option) process(v Reply) {
 				self.gamma = v.Gamma
 				self.vega = v.Vega
 				self.theta = v.Theta
-			}
 		}
 	}
 
-	if self.iv <= 0 || self.delta <= 0 {
+	if self.iv <= 0 || self.delta == 0 || self.delta == -2 {
 		return
 	}
 
@@ -126,6 +159,7 @@ func (self *Option) process(v Reply) {
 	}
 }
 
+/*
 func (self *Option) requestImpliedVol() error {
 	self.iv_id = self.engine.NextRequestId()
 
@@ -163,3 +197,4 @@ func (self *Option) requestGreeks() error {
 
 	return nil
 }
+*/
