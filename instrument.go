@@ -2,7 +2,7 @@ package trade
 
 type Instrument struct {
 	id       int64
-	contract *Contract
+	contract Contract
 	bid      float64
 	ask      float64
 	last     float64
@@ -16,7 +16,7 @@ type Instrument struct {
 
 func NewInstrument(engine *Engine, contract *Contract) *Instrument {
 	self := &Instrument{
-		contract: contract,
+		contract: *contract,
 		engine:   engine,
 		ch:       make(chan func(), 1),
 		exit:     make(chan bool, 1),
@@ -51,7 +51,7 @@ func (self *Instrument) StartUpdate() error {
 	self.last = 0
 	self.bid = 0
 	self.ask = 0
-	req := &RequestMarketData{Contract: *self.contract}
+	req := &RequestMarketData{Contract: self.contract}
 	self.id = self.engine.NextRequestId()
 	req.SetId(self.id)
 	self.engine.Subscribe(self, self.id)
@@ -71,7 +71,7 @@ func (self *Instrument) Observe(v Reply) {
 
 func (self *Instrument) Contract() Contract {
 	ch := make(chan Contract)
-	self.ch <- func() { ch <- *self.contract }
+	self.ch <- func() { ch <- self.contract }
 	return <-ch
 }
 
