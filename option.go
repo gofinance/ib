@@ -13,157 +13,153 @@ const (
 
 type Option struct {
 	Instrument
-	expiry time.Time
-	strike float64
-	kind   Kind
+	iv_id     int64
+	greeks_id int64
+	expiry    time.Time
+	strike    float64
+	kind      Kind
+	spot      *Instrument
+	last      float64
+	bid       float64
+	ask       float64
+	iv        float64
+	delta     float64
+	gamma     float64
+	theta     float64
+	vega      float64
+	price     float64
+	spotPrice float64
+	update    chan bool
+	error     chan error
+	updated   bool
 }
 
-func NewOption(engine *Engine, contract *Contract, expiry time.Time, strike float64, kind Kind) *Option {
+func NewOption(engine *Engine, contract *Contract, spot *Instrument,
+	expiry time.Time, strike float64, kind Kind) *Option {
 	inst := NewInstrument(engine, contract)
-
 	self := &Option{
 		Instrument: *inst,
+		spot:       spot,
 		expiry:     expiry,
 		strike:     strike,
 		kind:       kind,
+		update:     make(chan bool),
+		error:      make(chan error),
 	}
 
 	return self
 }
 
-type OptionChains map[time.Time]*OptionChain
-
-type OptionRoot struct {
-	id       int64
-	contract *Contract
-	engine   *Engine
-	chains   OptionChains
-	ch       chan func()
-	exit     chan bool
-	update   chan bool
-	error    chan error
-}
-
-type OptionChain struct {
-	Expiry  time.Time
-	Strikes map[float64]*OptionStrike
-}
-
-type OptionStrike struct {
-	expiry time.Time
-	Price  float64
-	Put    *ContractData
-	Call   *ContractData
-}
-
-func NewOptionChain(engine *Engine, contract *Contract) *OptionRoot {
-	self := &OptionRoot{
-		id:       engine.NextRequestId(),
-		contract: contract,
-		chains:   make(OptionChains),
-		engine:   engine,
-		ch:       make(chan func(), 1),
-		exit:     make(chan bool, 1),
-		update:   make(chan bool),
-		error:    make(chan error),
-	}
-
-	go func() {
-		for {
-			select {
-			case <-self.exit:
-				return
-			case f := <-self.ch:
-				f()
-			}
-		}
-	}()
-
-	return self
-}
-
-func (self *OptionRoot) Cleanup() {
-	self.engine.Unsubscribe(self.id)
+func (self *Option) Cleanup() {
+	self.Instrument.Cleanup()
+	self.StopUpdate()
 	self.exit <- true
 }
 
-func (self *OptionRoot) Update() chan bool { return self.update }
-func (self *OptionRoot) Error() chan error { return self.error }
+func (self *Option) Update() chan bool { return self.update }
+func (self *Option) Error() chan error { return self.error }
 
-func (self *OptionRoot) StartUpdate() error {
-	req := &RequestContractData{
-		Contract: *self.contract,
+func (self *Option) StartUpdate() error {
+	// price ourselves
+	if err := self.Instrument.StartUpdate(); err != nil {
+		return err
 	}
-	req.Contract.SecurityType = "OPT"
-	req.Contract.LocalSymbol = ""
-	req.SetId(self.id)
+
+	// wait for price update
+	go func() {
+		if err := WaitForUpdate(&self.Instrument, time.Second*5); err != nil {
+			self.error <- err
+			return
+		}
+		// have option price, request iv
+		if err := self.requestImpliedVol(); err != nil {
+			self.error <- err
+			return
+		}
+	}()
+
+	return nil
+}
+
+func (self *Option) StopUpdate() {
+	self.Instrument.StopUpdate()
+	self.engine.Send(&CancelCalcImpliedVol{self.iv_id})
+	self.engine.Send(&CancelCalcOptionPrice{self.greeks_id})
+}
+
+func (self *Option) Observe(v Reply) {
+	self.ch <- func() { self.process(v) }
+}
+
+func (self *Option) process(v Reply) {
+	switch v.(type) {
+	case *TickOptionComputation:
+		v := v.(*TickOptionComputation)
+		switch v.Type {
+		case TickLastOptionComputation,
+			TickCustOptionComputation:
+			if v.Id() == self.iv_id {
+				self.iv = v.ImpliedVol
+				if err := self.requestGreeks(); err != nil {
+					self.error <- err
+					return
+				}
+			} else {
+				self.price = v.OptionPrice
+				self.spotPrice = v.SpotPrice
+				self.iv = v.ImpliedVol
+				self.delta = v.Delta
+				self.gamma = v.Gamma
+				self.vega = v.Vega
+				self.theta = v.Theta
+			}
+		}
+	}
+
+	if self.iv <= 0 || self.delta <= 0 {
+		return
+	}
+
+	if !self.updated {
+		self.update <- true
+		self.updated = true
+	}
+}
+
+func (self *Option) requestImpliedVol() error {
+	self.iv_id = self.engine.NextRequestId()
+
+	req := &RequestCalcImpliedVol{
+		Contract:    self.Instrument.Contract(),
+		OptionPrice: self.last,
+		SpotPrice:   self.Instrument.Last(),
+	}
+
+	req.SetId(self.iv_id)
+	self.engine.Subscribe(self, self.iv_id)
 
 	if err := self.engine.Send(req); err != nil {
 		return err
 	}
 
-	self.engine.Subscribe(self, self.id)
-
 	return nil
 }
 
-func (self *OptionRoot) StopUpdate() {
-}
+func (self *Option) requestGreeks() error {
+	self.greeks_id = self.engine.NextRequestId()
 
-func (self *OptionRoot) Observe(v Reply) {
-	self.ch <- func() { self.process(v) }
-}
-
-func (self *OptionRoot) Chains() map[time.Time]*OptionChain {
-	ch := make(chan OptionChains)
-	self.ch <- func() { ch <- self.chains }
-	return <-ch
-}
-
-func (self *OptionRoot) process(v Reply) {
-	switch v.(type) {
-	case *ContractDataEnd:
-		self.update <- true
-		return
-	case *ContractData:
-		v := v.(*ContractData)
-		expiry, err := time.Parse("20060102", v.Expiry)
-		if err != nil {
-			self.error <- err
-			return
-		}
-		if chain, ok := self.chains[expiry]; ok {
-			chain.update(v)
-		} else {
-			chain := &OptionChain{
-				Expiry:  expiry,
-				Strikes: make(map[float64]*OptionStrike),
-			}
-			chain.update(v)
-			self.chains[expiry] = chain
-		}
+	req := &RequestCalcOptionPrice{
+		Contract:   self.Instrument.Contract(),
+		Volatility: self.iv,
+		SpotPrice:  self.Instrument.Last(),
 	}
-}
 
-func (self *OptionChain) update(v *ContractData) {
-	if strike, ok := self.Strikes[v.Strike]; ok {
-		// strike exists
-		strike.update(v)
-	} else {
-		// no strike exists
-		strike := &OptionStrike{
-			expiry: self.Expiry,
-			Price:  v.Strike,
-		}
-		self.Strikes[v.Strike] = strike
-		strike.update(v)
-	}
-}
+	req.SetId(self.greeks_id)
+	self.engine.Subscribe(self, self.greeks_id)
 
-func (self *OptionStrike) update(v *ContractData) {
-	if v.Right == "C" {
-		self.Call = v
-	} else {
-		self.Put = v
+	if err := self.engine.Send(req); err != nil {
+		return err
 	}
+
+	return nil
 }
