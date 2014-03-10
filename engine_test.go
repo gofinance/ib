@@ -58,9 +58,9 @@ func TestMarketData(t *testing.T) {
 
 	req1 := &RequestMarketData{
 		Contract: Contract{
-			Symbol:       "AAPL",
-			SecurityType: "STK",
-			Exchange:     "SMART",
+			Symbol:       "AUD",
+			SecurityType: "CASH",
+			Exchange:     "IDEALPRO",
 			Currency:     "USD",
 		},
 	}

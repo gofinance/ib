@@ -15,21 +15,21 @@ func TestInstrument(t *testing.T) {
 	defer engine.Stop()
 
 	contract := &Contract{
-		Symbol:       "AAPL",
-		SecurityType: "STK",
-		Exchange:     "SMART",
+		Symbol:       "AUD",
+		SecurityType: "CASH",
+		Exchange:     "IDEALPRO",
 		Currency:     "USD",
 	}
 
-	stock := NewInstrument(engine, contract)
+	i := NewInstrument(engine, contract)
 
-	if err := stock.StartUpdate(); err != nil {
+	if err := i.StartUpdate(); err != nil {
 		t.Fatalf("error creating instrument: %s", err)
 	}
 
-	defer stock.Cleanup()
+	defer i.Cleanup()
 
-	if err := WaitForUpdate(stock, 15*time.Second); err != nil {
+	if err := WaitForUpdate(i, 15*time.Second); err != nil {
 		t.Fatalf("error waiting for price notification: %s", err)
 	}
 }
