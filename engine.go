@@ -13,8 +13,9 @@ import (
 )
 
 const (
-	version = 48
-	gateway = "127.0.0.1:4001"
+	dumpConversation = false
+	version          = 48
+	gateway          = "127.0.0.1:4001"
 )
 
 // Engine is the entry point to the IB TWS API
@@ -216,7 +217,9 @@ func (self *Engine) Send(v Request) error {
 		return err
 	}
 
-	//dump(self.output)
+	if dumpConversation {
+		dump(self.output)
+	}
 
 	if _, err := self.con.Write(self.output.Bytes()); err != nil {
 		return err
@@ -244,7 +247,7 @@ func failPacket(v interface{}) error {
 
 func dump(b *bytes.Buffer) {
 	s := strings.Replace(b.String(), "\000", "-", -1)
-	fmt.Printf("Buffer = '%s'\n", s)
+	fmt.Printf("> '%s'\n", s)
 }
 
 func (self *Engine) receive() (Reply, error) {
@@ -253,15 +256,31 @@ func (self *Engine) receive() (Reply, error) {
 
 	// decode header
 	if err := read(self.reader, hdr); err != nil {
+		if dumpConversation {
+			fmt.Printf("< %v\n", err)
+		}
 		return nil, err
 	}
-
+	if dumpConversation {
+		fmt.Printf("< %v ", hdr)
+	}
 	// decode message
 	v := code2Msg(hdr.code)
 	if err := read(self.reader, v); err != nil {
+		if dumpConversation {
+			fmt.Printf("%v\n", err)
+		}
 		return nil, err
 	}
 
+	if dumpConversation {
+		str := fmt.Sprintf("%v", v)
+		cut := len(str)
+		if cut > 80 {
+			str = str[:76] + "..."
+		}
+		fmt.Printf("%s\n", str)
+	}
 	return v, nil
 }
 
