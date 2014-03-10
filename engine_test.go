@@ -75,12 +75,11 @@ func TestMarketData(t *testing.T) {
 	}
 
 	rep1, err := engine.expect(t, ch, []int64{mTickPrice, mTickSize})
+	logreply(t, rep1, err)
 
 	if err != nil {
 		t.Fatalf("client %d: cannot receive market data: %s", engine.ClientId(), err)
 	}
-
-	t.Logf("received packet '%v' of type %v\n", rep1, reflect.ValueOf(rep1).Type())
 
 	if err := engine.Send(&CancelMarketData{id}); err != nil {
 		t.Fatalf("client %d: cannot send cancel request: %s", engine.ClientId(), err)
@@ -116,20 +115,18 @@ func TestContractDetails(t *testing.T) {
 	}
 
 	rep1, err := engine.expect(t, ch, []int64{mContractData})
+	logreply(t, rep1, err)
 
 	if err != nil {
 		t.Fatalf("client %d: cannot receive contract details: %s", engine.ClientId(), err)
 	}
 
-	t.Logf("received packet '%v' of type %v\n", rep1, reflect.ValueOf(rep1).Type())
-
 	rep2, err := engine.expect(t, ch, []int64{mContractDataEnd})
+	logreply(t, rep2, err)
 
 	if err != nil {
 		t.Fatalf("client %d: cannot receive end of contract details: %s", engine.ClientId(), err)
 	}
-
-	t.Logf("received packet '%v' of type %v\n", rep2, reflect.ValueOf(rep2).Type())
 }
 
 func TestOptionChainRequest(t *testing.T) {
@@ -161,10 +158,21 @@ func TestOptionChainRequest(t *testing.T) {
 	}
 
 	rep1, err := engine.expect(t, ch, []int64{mContractDataEnd})
+	logreply(t, rep1, err)
 
 	if err != nil {
-		t.Fatalf("cannot receive contract details: %s", err)
+		t.Fatalf("cannot receive contract details: %v", err)
 	}
+}
 
-	t.Logf("received packet '%v' of type %v\n", rep1, reflect.ValueOf(rep1).Type())
+func logreply(t *testing.T, reply Reply, err error) {
+	if reply == nil {
+		t.Logf("received reply nil")
+	} else {
+		t.Logf("received reply '%v' of type %v", reply, reflect.ValueOf(reply).Type())
+	}
+	if err != nil {
+		t.Logf(" (error: '%v')", err)
+	}
+	t.Logf("\n")
 }
