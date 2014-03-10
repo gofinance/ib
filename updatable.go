@@ -29,7 +29,7 @@ type UpdateError struct {
 }
 
 func (self *UpdateError) Error() string {
-	return fmt.Sprintf("Error %s while updating %s", self.err, self)
+	return fmt.Sprintf("Error %s while updating %v", self.err, self.v)
 }
 
 func updateError(v Updatable, err error) error {
