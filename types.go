@@ -3,6 +3,7 @@ package trade
 import (
 	"bufio"
 	"bytes"
+	"fmt"
 	"time"
 )
 
@@ -513,6 +514,10 @@ func (v *ErrorMessage) read(b *bufio.Reader) {
 	v.id = readInt(b)
 	v.Code = readInt(b)
 	v.Message = readString(b)
+}
+
+func (v *ErrorMessage) Error() error {
+	return fmt.Errorf("%s (%d/%d)", v.Message, v.id, v.Code)
 }
 
 type AlgoParams struct {
