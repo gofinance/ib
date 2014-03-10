@@ -134,6 +134,9 @@ func (self *Option) Observe(v Reply) {
 
 func (self *Option) process(v Reply) {
 	switch v.(type) {
+	case *ErrorMessage:
+		v := v.(*ErrorMessage)
+		self.error <- v.Error()
 	case *TickOptionComputation:
 		v := v.(*TickOptionComputation)
 		switch v.Type {

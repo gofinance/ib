@@ -95,6 +95,9 @@ func (self *Instrument) Last() float64 {
 
 func (self *Instrument) process(v Reply) {
 	switch v.(type) {
+	case *ErrorMessage:
+		v := v.(*ErrorMessage)
+		self.error <- v.Error()
 	case *TickPrice:
 		v := v.(*TickPrice)
 		switch v.Type {

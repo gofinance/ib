@@ -95,6 +95,9 @@ func (self *OptionRoot) Chains() map[time.Time]*OptionChain {
 
 func (self *OptionRoot) process(v Reply) {
 	switch v.(type) {
+	case *ErrorMessage:
+		v := v.(*ErrorMessage)
+		self.error <- v.Error()
 	case *ContractDataEnd:
 		self.update <- true
 		return
