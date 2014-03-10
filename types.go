@@ -1205,12 +1205,8 @@ type ScannerParameters struct {
 	XML string
 }
 
-func (v *ScannerParameters) Id() int64 {
-	return 0
-}
-
 func (v *ScannerParameters) code() int64 {
-	return 0
+	return mScannerParameters
 }
 
 func (v *ScannerParameters) read(b *bufio.Reader) {
