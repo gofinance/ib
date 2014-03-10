@@ -41,25 +41,25 @@ func TestOption(t *testing.T) {
 		Currency:     "EUR",
 		//Strike:       7350,
 		//Right:        "P", // Put
-		LocalSymbol:  "P ODAX SEP 12  7350",
+		LocalSymbol: "P ODAX SEP 12  7350",
 	}
 
-    /*
-    meta := NewMetadata(engine, contract)
+	/*
+	   meta := NewMetadata(engine, contract)
 
-    if err := meta.StartUpdate(); err != nil {
-        t.Fatalf("error starting metadata update: %s", err)
-    }
+	   if err := meta.StartUpdate(); err != nil {
+	       t.Fatalf("error starting metadata update: %s", err)
+	   }
 
-    defer meta.Cleanup()
+	   defer meta.Cleanup()
 
-    if err := WaitForUpdate(meta, 15*time.Second); err != nil {
-        t.Fatalf("error waiting for contract description", err)
-    }
+	   if err := WaitForUpdate(meta, 15*time.Second); err != nil {
+	       t.Fatalf("error waiting for contract description", err)
+	   }
 
-    contract = &meta.ContractData()[0].Contract
-    */
-    
+	   contract = &meta.ContractData()[0].Contract
+	*/
+
 	opt := NewOption(engine, contract, spot, time.Now(), 7350, PUT_OPTION)
 
 	if err := opt.StartUpdate(); err != nil {

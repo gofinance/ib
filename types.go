@@ -271,7 +271,7 @@ type TickOptionComputation struct {
 	id          int64
 	Type        int64
 	ImpliedVol  float64 // > 0
-	Delta       float64 // 0 <= delta <= 1	
+	Delta       float64 // 0 <= delta <= 1
 	OptionPrice float64
 	PvDividend  float64
 	Gamma       float64

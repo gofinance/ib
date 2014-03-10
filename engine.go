@@ -64,7 +64,7 @@ func uniqueId(start int64) chan int64 {
 // Next client id
 var client = uniqueId(1)
 
-// NewEngine takes a client id and returns a new connection 
+// NewEngine takes a client id and returns a new connection
 // to IB Gateway or IB Trader Workstation.
 func NewEngine() (*Engine, error) {
 	con, err := net.Dial("tcp", gateway)

@@ -12,8 +12,8 @@ const (
 )
 
 type Option struct {
-	id int64
-	contract Contract
+	id        int64
+	contract  Contract
 	expiry    time.Time
 	strike    float64
 	kind      Kind
@@ -28,27 +28,27 @@ type Option struct {
 	vega      float64
 	price     float64
 	spotPrice float64
-	engine   *Engine
-	ch       chan func()
-	exit     chan bool
-	update   chan bool
-	error    chan error
-	updated  bool
+	engine    *Engine
+	ch        chan func()
+	exit      chan bool
+	update    chan bool
+	error     chan error
+	updated   bool
 }
 
 func NewOption(engine *Engine, contract *Contract, spot *Instrument,
 	expiry time.Time, strike float64, kind Kind) *Option {
 	self := &Option{
-		contract : *contract,
-		engine : engine,
-		spot:       spot,
-		expiry:     expiry,
-		strike:     strike,
-		kind:       kind,
+		contract: *contract,
+		engine:   engine,
+		spot:     spot,
+		expiry:   expiry,
+		strike:   strike,
+		kind:     kind,
 		ch:       make(chan func(), 1),
 		exit:     make(chan bool, 1),
-		update:     make(chan bool),
-		error:      make(chan error),
+		update:   make(chan bool),
+		error:    make(chan error),
 	}
 
 	go func() {
@@ -138,14 +138,14 @@ func (self *Option) process(v Reply) {
 		v := v.(*TickOptionComputation)
 		switch v.Type {
 		case TickModelOption:
-				self.iv = v.ImpliedVol
-				self.price = v.OptionPrice
-				self.spotPrice = v.SpotPrice
-				self.iv = v.ImpliedVol
-				self.delta = v.Delta
-				self.gamma = v.Gamma
-				self.vega = v.Vega
-				self.theta = v.Theta
+			self.iv = v.ImpliedVol
+			self.price = v.OptionPrice
+			self.spotPrice = v.SpotPrice
+			self.iv = v.ImpliedVol
+			self.delta = v.Delta
+			self.gamma = v.Gamma
+			self.vega = v.Vega
+			self.theta = v.Theta
 		}
 	}
 
