@@ -14,7 +14,8 @@ import (
 
 const (
 	dumpConversation = false
-	version          = 48 // TWS 9.65
+	clientVersion    = 48 // TWS 9.65
+	minServerVersion = 53 // TWS 9.65
 	gateway          = "127.0.0.1:4001"
 	UnmatchedReplyId = int64(-9223372036854775808)
 )
@@ -25,6 +26,7 @@ type Engine struct {
 	id            chan int64
 	exit          chan bool
 	ch            chan func()
+	gateway       string
 	client        int64
 	con           net.Conn
 	reader        *bufio.Reader
@@ -86,6 +88,7 @@ func NewEngine() (*Engine, error) {
 
 	self := Engine{
 		timeout:   60 * time.Second,
+		gateway:   gateway,
 		client:    client,
 		id:        reqid,
 		con:       con,
@@ -96,7 +99,7 @@ func NewEngine() (*Engine, error) {
 	}
 
 	// write client version and id
-	clientShake := &clientHandshake{version, client}
+	clientShake := &clientHandshake{clientVersion, client}
 	if err := self.write(clientShake); err != nil {
 		return nil, err
 	}
@@ -105,6 +108,11 @@ func NewEngine() (*Engine, error) {
 	serverShake := &serverHandshake{}
 	if err := self.read(serverShake); err != nil {
 		return nil, err
+	}
+
+	if serverShake.version < minServerVersion {
+		return nil, fmt.Errorf("Server at %s (client ID %d) must be at least version %d (reported %d)",
+			self.gateway, self.client, minServerVersion, serverShake.version)
 	}
 
 	self.serverVersion = serverShake.version
