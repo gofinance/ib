@@ -149,12 +149,12 @@ func NewEngine() (*Engine, error) {
 		for {
 			select {
 			case <-time.After(self.timeout):
-				log.Printf("engine: timeout")
+				log.Printf("%d engine: timeout", self.client)
 				return
 			case <-self.exit:
 				return
 			case err := <-error:
-				log.Printf("engine: error %s", err)
+				log.Printf("%d engine: error %s", self.client, err)
 				return
 			case req := <-self.ch:
 				req()
@@ -267,7 +267,9 @@ func (self *Engine) Send(v Request) error {
 	}
 
 	if dumpConversation {
-		dump(self.output)
+		b := self.output
+		s := strings.Replace(b.String(), "\000", "-", -1)
+		fmt.Printf("%d> '%s'\n", self.client, s)
 	}
 
 	if _, err := self.con.Write(self.output.Bytes()); err != nil {
@@ -294,11 +296,6 @@ func failPacket(v interface{}) error {
 	}
 }
 
-func dump(b *bytes.Buffer) {
-	s := strings.Replace(b.String(), "\000", "-", -1)
-	fmt.Printf("> '%s'\n", s)
-}
-
 func (self *Engine) receive() (Reply, error) {
 	self.input.Reset()
 	hdr := &header{}
@@ -306,7 +303,7 @@ func (self *Engine) receive() (Reply, error) {
 	// decode header
 	if err := read(self.reader, hdr); err != nil {
 		if dumpConversation {
-			fmt.Printf("< %v\n", err)
+			fmt.Printf("%d< %v\n", self.client, err)
 		}
 		return nil, err
 	}
@@ -314,7 +311,7 @@ func (self *Engine) receive() (Reply, error) {
 	dump := dumpConversation && hdr.code != self.lastDumpRead
 	if dump {
 		self.lastDumpRead = hdr.code
-		fmt.Printf("< %v ", hdr)
+		fmt.Printf("%d< %v ", self.client, hdr)
 	}
 	if hdr.code <= 0 {
 		if dump {
