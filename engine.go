@@ -141,6 +141,7 @@ func NewEngine() (*Engine, error) {
 	}()
 
 	go func() {
+		defer con.Close()
 		for {
 			select {
 			case <-time.After(self.timeout):
