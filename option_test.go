@@ -7,6 +7,10 @@ import (
 )
 
 func TestOption(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping test in short mode.")
+	}
+
 	engine, err := NewEngine()
 
 	if err != nil {
