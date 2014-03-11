@@ -7,155 +7,152 @@ import (
 	"time"
 )
 
-const (
-	// incoming msg ids
-	mTickPrice              = 1
-	mTickSize               = 2
-	mOrderStatus            = 3
-	mErrorMessage           = 4
-	mOpenOrder              = 5
-	mAccountValue           = 6
-	mPortfolioValue         = 7
-	mAccountUpdateTime      = 8
-	mNextValidId            = 9
-	mContractData           = 10
-	mExecutionData          = 11
-	mMarketDepth            = 12
-	mMarketDepthL2          = 13
-	mNewsBulletins          = 14
-	mManagedAccounts        = 15
-	mReceiveFA              = 16
-	mHistoricalData         = 17
-	mBondContractData       = 18
-	mScannerParameters      = 19
-	mScannerData            = 20
-	mTickOptionComputation  = 21
-	mTickGeneric            = 45
-	mTickString             = 46
-	mTickEFP                = 47
-	mCurrentTime            = 49
-	mRealtimeBars           = 50
-	mFundamentalData        = 51
-	mContractDataEnd        = 52
-	mOpenOrderEnd           = 53
-	mAccountDownloadEnd     = 54
-	mExecutionDataEnd       = 55
-	mDeltaNeutralValidation = 56
-	mTickSnapshotEnd        = 57
-	mMarketDataType         = 58
-
-	// outgoing message ids
-	mRequestMarketData          = 1
-	mCancelMarketData           = 2
-	mPlaceOrder                 = 3
-	mCancelOrder                = 4
-	mRequestOpenOrders          = 5
-	mRequestACcountData         = 6
-	mRequestExecutions          = 7
-	mRequestIds                 = 8
-	mRequestContractData        = 9
-	mRequestMarketDepth         = 10
-	mCancelMarketDepth          = 11
-	mRequestNewsBulletins       = 12
-	mCancelNewsBulletins        = 13
-	mSetServerLogLevel          = 14
-	mRequestAutoOpenOrders      = 15
-	mRequestAllOpenOrders       = 16
-	mRequestManagedAccounts     = 17
-	mRequestFA                  = 18
-	mReplaceFA                  = 19
-	mRequestHistoricalData      = 20
-	mExerciseOptions            = 21
-	mRequestScannerSubscription = 22
-	mCancelScannerSubscription  = 23
-	mRequestScannerParameters   = 24
-	mCancelHistoricalData       = 25
-	mRequestCurrentTime         = 49
-	mRequestRealtimeBars        = 50
-	mCancelRealtimeBars         = 51
-	mRequestFundamentalData     = 52
-	mCancelFundamentalData      = 53
-	mRequestCalcImpliedVol      = 54
-	mRequestCalcOptionPrice     = 55
-	mCancelCalcImpliedVol       = 56
-	mCancelCalcOptionPrice      = 57
-	mRequestGlobalCancel        = 58
-	mRequestMarketDataType      = 59
-)
-
-const maxInt = int(^uint(0) >> 1)
+type IncomingMessageId int64
+type OutgoingMessageId int64
+type TickType int
 
 const (
-	TickBidSize               = 0
-	TickBid                   = 1
-	TickAsk                   = 2
-	TickAskSize               = 3
-	TickLast                  = 4
-	TickLastSize              = 5
-	TickHigh                  = 6
-	TickLow                   = 7
-	TickVolume                = 8
-	TickClose                 = 9
-	TickBidOptionComputation  = 10
-	TickAskOptionComputation  = 11
-	TickLastOptionComputation = 12
-	TickModelOption           = 13
-	TickOpen                  = 14
-	TickLow13Week             = 15
-	TickHigh13Week            = 16
-	TickLow26Week             = 17
-	TickHigh26Week            = 18
-	TickLow52Week             = 19
-	TickHigh52Week            = 20
-	TickAverageVolume         = 21
-	TickOpenInterest          = 22
-	TickOptionHistoricalVol   = 23
-	TickOptionImpliedVol      = 24
-	TickOptionBidExch         = 25
-	TickOptionAskExch         = 26
-	TickOptionCallOpenInt     = 27
-	TickOptionPutOpenInt      = 28
-	TickOptionCallVolume      = 29
-	TickOptionPutVolume       = 30
-	TickIndexFuturePremium    = 31
-	TickBidExch               = 32
-	TickAskExch               = 33
-	TickAuctionVolume         = 34
-	TickAuctionPrice          = 35
-	TickAuctionImbalance      = 36
-	TickMarkPrice             = 37
-	TickBidEFPComputation     = 38
-	TickAskEFPComputation     = 39
-	TickLastEFPComputation    = 40
-	TickOpenEFPComputation    = 41
-	TickHighEFPComputation    = 42
-	TickLowEFPComputation     = 43
-	TickCloseEFPComputation   = 44
-	TickLastTimestamp         = 45
-	TickShortable             = 46
-	TickFundamentalRations    = 47
-	TickRTVolume              = 48
-	TickHalted                = 49
-	TickBidYield              = 50
-	TickAskYield              = 51
-	TickLastYield             = 52
-	TickCustOptionComputation = 53
-	TickTradeCount            = 54
-	TickTradeRate             = 55
-	TickVolumeRate            = 56
-	TickLastRTHTrade          = 57
-	TickNotSet                = 58
+	maxInt                                        = int(^uint(0) >> 1)
+	mTickPrice                  IncomingMessageId = 1
+	mTickSize                                     = 2
+	mOrderStatus                                  = 3
+	mErrorMessage                                 = 4
+	mOpenOrder                                    = 5
+	mAccountValue                                 = 6
+	mPortfolioValue                               = 7
+	mAccountUpdateTime                            = 8
+	mNextValidId                                  = 9
+	mContractData                                 = 10
+	mExecutionData                                = 11
+	mMarketDepth                                  = 12
+	mMarketDepthL2                                = 13
+	mNewsBulletins                                = 14
+	mManagedAccounts                              = 15
+	mReceiveFA                                    = 16
+	mHistoricalData                               = 17
+	mBondContractData                             = 18
+	mScannerParameters                            = 19
+	mScannerData                                  = 20
+	mTickOptionComputation                        = 21
+	mTickGeneric                                  = 45
+	mTickString                                   = 46
+	mTickEFP                                      = 47
+	mCurrentTime                                  = 49
+	mRealtimeBars                                 = 50
+	mFundamentalData                              = 51
+	mContractDataEnd                              = 52
+	mOpenOrderEnd                                 = 53
+	mAccountDownloadEnd                           = 54
+	mExecutionDataEnd                             = 55
+	mDeltaNeutralValidation                       = 56
+	mTickSnapshotEnd                              = 57
+	mMarketDataType                               = 58
+	mRequestMarketData          OutgoingMessageId = 1
+	mCancelMarketData                             = 2
+	mPlaceOrder                                   = 3
+	mCancelOrder                                  = 4
+	mRequestOpenOrders                            = 5
+	mRequestACcountData                           = 6
+	mRequestExecutions                            = 7
+	mRequestIds                                   = 8
+	mRequestContractData                          = 9
+	mRequestMarketDepth                           = 10
+	mCancelMarketDepth                            = 11
+	mRequestNewsBulletins                         = 12
+	mCancelNewsBulletins                          = 13
+	mSetServerLogLevel                            = 14
+	mRequestAutoOpenOrders                        = 15
+	mRequestAllOpenOrders                         = 16
+	mRequestManagedAccounts                       = 17
+	mRequestFA                                    = 18
+	mReplaceFA                                    = 19
+	mRequestHistoricalData                        = 20
+	mExerciseOptions                              = 21
+	mRequestScannerSubscription                   = 22
+	mCancelScannerSubscription                    = 23
+	mRequestScannerParameters                     = 24
+	mCancelHistoricalData                         = 25
+	mRequestCurrentTime                           = 49
+	mRequestRealtimeBars                          = 50
+	mCancelRealtimeBars                           = 51
+	mRequestFundamentalData                       = 52
+	mCancelFundamentalData                        = 53
+	mRequestCalcImpliedVol                        = 54
+	mRequestCalcOptionPrice                       = 55
+	mCancelCalcImpliedVol                         = 56
+	mCancelCalcOptionPrice                        = 57
+	mRequestGlobalCancel                          = 58
+	mRequestMarketDataType                        = 59
+	TickBidSize                 TickType          = 0
+	TickBid                                       = 1
+	TickAsk                                       = 2
+	TickAskSize                                   = 3
+	TickLast                                      = 4
+	TickLastSize                                  = 5
+	TickHigh                                      = 6
+	TickLow                                       = 7
+	TickVolume                                    = 8
+	TickClose                                     = 9
+	TickBidOptionComputation                      = 10
+	TickAskOptionComputation                      = 11
+	TickLastOptionComputation                     = 12
+	TickModelOption                               = 13
+	TickOpen                                      = 14
+	TickLow13Week                                 = 15
+	TickHigh13Week                                = 16
+	TickLow26Week                                 = 17
+	TickHigh26Week                                = 18
+	TickLow52Week                                 = 19
+	TickHigh52Week                                = 20
+	TickAverageVolume                             = 21
+	TickOpenInterest                              = 22
+	TickOptionHistoricalVol                       = 23
+	TickOptionImpliedVol                          = 24
+	TickOptionBidExch                             = 25
+	TickOptionAskExch                             = 26
+	TickOptionCallOpenInt                         = 27
+	TickOptionPutOpenInt                          = 28
+	TickOptionCallVolume                          = 29
+	TickOptionPutVolume                           = 30
+	TickIndexFuturePremium                        = 31
+	TickBidExch                                   = 32
+	TickAskExch                                   = 33
+	TickAuctionVolume                             = 34
+	TickAuctionPrice                              = 35
+	TickAuctionImbalance                          = 36
+	TickMarkPrice                                 = 37
+	TickBidEFPComputation                         = 38
+	TickAskEFPComputation                         = 39
+	TickLastEFPComputation                        = 40
+	TickOpenEFPComputation                        = 41
+	TickHighEFPComputation                        = 42
+	TickLowEFPComputation                         = 43
+	TickCloseEFPComputation                       = 44
+	TickLastTimestamp                             = 45
+	TickShortable                                 = 46
+	TickFundamentalRations                        = 47
+	TickRTVolume                                  = 48
+	TickHalted                                    = 49
+	TickBidYield                                  = 50
+	TickAskYield                                  = 51
+	TickLastYield                                 = 52
+	TickCustOptionComputation                     = 53
+	TickTradeCount                                = 54
+	TickTradeRate                                 = 55
+	TickVolumeRate                                = 56
+	TickLastRTHTrade                              = 57
+	TickNotSet                                    = 58
 )
 
 type Request interface {
 	writable
-	code() int64
+	code() OutgoingMessageId
 	version() int64
 }
 
 type Reply interface {
 	readable
-	code() int64
+	code() IncomingMessageId
 }
 
 type MatchedRequest interface {
@@ -246,7 +243,7 @@ func (v *TickPrice) Id() int64 {
 	return v.id
 }
 
-func (v *TickPrice) code() int64 {
+func (v *TickPrice) code() IncomingMessageId {
 	return mTickPrice
 }
 
@@ -269,7 +266,7 @@ func (v *TickSize) Id() int64 {
 	return v.id
 }
 
-func (v *TickSize) code() int64 {
+func (v *TickSize) code() IncomingMessageId {
 	return mTickSize
 }
 
@@ -297,7 +294,7 @@ func (v *TickOptionComputation) Id() int64 {
 	return v.id
 }
 
-func (v *TickOptionComputation) code() int64 {
+func (v *TickOptionComputation) code() IncomingMessageId {
 	return mTickOptionComputation
 }
 
@@ -325,7 +322,7 @@ func (v *TickGeneric) Id() int64 {
 	return v.id
 }
 
-func (v *TickGeneric) code() int64 {
+func (v *TickGeneric) code() IncomingMessageId {
 	return mTickGeneric
 }
 
@@ -346,7 +343,7 @@ func (v *TickString) Id() int64 {
 	return v.id
 }
 
-func (v *TickString) code() int64 {
+func (v *TickString) code() IncomingMessageId {
 	return mTickString
 }
 
@@ -373,7 +370,7 @@ func (v *TickEFP) Id() int64 {
 	return v.id
 }
 
-func (v *TickEFP) code() int64 {
+func (v *TickEFP) code() IncomingMessageId {
 	return mTickEFP
 }
 
@@ -407,7 +404,7 @@ func (v *OrderStatus) Id() int64 {
 	return v.id
 }
 
-func (v *OrderStatus) code() int64 {
+func (v *OrderStatus) code() IncomingMessageId {
 	return mOrderStatus
 }
 
@@ -431,7 +428,7 @@ type AccountValue struct {
 	AccountName string
 }
 
-func (v *AccountValue) code() int64 {
+func (v *AccountValue) code() IncomingMessageId {
 	return mAccountValue
 }
 
@@ -463,7 +460,7 @@ type PortfolioValue struct {
 	PrimaryExchange1 string
 }
 
-func (v *PortfolioValue) code() int64 {
+func (v *PortfolioValue) code() IncomingMessageId {
 	return mPortfolioValue
 }
 
@@ -492,7 +489,7 @@ type AccountUpdateTime struct {
 	Timestamp string
 }
 
-func (v *AccountUpdateTime) code() int64 {
+func (v *AccountUpdateTime) code() IncomingMessageId {
 	return mAccountUpdateTime
 }
 
@@ -506,7 +503,7 @@ type ErrorMessage struct {
 	Message string
 }
 
-func (v *ErrorMessage) code() int64 {
+func (v *ErrorMessage) code() IncomingMessageId {
 	return mErrorMessage
 }
 
@@ -658,7 +655,7 @@ func (v *OpenOrder) Id() int64 {
 	return v.id
 }
 
-func (v *OpenOrder) code() int64 {
+func (v *OpenOrder) code() IncomingMessageId {
 	return mOpenOrder
 }
 
@@ -788,7 +785,7 @@ type NextValidId struct {
 	OrderId int64
 }
 
-func (v *NextValidId) code() int64 {
+func (v *NextValidId) code() IncomingMessageId {
 	return mNextValidId
 }
 
@@ -806,7 +803,7 @@ func (v *ScannerData) Id() int64 {
 	return v.id
 }
 
-func (v *ScannerData) code() int64 {
+func (v *ScannerData) code() IncomingMessageId {
 	return mScannerData
 }
 
@@ -882,7 +879,7 @@ func (v *ContractData) Id() int64 {
 	return v.id
 }
 
-func (v *ContractData) code() int64 {
+func (v *ContractData) code() IncomingMessageId {
 	return mContractData
 }
 
@@ -951,7 +948,7 @@ func (v *BondContractData) Id() int64 {
 	return v.id
 }
 
-func (v *BondContractData) code() int64 {
+func (v *BondContractData) code() IncomingMessageId {
 	return mBondContractData
 }
 
@@ -1017,7 +1014,7 @@ func (v *ExecutionData) Id() int64 {
 	return v.id
 }
 
-func (v *ExecutionData) code() int64 {
+func (v *ExecutionData) code() IncomingMessageId {
 	return mExecutionData
 }
 
@@ -1062,7 +1059,7 @@ func (v *MarketDepth) Id() int64 {
 	return v.id
 }
 
-func (v *MarketDepth) code() int64 {
+func (v *MarketDepth) code() IncomingMessageId {
 	return mMarketDepth
 }
 
@@ -1090,7 +1087,7 @@ func (v *MarketDepthL2) Id() int64 {
 	return v.id
 }
 
-func (v *MarketDepthL2) code() int64 {
+func (v *MarketDepthL2) code() IncomingMessageId {
 	return mMarketDepthL2
 }
 
@@ -1111,7 +1108,7 @@ type NewsBulletins struct {
 	Exchange string
 }
 
-func (v *NewsBulletins) code() int64 {
+func (v *NewsBulletins) code() IncomingMessageId {
 	return mNewsBulletins
 }
 
@@ -1126,7 +1123,7 @@ type ManagedAccounts struct {
 	AccountsList string
 }
 
-func (v *ManagedAccounts) code() int64 {
+func (v *ManagedAccounts) code() IncomingMessageId {
 	return mManagedAccounts
 }
 
@@ -1139,7 +1136,7 @@ type ReceiveFA struct {
 	XML  string
 }
 
-func (v *ReceiveFA) code() int64 {
+func (v *ReceiveFA) code() IncomingMessageId {
 	return mReceiveFA
 }
 
@@ -1160,7 +1157,7 @@ func (v *HistoricalData) Id() int64 {
 	return v.id
 }
 
-func (v *HistoricalData) code() int64 {
+func (v *HistoricalData) code() IncomingMessageId {
 	return mHistoricalData
 }
 
@@ -1202,7 +1199,7 @@ type ScannerParameters struct {
 	XML string
 }
 
-func (v *ScannerParameters) code() int64 {
+func (v *ScannerParameters) code() IncomingMessageId {
 	return mScannerParameters
 }
 
@@ -1214,7 +1211,7 @@ type CurrentTime struct {
 	Time int64
 }
 
-func (v *CurrentTime) code() int64 {
+func (v *CurrentTime) code() IncomingMessageId {
 	return mCurrentTime
 }
 
@@ -1239,7 +1236,7 @@ func (v *RealtimeBars) Id() int64 {
 	return v.id
 }
 
-func (v *RealtimeBars) code() int64 {
+func (v *RealtimeBars) code() IncomingMessageId {
 	return mRealtimeBars
 }
 
@@ -1265,7 +1262,7 @@ func (v *FundamentalData) Id() int64 {
 	return v.id
 }
 
-func (v *FundamentalData) code() int64 {
+func (v *FundamentalData) code() IncomingMessageId {
 	return mFundamentalData
 }
 
@@ -1283,7 +1280,7 @@ func (v *ContractDataEnd) Id() int64 {
 	return v.id
 }
 
-func (v *ContractDataEnd) code() int64 {
+func (v *ContractDataEnd) code() IncomingMessageId {
 	return mContractDataEnd
 }
 
@@ -1294,7 +1291,7 @@ func (v *ContractDataEnd) read(b *bufio.Reader) {
 type OpenOrderEnd struct {
 }
 
-func (v *OpenOrderEnd) code() int64 {
+func (v *OpenOrderEnd) code() IncomingMessageId {
 	return mOpenOrderEnd
 }
 
@@ -1305,7 +1302,7 @@ type AccountDownloadEnd struct {
 	Account string
 }
 
-func (v *AccountDownloadEnd) code() int64 {
+func (v *AccountDownloadEnd) code() IncomingMessageId {
 	return mAccountDownloadEnd
 }
 
@@ -1322,7 +1319,7 @@ func (v *ExecutionDataEnd) Id() int64 {
 	return v.id
 }
 
-func (v *ExecutionDataEnd) code() int64 {
+func (v *ExecutionDataEnd) code() IncomingMessageId {
 	return mExecutionDataEnd
 }
 
@@ -1341,7 +1338,7 @@ func (v *DeltaNeutralValidation) Id() int64 {
 	return v.id
 }
 
-func (v *DeltaNeutralValidation) code() int64 {
+func (v *DeltaNeutralValidation) code() IncomingMessageId {
 	return mDeltaNeutralValidation
 }
 
@@ -1361,7 +1358,7 @@ func (v *TickSnapshotEnd) Id() int64 {
 	return v.id
 }
 
-func (v *TickSnapshotEnd) code() int64 {
+func (v *TickSnapshotEnd) code() IncomingMessageId {
 	return mTickSnapshotEnd
 }
 
@@ -1379,7 +1376,7 @@ func (v *MarketDataType) Id() int64 {
 	return v.id
 }
 
-func (v *MarketDataType) code() int64 {
+func (v *MarketDataType) code() IncomingMessageId {
 	return mMarketDataType
 }
 
@@ -1410,7 +1407,7 @@ func (v *RequestMarketData) Id() int64 {
 	return v.id
 }
 
-func (v *RequestMarketData) code() int64 {
+func (v *RequestMarketData) code() OutgoingMessageId {
 	return mRequestMarketData
 }
 
@@ -1476,7 +1473,7 @@ func (v *CancelMarketData) Id() int64 {
 	return v.id
 }
 
-func (v *CancelMarketData) code() int64 {
+func (v *CancelMarketData) code() OutgoingMessageId {
 	return mCancelMarketData
 }
 
@@ -1504,7 +1501,7 @@ func (v *RequestContractData) Id() int64 {
 	return v.id
 }
 
-func (v *RequestContractData) code() int64 {
+func (v *RequestContractData) code() OutgoingMessageId {
 	return mRequestContractData
 }
 
@@ -1544,7 +1541,7 @@ func (v *RequestCalcImpliedVol) Id() int64 {
 	return v.id
 }
 
-func (v *RequestCalcImpliedVol) code() int64 {
+func (v *RequestCalcImpliedVol) code() OutgoingMessageId {
 	return mRequestCalcImpliedVol
 }
 
@@ -1576,7 +1573,7 @@ func (v *RequestCalcOptionPrice) Id() int64 {
 	return v.id
 }
 
-func (v *RequestCalcOptionPrice) code() int64 {
+func (v *RequestCalcOptionPrice) code() OutgoingMessageId {
 	return mRequestCalcOptionPrice
 }
 
@@ -1604,7 +1601,7 @@ func (v *CancelCalcImpliedVol) Id() int64 {
 	return v.id
 }
 
-func (v *CancelCalcImpliedVol) code() int64 {
+func (v *CancelCalcImpliedVol) code() OutgoingMessageId {
 	return mCancelCalcImpliedVol
 }
 
@@ -1629,7 +1626,7 @@ func (v *CancelCalcOptionPrice) Id() int64 {
 	return v.id
 }
 
-func (v *CancelCalcOptionPrice) code() int64 {
+func (v *CancelCalcOptionPrice) code() OutgoingMessageId {
 	return mCancelCalcOptionPrice
 }
 
@@ -1643,73 +1640,73 @@ func (v *CancelCalcOptionPrice) write(b *bytes.Buffer) {
 
 func code2Msg(code int64) Reply {
 	switch code {
-	case mTickPrice:
+	case int64(mTickPrice):
 		return &TickPrice{}
-	case mTickSize:
+	case int64(mTickSize):
 		return &TickSize{}
-	case mTickOptionComputation:
+	case int64(mTickOptionComputation):
 		return &TickOptionComputation{}
-	case mTickGeneric:
+	case int64(mTickGeneric):
 		return &TickGeneric{}
-	case mTickString:
+	case int64(mTickString):
 		return &TickString{}
-	case mTickEFP:
+	case int64(mTickEFP):
 		return &TickEFP{}
-	case mOrderStatus:
+	case int64(mOrderStatus):
 		return &OrderStatus{}
-	case mAccountValue:
+	case int64(mAccountValue):
 		return &AccountValue{}
-	case mPortfolioValue:
+	case int64(mPortfolioValue):
 		return &PortfolioValue{}
-	case mAccountUpdateTime:
+	case int64(mAccountUpdateTime):
 		return &AccountUpdateTime{}
-	case mErrorMessage:
+	case int64(mErrorMessage):
 		return &ErrorMessage{}
-	case mOpenOrder:
+	case int64(mOpenOrder):
 		return &OpenOrder{}
-	case mNextValidId:
+	case int64(mNextValidId):
 		return &NextValidId{}
-	case mScannerData:
+	case int64(mScannerData):
 		return &ScannerData{}
-	case mContractData:
+	case int64(mContractData):
 		return &ContractData{}
-	case mBondContractData:
+	case int64(mBondContractData):
 		return &BondContractData{}
-	case mExecutionData:
+	case int64(mExecutionData):
 		return &ExecutionData{}
-	case mMarketDepth:
+	case int64(mMarketDepth):
 		return &MarketDepth{}
-	case mMarketDepthL2:
+	case int64(mMarketDepthL2):
 		return &MarketDepthL2{}
-	case mNewsBulletins:
+	case int64(mNewsBulletins):
 		return &NewsBulletins{}
-	case mManagedAccounts:
+	case int64(mManagedAccounts):
 		return &ManagedAccounts{}
-	case mReceiveFA:
+	case int64(mReceiveFA):
 		return &ReceiveFA{}
-	case mHistoricalData:
+	case int64(mHistoricalData):
 		return &HistoricalData{}
-	case mScannerParameters:
+	case int64(mScannerParameters):
 		return &ScannerParameters{}
-	case mCurrentTime:
+	case int64(mCurrentTime):
 		return &CurrentTime{}
-	case mRealtimeBars:
+	case int64(mRealtimeBars):
 		return &RealtimeBars{}
-	case mFundamentalData:
+	case int64(mFundamentalData):
 		return &FundamentalData{}
-	case mContractDataEnd:
+	case int64(mContractDataEnd):
 		return &ContractDataEnd{}
-	case mOpenOrderEnd:
+	case int64(mOpenOrderEnd):
 		return &OpenOrderEnd{}
-	case mAccountDownloadEnd:
+	case int64(mAccountDownloadEnd):
 		return &AccountDownloadEnd{}
-	case mExecutionDataEnd:
+	case int64(mExecutionDataEnd):
 		return &ExecutionDataEnd{}
-	case mDeltaNeutralValidation:
+	case int64(mDeltaNeutralValidation):
 		return &DeltaNeutralValidation{}
-	case mTickSnapshotEnd:
+	case int64(mTickSnapshotEnd):
 		return &TickSnapshotEnd{}
-	case mMarketDataType:
+	case int64(mMarketDataType):
 		return &MarketDataType{}
 	}
 	return nil

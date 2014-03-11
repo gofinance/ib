@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-func (engine *Engine) expect(t *testing.T, ch chan Reply, expected []int64) (Reply, error) {
+func (engine *Engine) expect(t *testing.T, ch chan Reply, expected []IncomingMessageId) (Reply, error) {
 	for {
 		select {
 		case <-time.After(engine.timeout):
@@ -78,7 +78,7 @@ func TestMarketData(t *testing.T) {
 		t.Fatalf("client %d: cannot send market data request: %s", engine.ClientId(), err)
 	}
 
-	rep1, err := engine.expect(t, ch, []int64{mTickPrice, mTickSize})
+	rep1, err := engine.expect(t, ch, []IncomingMessageId{mTickPrice, mTickSize})
 	logreply(t, rep1, err)
 
 	if err != nil {
@@ -118,14 +118,14 @@ func TestContractDetails(t *testing.T) {
 		t.Fatalf("client %d: cannot send contract data request: %s", engine.ClientId(), err)
 	}
 
-	rep1, err := engine.expect(t, ch, []int64{mContractData})
+	rep1, err := engine.expect(t, ch, []IncomingMessageId{mContractData})
 	logreply(t, rep1, err)
 
 	if err != nil {
 		t.Fatalf("client %d: cannot receive contract details: %s", engine.ClientId(), err)
 	}
 
-	rep2, err := engine.expect(t, ch, []int64{mContractDataEnd})
+	rep2, err := engine.expect(t, ch, []IncomingMessageId{mContractDataEnd})
 	logreply(t, rep2, err)
 
 	if err != nil {
@@ -161,7 +161,7 @@ func TestOptionChainRequest(t *testing.T) {
 		t.Fatalf("cannot send contract data request: %s", err)
 	}
 
-	rep1, err := engine.expect(t, ch, []int64{mContractDataEnd})
+	rep1, err := engine.expect(t, ch, []IncomingMessageId{mContractDataEnd})
 	logreply(t, rep1, err)
 
 	if err != nil {

@@ -253,7 +253,7 @@ func (self *Engine) Send(v Request) error {
 
 	// encode message type and client version
 	hdr := &header{
-		code:    v.code(),
+		code:    int64(v.code()),
 		version: v.version(),
 	}
 
