@@ -298,6 +298,13 @@ func (self *Engine) receive() (Reply, error) {
 		self.lastDumpRead = hdr.code
 		fmt.Printf("< %v ", hdr)
 	}
+	if hdr.code <= 0 {
+		if dump {
+			fmt.Printf("\n")
+		}
+		return nil, fmt.Errorf("No data")
+	}
+
 	// decode message
 	v := code2Msg(hdr.code)
 	if err := read(self.reader, v); err != nil {
