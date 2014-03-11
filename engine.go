@@ -14,8 +14,8 @@ import (
 
 const (
 	dumpConversation = false
-	clientVersion    = 48 // TWS 9.65
-	minServerVersion = 53 // TWS 9.65
+	clientVersion    = 48 // TWSAPI 9.65
+	minServerVersion = 53 // TWSAPI 9.65
 	gateway          = "127.0.0.1:4001"
 	UnmatchedReplyId = int64(-9223372036854775808)
 	noData           = "no data"
