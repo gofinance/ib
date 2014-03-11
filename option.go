@@ -136,6 +136,9 @@ func (self *Option) process(v Reply) {
 	switch v.(type) {
 	case *ErrorMessage:
 		v := v.(*ErrorMessage)
+		if v.SeverityWarning() {
+			return
+		}
 		self.error <- v.Error()
 	case *TickOptionComputation:
 		v := v.(*TickOptionComputation)

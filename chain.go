@@ -97,6 +97,9 @@ func (self *OptionRoot) process(v Reply) {
 	switch v.(type) {
 	case *ErrorMessage:
 		v := v.(*ErrorMessage)
+		if v.SeverityWarning() {
+			return
+		}
 		self.error <- v.Error()
 	case *ContractDataEnd:
 		self.update <- true

@@ -516,6 +516,11 @@ func (v *ErrorMessage) read(b *bufio.Reader) {
 	v.Message = readString(b)
 }
 
+// SeverityWarning returns true if this error is of "warning" level.
+func (v *ErrorMessage) SeverityWarning() bool {
+	return v.Code >= 2100 || v.Code <= 2110
+}
+
 func (v *ErrorMessage) Error() error {
 	return fmt.Errorf("%s (%d/%d)", v.Message, v.id, v.Code)
 }

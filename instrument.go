@@ -97,6 +97,9 @@ func (self *Instrument) process(v Reply) {
 	switch v.(type) {
 	case *ErrorMessage:
 		v := v.(*ErrorMessage)
+		if v.SeverityWarning() {
+			return
+		}
 		self.error <- v.Error()
 	case *TickPrice:
 		v := v.(*TickPrice)

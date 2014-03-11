@@ -86,6 +86,10 @@ func (self *Metadata) process(v Reply) {
 		if v.Code == 321 || v.Code == 200 {
 			self.request()
 		}
+		if v.SeverityWarning() {
+			return
+		}
+		self.error <- v.Error()
 	case *ContractData:
 		v := v.(*ContractData)
 		self.metadata = append(self.metadata, v)
