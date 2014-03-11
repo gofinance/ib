@@ -36,7 +36,11 @@ func TestConnect(t *testing.T) {
 		t.Fatalf("cannot connect engine: %s", err)
 	}
 
-	engine.Stop()
+	defer engine.Stop()
+
+	if engine.serverTime.IsZero() {
+		t.Fatalf("server time not provided")
+	}
 }
 
 type Sink struct {
