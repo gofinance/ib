@@ -9,7 +9,7 @@ import (
 )
 
 //const ibTimeFormat = "20060102 15:04:05.000000 MST"
-const ibTimeFormat = "20060102 15:04:05 MST"
+const ibTimeFormat = "20060102 15:04:05"
 
 type readable interface {
 	read(b *bufio.Reader)
@@ -79,7 +79,10 @@ func readBool(b *bufio.Reader) bool {
 }
 
 func readTime(b *bufio.Reader) time.Time {
-	t, err := time.Parse(ibTimeFormat, readString(b))
+	timeString := readString(b)
+	length := len(ibTimeFormat)
+	timeString = timeString[0:length]
+	t, err := time.ParseInLocation(ibTimeFormat, timeString, time.Local)
 
 	if err != nil {
 		panic(err)
