@@ -18,6 +18,7 @@ const (
 	minServerVersion = 53 // TWS 9.65
 	gateway          = "127.0.0.1:4001"
 	UnmatchedReplyId = int64(-9223372036854775808)
+	noData           = "no data"
 )
 
 // Engine is the entry point to the IB TWS API
@@ -132,6 +133,9 @@ func NewEngine() (*Engine, error) {
 		runtime.LockOSThread()
 		for {
 			v, err := self.receive()
+			if err != nil && err.Error() == noData {
+				continue
+			}
 			if err != nil {
 				error <- err
 				break
@@ -158,6 +162,19 @@ func NewEngine() (*Engine, error) {
 				dest := UnmatchedReplyId
 				if mr, ok := v.(MatchedReply); ok {
 					dest = mr.Id()
+				}
+				if v.code() == mErrorMessage {
+					var done []Observer
+					for _, sub := range self.observers {
+						for _, prevDone := range done {
+							if sub == prevDone {
+								continue
+							}
+						}
+						done = append(done, sub)
+						sub.Observe(v)
+					}
+					continue
 				}
 				if sub, ok := self.observers[dest]; ok {
 					sub.Observe(v)
@@ -192,6 +209,7 @@ func (self *Engine) SetTimeout(timeout time.Duration) {
 // an attempt is made to send a MatchedRequest with UnmatchedReplyId as its id,
 // given the high unlikelihood of that id being required in normal situations
 // and that NextRequestId() guarantees to never return UnmatchedReplyId.
+// Finally, each ErrorMessage event is delivered once only to each known observer.
 func (self *Engine) Subscribe(observer Observer, id int64) {
 	self.ch <- func() {
 		if observer != nil {
@@ -302,7 +320,7 @@ func (self *Engine) receive() (Reply, error) {
 		if dump {
 			fmt.Printf("\n")
 		}
-		return nil, fmt.Errorf("No data")
+		return nil, fmt.Errorf(noData)
 	}
 
 	// decode message
