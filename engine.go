@@ -36,6 +36,7 @@ type Engine struct {
 	clientVersion int64
 	serverVersion int64
 	observers     map[int64]Observer
+	lastDumpRead  int64
 }
 
 type Observer interface {
@@ -290,19 +291,22 @@ func (self *Engine) receive() (Reply, error) {
 		}
 		return nil, err
 	}
-	if dumpConversation {
+
+	dump := dumpConversation && hdr.code != self.lastDumpRead
+	if dump {
+		self.lastDumpRead = hdr.code
 		fmt.Printf("< %v ", hdr)
 	}
 	// decode message
 	v := code2Msg(hdr.code)
 	if err := read(self.reader, v); err != nil {
-		if dumpConversation {
+		if dump {
 			fmt.Printf("%v\n", err)
 		}
 		return nil, err
 	}
 
-	if dumpConversation {
+	if dump {
 		str := fmt.Sprintf("%v", v)
 		cut := len(str)
 		if cut > 80 {
