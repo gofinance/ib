@@ -14,8 +14,9 @@ import (
 
 const (
 	dumpConversation = false
-	version          = 48
+	version          = 48 // TWS 9.65
 	gateway          = "127.0.0.1:4001"
+	UnmatchedReplyId = int64(-9223372036854775808)
 )
 
 // Engine is the entry point to the IB TWS API
@@ -55,6 +56,9 @@ func uniqueId(start int64) chan int64 {
 	id := start
 	go func() {
 		for {
+			if id == UnmatchedReplyId {
+				id += 1
+			}
 			ch <- id
 			id += 1
 		}
@@ -141,7 +145,11 @@ func NewEngine() (*Engine, error) {
 			case req := <-self.ch:
 				req()
 			case v := <-data:
-				if sub, ok := self.observers[v.Id()]; ok {
+				dest := UnmatchedReplyId
+				if mr, ok := v.(MatchedReply); ok {
+					dest = mr.Id()
+				}
+				if sub, ok := self.observers[dest]; ok {
 					sub.Observe(v)
 				}
 			}
@@ -151,7 +159,7 @@ func NewEngine() (*Engine, error) {
 	return &self, nil
 }
 
-// NextRequestId returns a unique request id.
+// NextRequestId returns a unique request id (which is never UnmatchedReplyId).
 func (self *Engine) NextRequestId() int64 {
 	return <-self.id
 }
@@ -165,7 +173,15 @@ func (self *Engine) SetTimeout(timeout time.Duration) {
 	self.ch <- func() { self.timeout = timeout }
 }
 
-// Subscribe will notify subscribers of future events with given id
+// Subscribe will notify subscribers of future events with given id.
+// Many request types implement MatchedRequest and therefore provide a SetId().
+// To receive the corresponding MatchedReply events, firstly subscribe with the
+// same id as will be assigned with SetId(). Any incoming events that do not
+// implement MatchedReply will be delivered to those observers subscribed to
+// the UnmatchedReplyId constant. Note that the engine will raise an error if
+// an attempt is made to send a MatchedRequest with UnmatchedReplyId as its id,
+// given the high unlikelihood of that id being required in normal situations
+// and that NextRequestId() guarantees to never return UnmatchedReplyId.
 func (self *Engine) Subscribe(observer Observer, id int64) {
 	self.ch <- func() {
 		if observer != nil {
@@ -200,6 +216,11 @@ func (v *header) read(b *bufio.Reader) {
 
 // Send a message to the engine
 func (self *Engine) Send(v Request) error {
+	if mr, ok := v.(MatchedRequest); ok {
+		if mr.Id() == UnmatchedReplyId {
+			return fmt.Errorf("%d is a reserved ID (try using NextRequestId)", UnmatchedReplyId)
+		}
+	}
 	self.output.Reset()
 
 	// encode message type and client version

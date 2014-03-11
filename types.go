@@ -149,15 +149,24 @@ const (
 
 type Request interface {
 	writable
-	SetId(id int64)
 	code() int64
 	version() int64
 }
 
 type Reply interface {
 	readable
-	Id() int64
 	code() int64
+}
+
+type MatchedRequest interface {
+	Request
+	SetId(id int64)
+	Id() int64
+}
+
+type MatchedReply interface {
+	Reply
+	Id() int64
 }
 
 type serverHandshake struct {
@@ -232,6 +241,7 @@ type TickPrice struct {
 	CanAutoExecute bool
 }
 
+// Id contains the TWS "tickerId", which was nominated at market data request time.
 func (v *TickPrice) Id() int64 {
 	return v.id
 }
@@ -254,6 +264,7 @@ type TickSize struct {
 	Size int64
 }
 
+// Id contains the TWS "tickerId", which was nominated at market data request time.
 func (v *TickSize) Id() int64 {
 	return v.id
 }
@@ -281,6 +292,7 @@ type TickOptionComputation struct {
 	SpotPrice   float64
 }
 
+// Id contains the TWS "tickerId", which was nominated at market data request time.
 func (v *TickOptionComputation) Id() int64 {
 	return v.id
 }
@@ -308,6 +320,7 @@ type TickGeneric struct {
 	Value float64
 }
 
+// Id contains the TWS "tickerId", which was nominated at market data request time.
 func (v *TickGeneric) Id() int64 {
 	return v.id
 }
@@ -328,6 +341,7 @@ type TickString struct {
 	Value string
 }
 
+// Id contains the TWS "tickerId", which was nominated at market data request time.
 func (v *TickString) Id() int64 {
 	return v.id
 }
@@ -354,6 +368,7 @@ type TickEFP struct {
 	DividendsToExpiry    float64
 }
 
+// Id contains the TWS "tickerId", which was nominated at market data request time.
 func (v *TickEFP) Id() int64 {
 	return v.id
 }
@@ -387,6 +402,7 @@ type OrderStatus struct {
 	WhyHeld          string
 }
 
+// Id contains the TWS order "id", which was nominated when the order was placed.
 func (v *OrderStatus) Id() int64 {
 	return v.id
 }
@@ -413,10 +429,6 @@ type AccountValue struct {
 	Value       string
 	Current     string
 	AccountName string
-}
-
-func (v *AccountValue) Id() int64 {
-	return 0
 }
 
 func (v *AccountValue) code() int64 {
@@ -451,10 +463,6 @@ type PortfolioValue struct {
 	PrimaryExchange1 string
 }
 
-func (v *PortfolioValue) Id() int64 {
-	return v.ContractId
-}
-
 func (v *PortfolioValue) code() int64 {
 	return mPortfolioValue
 }
@@ -484,10 +492,6 @@ type AccountUpdateTime struct {
 	Timestamp string
 }
 
-func (v *AccountUpdateTime) Id() int64 {
-	return 0
-}
-
 func (v *AccountUpdateTime) code() int64 {
 	return mAccountUpdateTime
 }
@@ -500,10 +504,6 @@ type ErrorMessage struct {
 	id      int64
 	Code    int64
 	Message string
-}
-
-func (v *ErrorMessage) Id() int64 {
-	return v.id
 }
 
 func (v *ErrorMessage) code() int64 {
@@ -648,6 +648,7 @@ type OpenOrder struct {
 	OrderState              OrderState
 }
 
+// Id contains the TWS "orderId", which was nominated when the order was placed.
 func (v *OpenOrder) Id() int64 {
 	return v.id
 }
@@ -779,11 +780,7 @@ func (v *OrderState) read(b *bufio.Reader) {
 }
 
 type NextValidId struct {
-	id int64
-}
-
-func (v *NextValidId) Id() int64 {
-	return v.id
+	OrderId int64
 }
 
 func (v *NextValidId) code() int64 {
@@ -791,7 +788,7 @@ func (v *NextValidId) code() int64 {
 }
 
 func (v *NextValidId) read(b *bufio.Reader) {
-	v.id = readInt(b)
+	v.OrderId = readInt(b)
 }
 
 type ScannerData struct {
@@ -799,6 +796,7 @@ type ScannerData struct {
 	Detail []ScannerDetail
 }
 
+// Id contains the TWS "reqId", which is used for reply correlation.
 func (v *ScannerData) Id() int64 {
 	return v.id
 }
@@ -874,6 +872,7 @@ type ContractData struct {
 	LiquidHours    string
 }
 
+// Id contains the TWS "reqId", which is used for reply correlation.
 func (v *ContractData) Id() int64 {
 	return v.id
 }
@@ -942,6 +941,7 @@ type BondContractData struct {
 	LongName          string
 }
 
+// Id contains the TWS "reqId", which is used for reply correlation.
 func (v *BondContractData) Id() int64 {
 	return v.id
 }
@@ -1007,6 +1007,7 @@ type ExecutionData struct {
 	OrderRef          string
 }
 
+// Id contains the TWS "reqId", which is used for reply correlation.
 func (v *ExecutionData) Id() int64 {
 	return v.id
 }
@@ -1051,6 +1052,7 @@ type MarketDepth struct {
 	Size      int64
 }
 
+// Id contains the TWS "tickerId", which was nominated at market data request time.
 func (v *MarketDepth) Id() int64 {
 	return v.id
 }
@@ -1078,6 +1080,7 @@ type MarketDepthL2 struct {
 	Size        int64
 }
 
+// Id contains the TWS "tickerId", which was nominated at market data request time.
 func (v *MarketDepthL2) Id() int64 {
 	return v.id
 }
@@ -1097,14 +1100,10 @@ func (v *MarketDepthL2) read(b *bufio.Reader) {
 }
 
 type NewsBulletins struct {
-	id       int64
+	MsgId    int64
 	Type     int64
 	Message  string
 	Exchange string
-}
-
-func (v *NewsBulletins) Id() int64 {
-	return v.id
 }
 
 func (v *NewsBulletins) code() int64 {
@@ -1112,7 +1111,7 @@ func (v *NewsBulletins) code() int64 {
 }
 
 func (v *NewsBulletins) read(b *bufio.Reader) {
-	v.id = readInt(b)
+	v.MsgId = readInt(b)
 	v.Type = readInt(b)
 	v.Message = readString(b)
 	v.Exchange = readString(b)
@@ -1120,10 +1119,6 @@ func (v *NewsBulletins) read(b *bufio.Reader) {
 
 type ManagedAccounts struct {
 	AccountsList string
-}
-
-func (v *ManagedAccounts) Id() int64 {
-	return 0
 }
 
 func (v *ManagedAccounts) code() int64 {
@@ -1137,10 +1132,6 @@ func (v *ManagedAccounts) read(b *bufio.Reader) {
 type ReceiveFA struct {
 	Type int64
 	XML  string
-}
-
-func (v *ReceiveFA) Id() int64 {
-	return 0
 }
 
 func (v *ReceiveFA) code() int64 {
@@ -1159,6 +1150,7 @@ type HistoricalData struct {
 	Data      []HistoricalDataItem
 }
 
+// Id contains the TWS "reqId", which is used for reply correlation.
 func (v *HistoricalData) Id() int64 {
 	return v.id
 }
@@ -1217,10 +1209,6 @@ type CurrentTime struct {
 	Time int64
 }
 
-func (v *CurrentTime) Id() int64 {
-	return 0
-}
-
 func (v *CurrentTime) code() int64 {
 	return mCurrentTime
 }
@@ -1241,6 +1229,7 @@ type RealtimeBars struct {
 	Count  int64
 }
 
+// Id contains the TWS "reqId", which is used for reply correlation.
 func (v *RealtimeBars) Id() int64 {
 	return v.id
 }
@@ -1266,6 +1255,7 @@ type FundamentalData struct {
 	Data string
 }
 
+// Id contains the TWS "reqId", which is used for reply correlation.
 func (v *FundamentalData) Id() int64 {
 	return v.id
 }
@@ -1283,6 +1273,7 @@ type ContractDataEnd struct {
 	id int64
 }
 
+// Id contains the TWS "reqId", which is used for reply correlation.
 func (v *ContractDataEnd) Id() int64 {
 	return v.id
 }
@@ -1298,10 +1289,6 @@ func (v *ContractDataEnd) read(b *bufio.Reader) {
 type OpenOrderEnd struct {
 }
 
-func (v *OpenOrderEnd) Id() int64 {
-	return 0
-}
-
 func (v *OpenOrderEnd) code() int64 {
 	return mOpenOrderEnd
 }
@@ -1311,10 +1298,6 @@ func (v *OpenOrderEnd) read(b *bufio.Reader) {
 
 type AccountDownloadEnd struct {
 	Account string
-}
-
-func (v *AccountDownloadEnd) Id() int64 {
-	return 0
 }
 
 func (v *AccountDownloadEnd) code() int64 {
@@ -1329,6 +1312,7 @@ type ExecutionDataEnd struct {
 	id int64
 }
 
+// Id contains the TWS "reqId", which is used for reply correlation.
 func (v *ExecutionDataEnd) Id() int64 {
 	return v.id
 }
@@ -1367,6 +1351,7 @@ type TickSnapshotEnd struct {
 	id int64
 }
 
+// Id contains the TWS "reqId", which is used for reply correlation.
 func (v *TickSnapshotEnd) Id() int64 {
 	return v.id
 }
@@ -1384,6 +1369,7 @@ type MarketDataType struct {
 	Type int64
 }
 
+// Id contains the TWS "reqId", which is used for reply correlation.
 func (v *MarketDataType) Id() int64 {
 	return v.id
 }
@@ -1410,8 +1396,13 @@ type RequestMarketData struct {
 	Snapshot        bool
 }
 
+// SetId assigns the TWS "tickerId", used for reply correlation and request cancellation.
 func (v *RequestMarketData) SetId(id int64) {
 	v.id = id
+}
+
+func (v *RequestMarketData) Id() int64 {
+	return v.id
 }
 
 func (v *RequestMarketData) code() int64 {
@@ -1471,8 +1462,13 @@ type CancelMarketData struct {
 	id int64
 }
 
+// SetId assigns the TWS "tickerId", which was nominated at market data request time.
 func (v *CancelMarketData) SetId(id int64) {
 	v.id = id
+}
+
+func (v *CancelMarketData) Id() int64 {
+	return v.id
 }
 
 func (v *CancelMarketData) code() int64 {
@@ -1494,8 +1490,13 @@ type RequestContractData struct {
 	IncludeExpired bool
 }
 
+// SetId assigns the TWS "reqId", which is used for reply correlation.
 func (v *RequestContractData) SetId(id int64) {
 	v.id = id
+}
+
+func (v *RequestContractData) Id() int64 {
+	return v.id
 }
 
 func (v *RequestContractData) code() int64 {
@@ -1529,8 +1530,13 @@ type RequestCalcImpliedVol struct {
 	SpotPrice float64
 }
 
+// SetId assigns the TWS "reqId", which is used for reply correlation and request cancellation.
 func (v *RequestCalcImpliedVol) SetId(id int64) {
 	v.id = id
+}
+
+func (v *RequestCalcImpliedVol) Id() int64 {
+	return v.id
 }
 
 func (v *RequestCalcImpliedVol) code() int64 {
@@ -1556,8 +1562,13 @@ type RequestCalcOptionPrice struct {
 	SpotPrice  float64
 }
 
+// SetId assigns the TWS "reqId", which is used for reply correlation and request cancellation.
 func (v *RequestCalcOptionPrice) SetId(id int64) {
 	v.id = id
+}
+
+func (v *RequestCalcOptionPrice) Id() int64 {
+	return v.id
 }
 
 func (v *RequestCalcOptionPrice) code() int64 {
@@ -1579,8 +1590,13 @@ type CancelCalcImpliedVol struct {
 	id int64
 }
 
+// SetId assigns the TWS "reqId", which was nominated at request time.
 func (v *CancelCalcImpliedVol) SetId(id int64) {
 	v.id = id
+}
+
+func (v *CancelCalcImpliedVol) Id() int64 {
+	return v.id
 }
 
 func (v *CancelCalcImpliedVol) code() int64 {
@@ -1599,8 +1615,13 @@ type CancelCalcOptionPrice struct {
 	id int64
 }
 
+// SetId assigns the TWS "reqId", which was nominated at request time.
 func (v *CancelCalcOptionPrice) SetId(id int64) {
 	v.id = id
+}
+
+func (v *CancelCalcOptionPrice) Id() int64 {
+	return v.id
 }
 
 func (v *CancelCalcOptionPrice) code() int64 {
