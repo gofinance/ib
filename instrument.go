@@ -15,10 +15,10 @@ type Instrument struct {
 	updated  bool
 }
 
-func NewInstrument(engine *Engine, contract *Contract) *Instrument {
-	self := &Instrument{
-		contract: *contract,
-		engine:   engine,
+func NewInstrument(e *Engine, c *Contract) *Instrument {
+	i := &Instrument{
+		contract: *c,
+		engine:   e,
 		replyc:   make(chan Reply),
 		ch:       make(chan func(), 1),
 		exit:     make(chan bool, 1),
@@ -29,100 +29,100 @@ func NewInstrument(engine *Engine, contract *Contract) *Instrument {
 	go func() {
 		for {
 			select {
-			case <-self.exit:
+			case <-i.exit:
 				return
-			case f := <-self.ch:
+			case f := <-i.ch:
 				f()
-			case v := <-self.replyc:
-				self.process(v)
+			case v := <-i.replyc:
+				i.process(v)
 			}
 		}
 	}()
 
-	return self
+	return i
 }
 
-func (self *Instrument) Cleanup() {
-	self.StopUpdate()
-	self.exit <- true
+func (i *Instrument) Cleanup() {
+	i.StopUpdate()
+	i.exit <- true
 }
 
-func (self *Instrument) Update() chan bool { return self.update }
-func (self *Instrument) Error() chan error { return self.error }
+func (i *Instrument) Update() chan bool { return i.update }
+func (i *Instrument) Error() chan error { return i.error }
 
-func (self *Instrument) StartUpdate() error {
-	self.updated = false
-	self.last = 0
-	self.bid = 0
-	self.ask = 0
-	req := &RequestMarketData{Contract: self.contract}
-	self.id = self.engine.NextRequestId()
-	req.SetId(self.id)
-	self.engine.Subscribe(self.replyc, self.id)
-	return self.engine.Send(req)
+func (i *Instrument) StartUpdate() error {
+	i.updated = false
+	i.last = 0
+	i.bid = 0
+	i.ask = 0
+	req := &RequestMarketData{Contract: i.contract}
+	i.id = i.engine.NextRequestId()
+	req.SetId(i.id)
+	i.engine.Subscribe(i.replyc, i.id)
+	return i.engine.Send(req)
 }
 
-func (self *Instrument) StopUpdate() {
-	self.engine.Unsubscribe(self.replyc, self.id)
+func (i *Instrument) StopUpdate() {
+	i.engine.Unsubscribe(i.replyc, i.id)
 	req := &CancelMarketData{}
-	req.SetId(self.id)
-	self.engine.Send(req)
+	req.SetId(i.id)
+	i.engine.Send(req)
 }
 
-func (self *Instrument) Observe(v Reply) {
-	self.ch <- func() { self.process(v) }
+func (i *Instrument) Observe(r Reply) {
+	i.ch <- func() { i.process(r) }
 }
 
-func (self *Instrument) Contract() Contract {
+func (i *Instrument) Contract() Contract {
 	ch := make(chan Contract)
-	self.ch <- func() { ch <- self.contract }
+	i.ch <- func() { ch <- i.contract }
 	return <-ch
 }
 
-func (self *Instrument) Bid() float64 {
+func (i *Instrument) Bid() float64 {
 	ch := make(chan float64)
-	self.ch <- func() { ch <- self.bid }
+	i.ch <- func() { ch <- i.bid }
 	return <-ch
 }
 
-func (self *Instrument) Ask() float64 {
+func (i *Instrument) Ask() float64 {
 	ch := make(chan float64)
-	self.ch <- func() { ch <- self.ask }
+	i.ch <- func() { ch <- i.ask }
 	return <-ch
 }
 
-func (self *Instrument) Last() float64 {
+func (i *Instrument) Last() float64 {
 	ch := make(chan float64)
-	self.ch <- func() { ch <- self.last }
+	i.ch <- func() { ch <- i.last }
 	return <-ch
 }
 
-func (self *Instrument) process(v Reply) {
-	switch v.(type) {
+func (i *Instrument) process(r Reply) {
+	switch r.(type) {
 	case *ErrorMessage:
-		v := v.(*ErrorMessage)
-		if v.SeverityWarning() {
+		r := r.(*ErrorMessage)
+		if r.SeverityWarning() {
 			return
 		}
-		self.error <- v.Error()
+		i.error <- r.Error()
 	case *TickPrice:
-		v := v.(*TickPrice)
-		switch v.Type {
+		r := r.(*TickPrice)
+		switch r.Type {
 		case TickLast:
-			self.last = v.Price
+			i.last = r.Price
 		case TickBid:
-			self.bid = v.Price
+			i.bid = r.Price
 		case TickAsk:
-			self.ask = v.Price
+			i.ask = r.Price
 		}
 	}
 
-	if self.last <= 0 && (self.bid <= 0 || self.ask <= 0) {
+	if i.last <= 0 && (i.bid <= 0 || i.ask <= 0) {
 		return
 	}
 
-	if !self.updated {
-		self.update <- true
-		self.updated = true
+	if !i.updated {
+		i.update <- true
+		i.updated = true
 	}
 }

@@ -30,12 +30,12 @@ type OptionStrike struct {
 	Call   *ContractData
 }
 
-func NewOptionChain(engine *Engine, contract *Contract) *OptionRoot {
-	self := &OptionRoot{
-		id:       engine.NextRequestId(),
-		contract: contract,
+func NewOptionChain(e *Engine, c *Contract) *OptionRoot {
+	o := &OptionRoot{
+		id:       e.NextRequestId(),
+		contract: c,
 		chains:   make(OptionChains),
-		engine:   engine,
+		engine:   e,
 		replyc:   make(chan Reply),
 		ch:       make(chan func(), 1),
 		exit:     make(chan bool, 1),
@@ -46,107 +46,107 @@ func NewOptionChain(engine *Engine, contract *Contract) *OptionRoot {
 	go func() {
 		for {
 			select {
-			case <-self.exit:
+			case <-o.exit:
 				return
-			case f := <-self.ch:
+			case f := <-o.ch:
 				f()
-			case v := <-self.replyc:
-				self.process(v)
+			case v := <-o.replyc:
+				o.process(v)
 			}
 		}
 	}()
 
-	return self
+	return o
 }
 
-func (self *OptionRoot) Cleanup() {
-	self.engine.Unsubscribe(self.replyc, self.id)
-	self.exit <- true
+func (o *OptionRoot) Cleanup() {
+	o.engine.Unsubscribe(o.replyc, o.id)
+	o.exit <- true
 }
 
-func (self *OptionRoot) Update() chan bool { return self.update }
-func (self *OptionRoot) Error() chan error { return self.error }
+func (o *OptionRoot) Update() chan bool { return o.update }
+func (o *OptionRoot) Error() chan error { return o.error }
 
-func (self *OptionRoot) StartUpdate() error {
+func (o *OptionRoot) StartUpdate() error {
 	req := &RequestContractData{
-		Contract: *self.contract,
+		Contract: *o.contract,
 	}
 	req.Contract.SecurityType = "OPT"
 	req.Contract.LocalSymbol = ""
-	req.SetId(self.id)
+	req.SetId(o.id)
 
-	if err := self.engine.Send(req); err != nil {
+	if err := o.engine.Send(req); err != nil {
 		return err
 	}
 
-	self.engine.Subscribe(self.replyc, self.id)
+	o.engine.Subscribe(o.replyc, o.id)
 
 	return nil
 }
 
-func (self *OptionRoot) StopUpdate() {
+func (o *OptionRoot) StopUpdate() {
 }
 
-func (self *OptionRoot) Observe(v Reply) {
-	self.ch <- func() { self.process(v) }
+func (o *OptionRoot) Observe(r Reply) {
+	o.ch <- func() { o.process(r) }
 }
 
-func (self *OptionRoot) Chains() map[time.Time]*OptionChain {
+func (o *OptionRoot) Chains() map[time.Time]*OptionChain {
 	ch := make(chan OptionChains)
-	self.ch <- func() { ch <- self.chains }
+	o.ch <- func() { ch <- o.chains }
 	return <-ch
 }
 
-func (self *OptionRoot) process(v Reply) {
-	switch v.(type) {
+func (o *OptionRoot) process(r Reply) {
+	switch r.(type) {
 	case *ErrorMessage:
-		v := v.(*ErrorMessage)
-		if v.SeverityWarning() {
+		r := r.(*ErrorMessage)
+		if r.SeverityWarning() {
 			return
 		}
-		self.error <- v.Error()
+		o.error <- r.Error()
 	case *ContractDataEnd:
-		self.update <- true
+		o.update <- true
 		return
 	case *ContractData:
-		v := v.(*ContractData)
-		expiry, err := time.Parse("20060102", v.Expiry)
+		r := r.(*ContractData)
+		expiry, err := time.Parse("20060102", r.Expiry)
 		if err != nil {
-			self.error <- err
+			o.error <- err
 			return
 		}
-		if chain, ok := self.chains[expiry]; ok {
-			chain.update(v)
+		if chain, ok := o.chains[expiry]; ok {
+			chain.update(r)
 		} else {
 			chain := &OptionChain{
 				Expiry:  expiry,
 				Strikes: make(map[float64]*OptionStrike),
 			}
-			chain.update(v)
-			self.chains[expiry] = chain
+			chain.update(r)
+			o.chains[expiry] = chain
 		}
 	}
 }
 
-func (self *OptionChain) update(v *ContractData) {
-	if strike, ok := self.Strikes[v.Strike]; ok {
+func (o *OptionChain) update(c *ContractData) {
+	if strike, ok := o.Strikes[c.Strike]; ok {
 		// strike exists
-		strike.update(v)
+		strike.update(c)
 	} else {
 		// no strike exists
 		strike := &OptionStrike{
-			expiry: self.Expiry,
-			Price:  v.Strike,
+			expiry: o.Expiry,
+			Price:  c.Strike,
 		}
-		self.Strikes[v.Strike] = strike
-		strike.update(v)
+		o.Strikes[c.Strike] = strike
+		strike.update(c)
 	}
 }
 
-func (self *OptionStrike) update(v *ContractData) {
-	if v.Right == "C" {
-		self.Call = v
+func (o *OptionStrike) update(c *ContractData) {
+	if c.Right == "C" {
+		o.Call = c
 	} else {
-		self.Put = v
+		o.Put = c
 	}
 }

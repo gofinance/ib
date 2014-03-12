@@ -20,12 +20,12 @@ type Metadata struct {
 
 type stateFn func(*Metadata) (stateFn, error)
 
-func NewMetadata(engine *Engine, contract *Contract) *Metadata {
-	self := &Metadata{
+func NewMetadata(e *Engine, c *Contract) *Metadata {
+	m := &Metadata{
 		id:       0,
 		metadata: make([]*ContractData, 0),
-		contract: contract,
-		engine:   engine,
+		contract: c,
+		engine:   e,
 		replyc:   make(chan Reply),
 		ch:       make(chan func(), 1),
 		exit:     make(chan bool, 1),
@@ -36,39 +36,39 @@ func NewMetadata(engine *Engine, contract *Contract) *Metadata {
 	go func() {
 		for {
 			select {
-			case <-self.exit:
+			case <-m.exit:
 				return
-			case f := <-self.ch:
+			case f := <-m.ch:
 				f()
-			case v := <-self.replyc:
-				self.process(v)
+			case v := <-m.replyc:
+				m.process(v)
 			}
 		}
 	}()
 
-	return self
+	return m
 }
 
-func (self *Metadata) Update() chan bool { return self.update }
-func (self *Metadata) Error() chan error { return self.error }
+func (m *Metadata) Update() chan bool { return m.update }
+func (m *Metadata) Error() chan error { return m.error }
 
-func (self *Metadata) Cleanup() {
-	self.engine.Unsubscribe(self.replyc, self.id)
-	self.exit <- true
+func (m *Metadata) Cleanup() {
+	m.engine.Unsubscribe(m.replyc, m.id)
+	m.exit <- true
 }
 
-func (self *Metadata) Observe(v Reply) {
-	self.ch <- func() { self.process(v) }
+func (m *Metadata) Observe(r Reply) {
+	m.ch <- func() { m.process(r) }
 }
 
-func (self *Metadata) ContractData() []*ContractData {
+func (m *Metadata) ContractData() []*ContractData {
 	ch := make(chan []*ContractData)
-	self.ch <- func() { ch <- self.metadata }
+	m.ch <- func() { ch <- m.metadata }
 	return <-ch
 }
 
-func (self *Metadata) StartUpdate() error {
-	self.options = []option{
+func (m *Metadata) StartUpdate() error {
+	m.options = []option{
 		{"", ""}, // send as per contract
 		{"STK", "SMART"},
 		{"IND", "SMART"},
@@ -77,54 +77,54 @@ func (self *Metadata) StartUpdate() error {
 		{"FUT", "DTB"},
 	}
 
-	return self.request()
+	return m.request()
 }
 
-func (self *Metadata) StopUpdate() {
+func (m *Metadata) StopUpdate() {
 }
 
-func (self *Metadata) process(v Reply) {
-	switch v.(type) {
+func (m *Metadata) process(r Reply) {
+	switch r.(type) {
 	case *ErrorMessage:
-		v := v.(*ErrorMessage)
-		if v.Code == 321 || v.Code == 200 {
-			self.request()
+		r := r.(*ErrorMessage)
+		if r.Code == 321 || r.Code == 200 {
+			m.request()
 		}
-		if v.SeverityWarning() {
+		if r.SeverityWarning() {
 			return
 		}
-		self.error <- v.Error()
+		m.error <- r.Error()
 	case *ContractData:
-		v := v.(*ContractData)
-		self.metadata = append(self.metadata, v)
+		r := r.(*ContractData)
+		m.metadata = append(m.metadata, r)
 	case *ContractDataEnd:
-		self.update <- true
+		m.update <- true
 	}
 }
 
-func (self *Metadata) request() error {
-	if len(self.options) == 0 {
+func (m *Metadata) request() error {
+	if len(m.options) == 0 {
 		return nil
 	}
 
-	opt := self.options[0]
-	self.options = self.options[1:]
+	opt := m.options[0]
+	m.options = m.options[1:]
 
 	if opt.sectype != "" {
-		self.contract.SecurityType = opt.sectype
+		m.contract.SecurityType = opt.sectype
 	}
 
 	if opt.exchange != "" {
-		self.contract.Exchange = opt.exchange
+		m.contract.Exchange = opt.exchange
 	}
 
-	self.engine.Unsubscribe(self.replyc, self.id)
-	self.id = self.engine.NextRequestId()
+	m.engine.Unsubscribe(m.replyc, m.id)
+	m.id = m.engine.NextRequestId()
 	req := &RequestContractData{
-		Contract: *self.contract,
+		Contract: *m.contract,
 	}
-	req.SetId(self.id)
-	self.engine.Subscribe(self.replyc, self.id)
+	req.SetId(m.id)
+	m.engine.Subscribe(m.replyc, m.id)
 
-	return self.engine.Send(req)
+	return m.engine.Send(req)
 }

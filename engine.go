@@ -72,7 +72,7 @@ func NewEngine() (*Engine, error) {
 		return nil, err
 	}
 
-	self := Engine{
+	e := Engine{
 		id:         uniqueId(100),
 		exit:       make(chan bool),
 		terminated: make(chan struct{}),
@@ -88,30 +88,30 @@ func NewEngine() (*Engine, error) {
 	}
 
 	// write client version and id
-	clientShake := &clientHandshake{clientVersion, self.client}
-	self.output.Reset()
-	if err := clientShake.write(self.output); err != nil {
+	clientShake := &clientHandshake{clientVersion, e.client}
+	e.output.Reset()
+	if err := clientShake.write(e.output); err != nil {
 		return nil, err
 	}
 
-	if _, err := self.con.Write(self.output.Bytes()); err != nil {
+	if _, err := e.con.Write(e.output.Bytes()); err != nil {
 		return nil, err
 	}
 
 	// read server version and time
 	serverShake := &serverHandshake{}
-	self.input.Reset()
-	if err := serverShake.read(self.reader); err != nil {
+	e.input.Reset()
+	if err := serverShake.read(e.reader); err != nil {
 		return nil, err
 	}
 
 	if serverShake.version < minServerVersion {
 		return nil, fmt.Errorf("Server at %s (client ID %d) must be at least version %d (reported %d)",
-			self.gateway, self.client, minServerVersion, serverShake.version)
+			e.gateway, e.client, minServerVersion, serverShake.version)
 	}
 
-	self.serverVersion = serverShake.version
-	self.serverTime = serverShake.time
+	e.serverVersion = serverShake.version
+	e.serverTime = serverShake.time
 
 	// receiver
 
@@ -124,10 +124,10 @@ func NewEngine() (*Engine, error) {
 			close(error)
 		}()
 		for {
-			v, err := self.receive()
+			v, err := e.receive()
 			if err != nil {
 				select {
-				case <-self.terminated:
+				case <-e.terminated:
 					return
 				case error <- err:
 					return
@@ -135,7 +135,7 @@ func NewEngine() (*Engine, error) {
 			}
 
 			select {
-			case <-self.terminated:
+			case <-e.terminated:
 				return
 			case data <- v:
 			}
@@ -146,29 +146,29 @@ func NewEngine() (*Engine, error) {
 		defer func() {
 			con.Close()
 		outer:
-			for _, ob := range self.stObservers {
+			for _, ob := range e.stObservers {
 				for {
 					select {
-					case ob <- self.state:
+					case ob <- e.state:
 						continue outer
 					case <-time.After(time.Duration(5) * time.Second):
 						log.Printf("Waited 5 seconds for state channel %v\n", ob)
 					}
 				}
 			}
-			close(self.terminated)
+			close(e.terminated)
 		}()
 		for {
 			select {
-			case <-self.exit:
-				self.state = ENGINE_EXITED_NORMALLY
+			case <-e.exit:
+				e.state = ENGINE_EXITED_NORMALLY
 				return
 			case err := <-error:
-				log.Printf("%d engine: error %s", self.client, err)
-				self.fatalError = err
-				self.state = ENGINE_EXITED_ERROR
+				log.Printf("%d engine: error %s", e.client, err)
+				e.fatalError = err
+				e.state = ENGINE_EXITED_ERROR
 				return
-			case cmd := <-self.ch:
+			case cmd := <-e.ch:
 				cmd.fun()
 				close(cmd.ack)
 			case v := <-data:
@@ -178,64 +178,64 @@ func NewEngine() (*Engine, error) {
 				}
 				if v.code() == mErrorMessage {
 					var done []chan Reply
-					for _, sub := range self.observers {
+					for _, o := range e.observers {
 						for _, prevDone := range done {
-							if sub == prevDone {
+							if o == prevDone {
 								continue
 							}
 						}
-						done = append(done, sub)
-						self.deliver(sub, v)
+						done = append(done, o)
+						e.deliver(o, v)
 					}
 					continue
 				}
-				if sub, ok := self.observers[dest]; ok {
-					self.deliver(sub, v)
+				if o, ok := e.observers[dest]; ok {
+					e.deliver(o, v)
 				}
 			}
 		}
 	}()
 
-	return &self, nil
+	return &e, nil
 }
 
-func (self *Engine) deliver(sub chan Reply, v Reply) {
+func (e *Engine) deliver(c chan Reply, r Reply) {
 	for {
 		select {
-		case sub <- v:
+		case c <- r:
 			return
 		case <-time.After(time.Duration(5) * time.Second):
-			log.Printf("Waited 5 seconds for reply channel %v\n", sub)
+			log.Printf("Waited 5 seconds for reply channel %v\n", c)
 		}
 	}
 }
 
 // NextRequestId returns a unique request id (which is never UnmatchedReplyId).
-func (self *Engine) NextRequestId() int64 {
-	return <-self.id
+func (e *Engine) NextRequestId() int64 {
+	return <-e.id
 }
 
-func (self *Engine) ClientId() int64 {
-	return self.client
+func (e *Engine) ClientId() int64 {
+	return e.client
 }
 
 // sendCommand delivers the func to the engine, blocking the calling goroutine
 // until the command is acknowledged as completed or the engine exits.
-func (self *Engine) sendCommand(c func()) {
+func (e *Engine) sendCommand(c func()) {
 	ack := make(chan struct{})
 	cmd := command{c, ack}
 
 	// send cmd
 	select {
-	case <-self.terminated:
+	case <-e.terminated:
 		return
-	case self.ch <- cmd:
+	case e.ch <- cmd:
 	}
 
 	// await ack (also handle termination, although it shouldn't happen
 	// given the cmd was delivered so we beat any exit/error situations)
 	select {
-	case <-self.terminated:
+	case <-e.terminated:
 		log.Println("Engine unexpectedly terminated after command sent")
 		return
 	case <-cmd.ack:
@@ -255,14 +255,14 @@ func (self *Engine) sendCommand(c func()) {
 // Each ErrorMessage event is delivered once only to each known observer.
 // The engine never closes the channel (allowing reuse across IDs and engines).
 // This call will block until the subscriber is registered or engine terminates.
-func (self *Engine) Subscribe(o chan Reply, id int64) {
-	self.sendCommand(func() { self.observers[id] = o })
+func (e *Engine) Subscribe(o chan Reply, id int64) {
+	e.sendCommand(func() { e.observers[id] = o })
 }
 
 // Unsubscribe blocks until the observer is removed. It also maintains a
 // goroutine to sink the channel until the unsubscribe is finalised, which
 // frees the caller from maintaining a separate goroutine.
-func (self *Engine) Unsubscribe(o chan Reply, id int64) {
+func (e *Engine) Unsubscribe(o chan Reply, id int64) {
 	terminate := make(chan struct{})
 	go func() {
 		for {
@@ -273,24 +273,24 @@ func (self *Engine) Unsubscribe(o chan Reply, id int64) {
 			}
 		}
 	}()
-	self.sendCommand(func() { delete(self.observers, id) })
+	e.sendCommand(func() { delete(e.observers, id) })
 	close(terminate)
 }
 
 // SubscribeState will register an engine state subscriber that is notified when
 // the engine exits for any reason. The engine will close the channel after use.
 // This call will block until the subscriber is registered or engine terminates.
-func (self *Engine) SubscribeState(o chan EngineState) {
+func (e *Engine) SubscribeState(o chan EngineState) {
 	if o == nil {
 		return
 	}
-	self.sendCommand(func() { self.stObservers = append(self.stObservers, o) })
+	e.sendCommand(func() { e.stObservers = append(e.stObservers, o) })
 }
 
 // UnsubscribeState blocks until the observer is removed. It also maintains a
 // goroutine to sink the channel until the unsubscribe is finalised, which
 // frees the caller from maintaining a separate goroutine.
-func (self *Engine) UnsubscribeState(o chan EngineState) {
+func (e *Engine) UnsubscribeState(o chan EngineState) {
 	terminate := make(chan struct{})
 	go func() {
 		for {
@@ -301,38 +301,38 @@ func (self *Engine) UnsubscribeState(o chan EngineState) {
 			}
 		}
 	}()
-	self.sendCommand(func() {
+	e.sendCommand(func() {
 		var r []chan EngineState
-		for _, exist := range self.stObservers {
+		for _, exist := range e.stObservers {
 			if exist != o {
 				r = append(r, exist)
 			}
 		}
-		self.stObservers = r
+		e.stObservers = r
 	})
 	close(terminate)
 }
 
 // FatalError returns the error which caused termination (or nil if no error).
-func (self *Engine) FatalError() error {
-	return self.fatalError
+func (e *Engine) FatalError() error {
+	return e.fatalError
 }
 
 // State returns the engine's current state.
-func (self *Engine) State() EngineState {
-	return self.state
+func (e *Engine) State() EngineState {
+	return e.state
 }
 
 // Stop blocks until the engine is fully stopped. It can be safely called on an
 // already-stopped or stopping engine.
-func (self *Engine) Stop() {
+func (e *Engine) Stop() {
 	select {
-	case <-self.terminated:
+	case <-e.terminated:
 		return
-	case self.exit <- true:
+	case e.exit <- true:
 	}
 
-	<-self.terminated
+	<-e.terminated
 }
 
 type header struct {
@@ -356,36 +356,36 @@ func (v *header) read(b *bufio.Reader) (err error) {
 }
 
 // Send a message to the engine.
-func (self *Engine) Send(v Request) (err error) {
-	if mr, ok := v.(MatchedRequest); ok {
+func (e *Engine) Send(r Request) (err error) {
+	if mr, ok := r.(MatchedRequest); ok {
 		if mr.Id() == UnmatchedReplyId {
 			return fmt.Errorf("%d is a reserved ID (try using NextRequestId)", UnmatchedReplyId)
 		}
 	}
-	self.output.Reset()
+	e.output.Reset()
 
 	// encode message type and client version
 	hdr := &header{
-		code:    int64(v.code()),
-		version: v.version(),
+		code:    int64(r.code()),
+		version: r.version(),
 	}
 
-	if err = hdr.write(self.output); err != nil {
+	if err = hdr.write(e.output); err != nil {
 		return
 	}
 
 	// encode the message itself
-	if err = v.write(self.output); err != nil {
+	if err = r.write(e.output); err != nil {
 		return
 	}
 
 	if dumpConversation {
-		b := self.output
+		b := e.output
 		s := strings.Replace(b.String(), "\000", "-", -1)
-		fmt.Printf("%d> '%s'\n", self.client, s)
+		fmt.Printf("%d> '%s'\n", e.client, s)
 	}
 
-	_, err = self.con.Write(self.output.Bytes())
+	_, err = e.con.Write(e.output.Bytes())
 	return
 }
 
@@ -406,31 +406,31 @@ func failPacket(v interface{}) error {
 	}
 }
 
-func (self *Engine) receive() (v Reply, err error) {
-	self.input.Reset()
+func (e *Engine) receive() (r Reply, err error) {
+	e.input.Reset()
 	hdr := &header{}
 
 	// decode header
-	if err = hdr.read(self.reader); err != nil {
+	if err = hdr.read(e.reader); err != nil {
 		if dumpConversation {
-			fmt.Printf("%d< %v\n", self.client, err)
+			fmt.Printf("%d< %v\n", e.client, err)
 		}
 		return
 	}
 
-	dump := dumpConversation && hdr.code != self.lastDumpRead
+	dump := dumpConversation && hdr.code != e.lastDumpRead
 	if dump {
-		self.lastDumpRead = hdr.code
-		fmt.Printf("%d< %v ", self.client, hdr)
+		e.lastDumpRead = hdr.code
+		fmt.Printf("%d< %v ", e.client, hdr)
 	}
 
 	// decode message
-	v, err = code2Msg(hdr.code)
+	r, err = code2Msg(hdr.code)
 	if err != nil {
 		return
 	}
 
-	if err = v.read(self.reader); err != nil {
+	if err = r.read(e.reader); err != nil {
 		if dump {
 			fmt.Printf("%v\n", err)
 		}
@@ -438,7 +438,7 @@ func (self *Engine) receive() (v Reply, err error) {
 	}
 
 	if dump {
-		str := fmt.Sprintf("%v", v)
+		str := fmt.Sprintf("%v", r)
 		cut := len(str)
 		if cut > 80 {
 			str = str[:76] + "..."

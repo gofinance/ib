@@ -37,11 +37,11 @@ type Option struct {
 	updated   bool
 }
 
-func NewOption(engine *Engine, contract *Contract, spot *Instrument,
+func NewOption(e *Engine, c *Contract, spot *Instrument,
 	expiry time.Time, strike float64, kind Kind) *Option {
-	self := &Option{
-		contract: *contract,
-		engine:   engine,
+	o := &Option{
+		contract: *c,
+		engine:   e,
 		spot:     spot,
 		expiry:   expiry,
 		strike:   strike,
@@ -56,43 +56,43 @@ func NewOption(engine *Engine, contract *Contract, spot *Instrument,
 	go func() {
 		for {
 			select {
-			case <-self.exit:
+			case <-o.exit:
 				return
-			case f := <-self.ch:
+			case f := <-o.ch:
 				f()
-			case v := <-self.replyc:
-				self.process(v)
+			case v := <-o.replyc:
+				o.process(v)
 			}
 		}
 	}()
 
-	return self
+	return o
 }
 
-func (self *Option) Last() float64 {
+func (o *Option) Last() float64 {
 	ch := make(chan float64)
-	self.ch <- func() { ch <- self.last }
+	o.ch <- func() { ch <- o.last }
 	return <-ch
 }
 
-func (self *Option) IV() float64 {
+func (o *Option) IV() float64 {
 	ch := make(chan float64)
-	self.ch <- func() { ch <- self.iv }
+	o.ch <- func() { ch <- o.iv }
 	return <-ch
 }
 
-func (self *Option) Delta() float64 {
+func (o *Option) Delta() float64 {
 	ch := make(chan float64)
-	self.ch <- func() { ch <- self.delta }
+	o.ch <- func() { ch <- o.delta }
 	return <-ch
 }
 
 /*
-func (self *Option) Last() float64 { return self.last }
-func (self *Option) Bid() float64 { return self.bid }
-func (self *Option) Ask() float64 { return self.ask }
-func (self *Option) IV() float64 { return self.iv }
-func (self *Option) Delta() float64 { return self.iv }
+func (o *Option) Last() float64 { return o.last }
+func (o *Option) Bid() float64 { return o.bid }
+func (o *Option) Ask() float64 { return o.ask }
+func (o *Option) IV() float64 { return o.iv }
+func (o *Option) Delta() float64 { return o.iv }
 	delta     float64
 	gamma     float64
 	theta     float64
@@ -101,107 +101,107 @@ func (self *Option) Delta() float64 { return self.iv }
 	spotPrice float64
 */
 
-func (self *Option) Cleanup() {
-	self.StopUpdate()
-	self.exit <- true
+func (o *Option) Cleanup() {
+	o.StopUpdate()
+	o.exit <- true
 }
 
-func (self *Option) Update() chan bool { return self.update }
-func (self *Option) Error() chan error { return self.error }
+func (o *Option) Update() chan bool { return o.update }
+func (o *Option) Error() chan error { return o.error }
 
-func (self *Option) StartUpdate() error {
-	self.updated = false
-	self.last = 0
-	self.bid = 0
-	self.ask = 0
-	self.delta = 0
-	self.gamma = 0
-	self.theta = 0
-	self.vega = 0
-	req := &RequestMarketData{Contract: self.contract}
-	self.id = self.engine.NextRequestId()
-	req.SetId(self.id)
-	self.engine.Subscribe(self.replyc, self.id)
-	return self.engine.Send(req)
+func (o *Option) StartUpdate() error {
+	o.updated = false
+	o.last = 0
+	o.bid = 0
+	o.ask = 0
+	o.delta = 0
+	o.gamma = 0
+	o.theta = 0
+	o.vega = 0
+	req := &RequestMarketData{Contract: o.contract}
+	o.id = o.engine.NextRequestId()
+	req.SetId(o.id)
+	o.engine.Subscribe(o.replyc, o.id)
+	return o.engine.Send(req)
 }
 
-func (self *Option) StopUpdate() {
-	self.engine.Unsubscribe(self.replyc, self.id)
+func (o *Option) StopUpdate() {
+	o.engine.Unsubscribe(o.replyc, o.id)
 	req := &CancelMarketData{}
-	req.SetId(self.id)
-	self.engine.Send(req)
+	req.SetId(o.id)
+	o.engine.Send(req)
 }
 
-func (self *Option) Observe(v Reply) {
-	self.ch <- func() { self.process(v) }
+func (o *Option) Observe(r Reply) {
+	o.ch <- func() { o.process(r) }
 }
 
-func (self *Option) process(v Reply) {
-	switch v.(type) {
+func (o *Option) process(r Reply) {
+	switch r.(type) {
 	case *ErrorMessage:
-		v := v.(*ErrorMessage)
+		v := r.(*ErrorMessage)
 		if v.SeverityWarning() {
 			return
 		}
-		self.error <- v.Error()
+		o.error <- v.Error()
 	case *TickOptionComputation:
-		v := v.(*TickOptionComputation)
-		switch v.Type {
+		r := r.(*TickOptionComputation)
+		switch r.Type {
 		case TickModelOption:
-			self.iv = v.ImpliedVol
-			self.price = v.OptionPrice
-			self.spotPrice = v.SpotPrice
-			self.iv = v.ImpliedVol
-			self.delta = v.Delta
-			self.gamma = v.Gamma
-			self.vega = v.Vega
-			self.theta = v.Theta
+			o.iv = r.ImpliedVol
+			o.price = r.OptionPrice
+			o.spotPrice = r.SpotPrice
+			o.iv = r.ImpliedVol
+			o.delta = r.Delta
+			o.gamma = r.Gamma
+			o.vega = r.Vega
+			o.theta = r.Theta
 		}
 	}
 
-	if self.iv <= 0 || self.delta == 0 || self.delta == -2 {
+	if o.iv <= 0 || o.delta == 0 || o.delta == -2 {
 		return
 	}
 
-	if !self.updated {
-		self.update <- true
-		self.updated = true
+	if !o.updated {
+		o.update <- true
+		o.updated = true
 	}
 }
 
 /*
-func (self *Option) requestImpliedVol() error {
-	self.iv_id = self.engine.NextRequestId()
+func (o *Option) requestImpliedVol() error {
+	o.iv_id = o.engine.NextRequestId()
 
 	req := &RequestCalcImpliedVol{
-		Contract:    self.Instrument.Contract(),
-		OptionPrice: self.last,
-		SpotPrice:   self.Instrument.Last(),
+		Contract:    o.Instrument.Contract(),
+		OptionPrice: o.last,
+		SpotPrice:   o.Instrument.Last(),
 	}
 
-	req.SetId(self.iv_id)
-	self.engine.Subscribe(self, self.iv_id)
+	req.SetId(o.iv_id)
+	o.engine.Subscribe(o, o.iv_id)
 
-	if err := self.engine.Send(req); err != nil {
+	if err := o.engine.Send(req); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (self *Option) requestGreeks() error {
-	self.greeks_id = self.engine.NextRequestId()
+func (o *Option) requestGreeks() error {
+	o.greeks_id = o.engine.NextRequestId()
 
 	req := &RequestCalcOptionPrice{
-		Contract:   self.Instrument.Contract(),
-		Volatility: self.iv,
-		SpotPrice:  self.Instrument.Last(),
+		Contract:   o.Instrument.Contract(),
+		Volatility: o.iv,
+		SpotPrice:  o.Instrument.Last(),
 	}
 
-	req.SetId(self.greeks_id)
-	self.engine.Subscribe(self, self.greeks_id)
+	req.SetId(o.greeks_id)
+	o.engine.Subscribe(o, o.greeks_id)
 
-	if err := self.engine.Send(req); err != nil {
+	if err := o.engine.Send(req); err != nil {
 		return err
 	}
 

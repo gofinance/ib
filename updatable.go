@@ -29,8 +29,8 @@ type UpdateError struct {
 	err error
 }
 
-func (self *UpdateError) Error() string {
-	return fmt.Sprintf("Error %s while updating %v", self.err, self.v)
+func (u *UpdateError) Error() string {
+	return fmt.Sprintf("Error %s while updating %v", u.err, u.v)
 }
 
 func updateError(v Updatable, err error) error {
@@ -51,41 +51,41 @@ func NewUpdatables() *Updatables {
 	}
 }
 
-func (self *Updatables) Update() chan bool { return self.update }
-func (self *Updatables) Error() chan error { return self.error }
+func (u *Updatables) Update() chan bool { return u.update }
+func (u *Updatables) Error() chan error { return u.error }
 
-func (self *Updatables) Add(v Updatable) {
-	self.items = append(self.items, v)
+func (u *Updatables) Add(v Updatable) {
+	u.items = append(u.items, v)
 }
 
-func (self *Updatables) StartUpdate(timeout time.Duration) error {
-	for _, v := range self.items {
+func (u *Updatables) StartUpdate(timeout time.Duration) error {
+	for _, v := range u.items {
 		if err := v.StartUpdate(); err != nil {
 			return updateError(v, err)
 		}
 	}
 
 	go func() {
-		for _, v := range self.items {
+		for _, v := range u.items {
 			select {
 			case <-time.After(timeout):
-				self.error <- updateError(v, errors.New("Update timeout"))
+				u.error <- updateError(v, errors.New("Update timeout"))
 				return
 			case err := <-v.Error():
-				self.error <- updateError(v, err)
+				u.error <- updateError(v, err)
 				return
 			case <-v.Update():
 			}
 		}
 
-		self.update <- true
+		u.update <- true
 	}()
 
 	return nil
 }
 
-func (self *Updatables) StopUpdate() {
-	for _, v := range self.items {
+func (u *Updatables) StopUpdate() {
+	for _, v := range u.items {
 		v.StopUpdate()
 	}
 }

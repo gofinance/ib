@@ -171,11 +171,11 @@ type serverHandshake struct {
 	time    time.Time
 }
 
-func (v *serverHandshake) read(b *bufio.Reader) (err error) {
-	if v.version, err = readInt(b); err != nil {
+func (s *serverHandshake) read(b *bufio.Reader) (err error) {
+	if s.version, err = readInt(b); err != nil {
 		return
 	}
-	v.time, err = readTime(b)
+	s.time, err = readTime(b)
 	return
 }
 
@@ -184,11 +184,11 @@ type clientHandshake struct {
 	id      int64
 }
 
-func (v *clientHandshake) write(b *bytes.Buffer) (err error) {
-	if err = writeInt(b, v.version); err != nil {
+func (c *clientHandshake) write(b *bytes.Buffer) (err error) {
+	if err = writeInt(b, c.version); err != nil {
 		return
 	}
-	return writeInt(b, v.id)
+	return writeInt(b, c.id)
 }
 
 // Contract
@@ -209,17 +209,17 @@ type ComboLeg struct {
 	Exchange   string
 }
 
-func (v *ComboLeg) write(b *bytes.Buffer) (err error) {
-	if err = writeInt(b, v.ContractId); err != nil {
+func (c *ComboLeg) write(b *bytes.Buffer) (err error) {
+	if err = writeInt(b, c.ContractId); err != nil {
 		return
 	}
-	if err = writeInt(b, v.Ratio); err != nil {
+	if err = writeInt(b, c.Ratio); err != nil {
 		return
 	}
-	if err = writeString(b, v.Action); err != nil {
+	if err = writeString(b, c.Action); err != nil {
 		return
 	}
-	return writeString(b, v.Exchange)
+	return writeString(b, c.Exchange)
 }
 
 type UnderComp struct {
@@ -228,25 +228,25 @@ type UnderComp struct {
 	Price      float64
 }
 
-func (v *UnderComp) read(b *bufio.Reader) (err error) {
-	if v.ContractId, err = readInt(b); err != nil {
+func (u *UnderComp) read(b *bufio.Reader) (err error) {
+	if u.ContractId, err = readInt(b); err != nil {
 		return
 	}
-	if v.Delta, err = readFloat(b); err != nil {
+	if u.Delta, err = readFloat(b); err != nil {
 		return
 	}
-	v.Price, err = readFloat(b)
+	u.Price, err = readFloat(b)
 	return
 }
 
-func (v *UnderComp) write(b *bytes.Buffer) (err error) {
-	if err = writeInt(b, v.ContractId); err != nil {
+func (u *UnderComp) write(b *bytes.Buffer) (err error) {
+	if err = writeInt(b, u.ContractId); err != nil {
 		return
 	}
-	if err = writeFloat(b, v.Delta); err != nil {
+	if err = writeFloat(b, u.Delta); err != nil {
 		return
 	}
-	return writeFloat(b, v.Price)
+	return writeFloat(b, u.Price)
 }
 
 // TickPrice holds bid, ask, last, etc. price information
@@ -259,28 +259,28 @@ type TickPrice struct {
 }
 
 // Id contains the TWS "tickerId", which was nominated at market data request time.
-func (v *TickPrice) Id() int64 {
-	return v.id
+func (t *TickPrice) Id() int64 {
+	return t.id
 }
 
-func (v *TickPrice) code() IncomingMessageId {
+func (t *TickPrice) code() IncomingMessageId {
 	return mTickPrice
 }
 
-func (v *TickPrice) read(b *bufio.Reader) (err error) {
-	if v.id, err = readInt(b); err != nil {
+func (t *TickPrice) read(b *bufio.Reader) (err error) {
+	if t.id, err = readInt(b); err != nil {
 		return
 	}
-	if v.Type, err = readInt(b); err != nil {
+	if t.Type, err = readInt(b); err != nil {
 		return
 	}
-	if v.Price, err = readFloat(b); err != nil {
+	if t.Price, err = readFloat(b); err != nil {
 		return
 	}
-	if v.Size, err = readInt(b); err != nil {
+	if t.Size, err = readInt(b); err != nil {
 		return
 	}
-	v.CanAutoExecute, err = readBool(b)
+	t.CanAutoExecute, err = readBool(b)
 	return
 }
 
@@ -291,22 +291,22 @@ type TickSize struct {
 }
 
 // Id contains the TWS "tickerId", which was nominated at market data request time.
-func (v *TickSize) Id() int64 {
-	return v.id
+func (t *TickSize) Id() int64 {
+	return t.id
 }
 
-func (v *TickSize) code() IncomingMessageId {
+func (t *TickSize) code() IncomingMessageId {
 	return mTickSize
 }
 
-func (v *TickSize) read(b *bufio.Reader) (err error) {
-	if v.id, err = readInt(b); err != nil {
+func (t *TickSize) read(b *bufio.Reader) (err error) {
+	if t.id, err = readInt(b); err != nil {
 		return
 	}
-	if v.Type, err = readInt(b); err != nil {
+	if t.Type, err = readInt(b); err != nil {
 		return
 	}
-	v.Size, err = readInt(b)
+	t.Size, err = readInt(b)
 	return
 }
 
@@ -324,43 +324,43 @@ type TickOptionComputation struct {
 }
 
 // Id contains the TWS "tickerId", which was nominated at market data request time.
-func (v *TickOptionComputation) Id() int64 {
-	return v.id
+func (t *TickOptionComputation) Id() int64 {
+	return t.id
 }
 
-func (v *TickOptionComputation) code() IncomingMessageId {
+func (t *TickOptionComputation) code() IncomingMessageId {
 	return mTickOptionComputation
 }
 
-func (v *TickOptionComputation) read(b *bufio.Reader) (err error) {
-	if v.id, err = readInt(b); err != nil {
+func (t *TickOptionComputation) read(b *bufio.Reader) (err error) {
+	if t.id, err = readInt(b); err != nil {
 		return
 	}
-	if v.Type, err = readInt(b); err != nil {
+	if t.Type, err = readInt(b); err != nil {
 		return
 	}
-	if v.ImpliedVol, err = readFloat(b); err != nil {
+	if t.ImpliedVol, err = readFloat(b); err != nil {
 		return
 	}
-	if v.Delta, err = readFloat(b); err != nil {
+	if t.Delta, err = readFloat(b); err != nil {
 		return
 	}
-	if v.OptionPrice, err = readFloat(b); err != nil {
+	if t.OptionPrice, err = readFloat(b); err != nil {
 		return
 	}
-	if v.PvDividend, err = readFloat(b); err != nil {
+	if t.PvDividend, err = readFloat(b); err != nil {
 		return
 	}
-	if v.Gamma, err = readFloat(b); err != nil {
+	if t.Gamma, err = readFloat(b); err != nil {
 		return
 	}
-	if v.Vega, err = readFloat(b); err != nil {
+	if t.Vega, err = readFloat(b); err != nil {
 		return
 	}
-	if v.Theta, err = readFloat(b); err != nil {
+	if t.Theta, err = readFloat(b); err != nil {
 		return
 	}
-	v.SpotPrice, err = readFloat(b)
+	t.SpotPrice, err = readFloat(b)
 	return
 }
 
@@ -371,22 +371,22 @@ type TickGeneric struct {
 }
 
 // Id contains the TWS "tickerId", which was nominated at market data request time.
-func (v *TickGeneric) Id() int64 {
-	return v.id
+func (t *TickGeneric) Id() int64 {
+	return t.id
 }
 
-func (v *TickGeneric) code() IncomingMessageId {
+func (t *TickGeneric) code() IncomingMessageId {
 	return mTickGeneric
 }
 
-func (v *TickGeneric) read(b *bufio.Reader) (err error) {
-	if v.id, err = readInt(b); err != nil {
+func (t *TickGeneric) read(b *bufio.Reader) (err error) {
+	if t.id, err = readInt(b); err != nil {
 		return
 	}
-	if v.Type, err = readInt(b); err != nil {
+	if t.Type, err = readInt(b); err != nil {
 		return
 	}
-	v.Value, err = readFloat(b)
+	t.Value, err = readFloat(b)
 	return
 }
 
@@ -397,22 +397,22 @@ type TickString struct {
 }
 
 // Id contains the TWS "tickerId", which was nominated at market data request time.
-func (v *TickString) Id() int64 {
-	return v.id
+func (t *TickString) Id() int64 {
+	return t.id
 }
 
-func (v *TickString) code() IncomingMessageId {
+func (t *TickString) code() IncomingMessageId {
 	return mTickString
 }
 
-func (v *TickString) read(b *bufio.Reader) (err error) {
-	if v.id, err = readInt(b); err != nil {
+func (t *TickString) read(b *bufio.Reader) (err error) {
+	if t.id, err = readInt(b); err != nil {
 		return
 	}
-	if v.Type, err = readInt(b); err != nil {
+	if t.Type, err = readInt(b); err != nil {
 		return
 	}
-	v.Value, err = readString(b)
+	t.Value, err = readString(b)
 	return
 }
 
@@ -429,40 +429,40 @@ type TickEFP struct {
 }
 
 // Id contains the TWS "tickerId", which was nominated at market data request time.
-func (v *TickEFP) Id() int64 {
-	return v.id
+func (t *TickEFP) Id() int64 {
+	return t.id
 }
 
-func (v *TickEFP) code() IncomingMessageId {
+func (t *TickEFP) code() IncomingMessageId {
 	return mTickEFP
 }
 
-func (v *TickEFP) read(b *bufio.Reader) (err error) {
-	if v.id, err = readInt(b); err != nil {
+func (t *TickEFP) read(b *bufio.Reader) (err error) {
+	if t.id, err = readInt(b); err != nil {
 		return
 	}
-	if v.Type, err = readInt(b); err != nil {
+	if t.Type, err = readInt(b); err != nil {
 		return
 	}
-	if v.BasisPoints, err = readFloat(b); err != nil {
+	if t.BasisPoints, err = readFloat(b); err != nil {
 		return
 	}
-	if v.FormattedBasisPoints, err = readString(b); err != nil {
+	if t.FormattedBasisPoints, err = readString(b); err != nil {
 		return
 	}
-	if v.ImpliedFuturesPrice, err = readFloat(b); err != nil {
+	if t.ImpliedFuturesPrice, err = readFloat(b); err != nil {
 		return
 	}
-	if v.HoldDays, err = readInt(b); err != nil {
+	if t.HoldDays, err = readInt(b); err != nil {
 		return
 	}
-	if v.FuturesExpiry, err = readString(b); err != nil {
+	if t.FuturesExpiry, err = readString(b); err != nil {
 		return
 	}
-	if v.DividendImpact, err = readFloat(b); err != nil {
+	if t.DividendImpact, err = readFloat(b); err != nil {
 		return
 	}
-	v.DividendsToExpiry, err = readFloat(b)
+	t.DividendsToExpiry, err = readFloat(b)
 	return
 }
 
@@ -480,43 +480,43 @@ type OrderStatus struct {
 }
 
 // Id contains the TWS order "id", which was nominated when the order was placed.
-func (v *OrderStatus) Id() int64 {
-	return v.id
+func (o *OrderStatus) Id() int64 {
+	return o.id
 }
 
-func (v *OrderStatus) code() IncomingMessageId {
+func (o *OrderStatus) code() IncomingMessageId {
 	return mOrderStatus
 }
 
-func (v *OrderStatus) read(b *bufio.Reader) (err error) {
-	if v.id, err = readInt(b); err != nil {
+func (o *OrderStatus) read(b *bufio.Reader) (err error) {
+	if o.id, err = readInt(b); err != nil {
 		return
 	}
-	if v.Status, err = readString(b); err != nil {
+	if o.Status, err = readString(b); err != nil {
 		return
 	}
-	if v.Filled, err = readInt(b); err != nil {
+	if o.Filled, err = readInt(b); err != nil {
 		return
 	}
-	if v.Remaining, err = readInt(b); err != nil {
+	if o.Remaining, err = readInt(b); err != nil {
 		return
 	}
-	if v.AverageFillPrice, err = readFloat(b); err != nil {
+	if o.AverageFillPrice, err = readFloat(b); err != nil {
 		return
 	}
-	if v.PermId, err = readInt(b); err != nil {
+	if o.PermId, err = readInt(b); err != nil {
 		return
 	}
-	if v.ParentId, err = readInt(b); err != nil {
+	if o.ParentId, err = readInt(b); err != nil {
 		return
 	}
-	if v.LastFillPrice, err = readFloat(b); err != nil {
+	if o.LastFillPrice, err = readFloat(b); err != nil {
 		return
 	}
-	if v.ClientId, err = readInt(b); err != nil {
+	if o.ClientId, err = readInt(b); err != nil {
 		return
 	}
-	v.WhyHeld, err = readString(b)
+	o.WhyHeld, err = readString(b)
 	return
 }
 
@@ -527,21 +527,21 @@ type AccountValue struct {
 	AccountName string
 }
 
-func (v *AccountValue) code() IncomingMessageId {
+func (a *AccountValue) code() IncomingMessageId {
 	return mAccountValue
 }
 
-func (v *AccountValue) read(b *bufio.Reader) (err error) {
-	if v.Key, err = readString(b); err != nil {
+func (a *AccountValue) read(b *bufio.Reader) (err error) {
+	if a.Key, err = readString(b); err != nil {
 		return
 	}
-	if v.Value, err = readString(b); err != nil {
+	if a.Value, err = readString(b); err != nil {
 		return
 	}
-	if v.Current, err = readString(b); err != nil {
+	if a.Current, err = readString(b); err != nil {
 		return
 	}
-	v.AccountName, err = readString(b)
+	a.AccountName, err = readString(b)
 	return
 }
 
@@ -566,63 +566,63 @@ type PortfolioValue struct {
 	PrimaryExchange1 string
 }
 
-func (v *PortfolioValue) code() IncomingMessageId {
+func (p *PortfolioValue) code() IncomingMessageId {
 	return mPortfolioValue
 }
 
-func (v *PortfolioValue) read(b *bufio.Reader) (err error) {
-	if v.ContractId, err = readInt(b); err != nil {
+func (p *PortfolioValue) read(b *bufio.Reader) (err error) {
+	if p.ContractId, err = readInt(b); err != nil {
 		return
 	}
-	if v.Symbol, err = readString(b); err != nil {
+	if p.Symbol, err = readString(b); err != nil {
 		return
 	}
-	if v.SecType, err = readString(b); err != nil {
+	if p.SecType, err = readString(b); err != nil {
 		return
 	}
-	if v.Expiry, err = readString(b); err != nil {
+	if p.Expiry, err = readString(b); err != nil {
 		return
 	}
-	if v.Strike, err = readFloat(b); err != nil {
+	if p.Strike, err = readFloat(b); err != nil {
 		return
 	}
-	if v.Right, err = readString(b); err != nil {
+	if p.Right, err = readString(b); err != nil {
 		return
 	}
-	if v.Multiplier, err = readString(b); err != nil {
+	if p.Multiplier, err = readString(b); err != nil {
 		return
 	}
-	if v.PrimaryExchange, err = readString(b); err != nil {
+	if p.PrimaryExchange, err = readString(b); err != nil {
 		return
 	}
-	if v.Currency, err = readString(b); err != nil {
+	if p.Currency, err = readString(b); err != nil {
 		return
 	}
-	if v.LocalSymbol, err = readString(b); err != nil {
+	if p.LocalSymbol, err = readString(b); err != nil {
 		return
 	}
-	if v.Position, err = readInt(b); err != nil {
+	if p.Position, err = readInt(b); err != nil {
 		return
 	}
-	if v.MarketPrice, err = readFloat(b); err != nil {
+	if p.MarketPrice, err = readFloat(b); err != nil {
 		return
 	}
-	if v.MarketValue, err = readFloat(b); err != nil {
+	if p.MarketValue, err = readFloat(b); err != nil {
 		return
 	}
-	if v.AverageCost, err = readFloat(b); err != nil {
+	if p.AverageCost, err = readFloat(b); err != nil {
 		return
 	}
-	if v.UnrealizedPNL, err = readFloat(b); err != nil {
+	if p.UnrealizedPNL, err = readFloat(b); err != nil {
 		return
 	}
-	if v.RealizedPNL, err = readFloat(b); err != nil {
+	if p.RealizedPNL, err = readFloat(b); err != nil {
 		return
 	}
-	if v.AccountName, err = readString(b); err != nil {
+	if p.AccountName, err = readString(b); err != nil {
 		return
 	}
-	v.PrimaryExchange1, err = readString(b)
+	p.PrimaryExchange1, err = readString(b)
 	return
 }
 
@@ -630,12 +630,12 @@ type AccountUpdateTime struct {
 	Timestamp string
 }
 
-func (v *AccountUpdateTime) code() IncomingMessageId {
+func (a *AccountUpdateTime) code() IncomingMessageId {
 	return mAccountUpdateTime
 }
 
-func (v *AccountUpdateTime) read(b *bufio.Reader) (err error) {
-	v.Timestamp, err = readString(b)
+func (a *AccountUpdateTime) read(b *bufio.Reader) (err error) {
+	a.Timestamp, err = readString(b)
 	return
 }
 
@@ -645,41 +645,41 @@ type ErrorMessage struct {
 	Message string
 }
 
-func (v *ErrorMessage) code() IncomingMessageId {
+func (e *ErrorMessage) code() IncomingMessageId {
 	return mErrorMessage
 }
 
-func (v *ErrorMessage) read(b *bufio.Reader) (err error) {
-	if v.id, err = readInt(b); err != nil {
+func (e *ErrorMessage) read(b *bufio.Reader) (err error) {
+	if e.id, err = readInt(b); err != nil {
 		return
 	}
-	if v.Code, err = readInt(b); err != nil {
+	if e.Code, err = readInt(b); err != nil {
 		return
 	}
-	v.Message, err = readString(b)
+	e.Message, err = readString(b)
 	return
 }
 
 // SeverityWarning returns true if this error is of "warning" level.
-func (v *ErrorMessage) SeverityWarning() bool {
-	return v.Code >= 2100 || v.Code <= 2110
+func (e *ErrorMessage) SeverityWarning() bool {
+	return e.Code >= 2100 || e.Code <= 2110
 }
 
-func (v *ErrorMessage) Error() error {
-	return fmt.Errorf("%s (%d/%d)", v.Message, v.id, v.Code)
+func (e *ErrorMessage) Error() error {
+	return fmt.Errorf("%s (%d/%d)", e.Message, e.id, e.Code)
 }
 
 type AlgoParams struct {
 	Params []*TagValue
 }
 
-func (v *AlgoParams) read(b *bufio.Reader) (err error) {
+func (a *AlgoParams) read(b *bufio.Reader) (err error) {
 	var size int64
 	if size, err = readInt(b); err != nil {
 		return
 	}
-	v.Params = make([]*TagValue, size)
-	for _, e := range v.Params {
+	a.Params = make([]*TagValue, size)
+	for _, e := range a.Params {
 		if err = e.read(b); err != nil {
 			return
 		}
@@ -694,17 +694,17 @@ type DeltaNeutralData struct {
 	ClearingIntent  string
 }
 
-func (v *DeltaNeutralData) read(b *bufio.Reader) (err error) {
-	if v.ContractId, err = readInt(b); err != nil {
+func (d *DeltaNeutralData) read(b *bufio.Reader) (err error) {
+	if d.ContractId, err = readInt(b); err != nil {
 		return
 	}
-	if v.ClearingBroker, err = readString(b); err != nil {
+	if d.ClearingBroker, err = readString(b); err != nil {
 		return
 	}
-	if v.ClearingAccount, err = readString(b); err != nil {
+	if d.ClearingAccount, err = readString(b); err != nil {
 		return
 	}
-	v.ClearingIntent, err = readString(b)
+	d.ClearingIntent, err = readString(b)
 	return
 }
 
@@ -713,11 +713,11 @@ type TagValue struct {
 	Value string
 }
 
-func (v *TagValue) read(b *bufio.Reader) (err error) {
-	if v.Tag, err = readString(b); err != nil {
+func (t *TagValue) read(b *bufio.Reader) (err error) {
+	if t.Tag, err = readString(b); err != nil {
 		return
 	}
-	v.Value, err = readString(b)
+	t.Value, err = readString(b)
 	return err
 }
 
@@ -725,8 +725,8 @@ type HedgeParam struct {
 	Param string
 }
 
-func (v *HedgeParam) read(b *bufio.Reader) (err error) {
-	v.Param, err = readString(b)
+func (h *HedgeParam) read(b *bufio.Reader) (err error) {
+	h.Param, err = readString(b)
 	return
 }
 
@@ -816,274 +816,274 @@ type OpenOrder struct {
 }
 
 // Id contains the TWS "orderId", which was nominated when the order was placed.
-func (v *OpenOrder) Id() int64 {
-	return v.id
+func (o *OpenOrder) Id() int64 {
+	return o.id
 }
 
-func (v *OpenOrder) code() IncomingMessageId {
+func (o *OpenOrder) code() IncomingMessageId {
 	return mOpenOrder
 }
 
-func (v *OpenOrder) read(b *bufio.Reader) (err error) {
-	if v.id, err = readInt(b); err != nil {
+func (o *OpenOrder) read(b *bufio.Reader) (err error) {
+	if o.id, err = readInt(b); err != nil {
 		return
 	}
-	if v.ContractId, err = readInt(b); err != nil {
+	if o.ContractId, err = readInt(b); err != nil {
 		return
 	}
-	if v.Symbol, err = readString(b); err != nil {
+	if o.Symbol, err = readString(b); err != nil {
 		return
 	}
-	if v.SecType, err = readString(b); err != nil {
+	if o.SecType, err = readString(b); err != nil {
 		return
 	}
-	if v.Expiry, err = readString(b); err != nil {
+	if o.Expiry, err = readString(b); err != nil {
 		return
 	}
-	if v.Strike, err = readFloat(b); err != nil {
+	if o.Strike, err = readFloat(b); err != nil {
 		return
 	}
-	if v.Right, err = readString(b); err != nil {
+	if o.Right, err = readString(b); err != nil {
 		return
 	}
-	if v.Exchange, err = readString(b); err != nil {
+	if o.Exchange, err = readString(b); err != nil {
 		return
 	}
-	if v.Currency, err = readString(b); err != nil {
+	if o.Currency, err = readString(b); err != nil {
 		return
 	}
-	if v.LocalSymbol, err = readString(b); err != nil {
+	if o.LocalSymbol, err = readString(b); err != nil {
 		return
 	}
-	if v.Action, err = readString(b); err != nil {
+	if o.Action, err = readString(b); err != nil {
 		return
 	}
-	if v.TotalQty, err = readInt(b); err != nil {
+	if o.TotalQty, err = readInt(b); err != nil {
 		return
 	}
-	if v.OrderType, err = readString(b); err != nil {
+	if o.OrderType, err = readString(b); err != nil {
 		return
 	}
-	if v.LimitPrice, err = readFloat(b); err != nil {
+	if o.LimitPrice, err = readFloat(b); err != nil {
 		return
 	}
-	if v.AuxPrice, err = readFloat(b); err != nil {
+	if o.AuxPrice, err = readFloat(b); err != nil {
 		return
 	}
-	if v.TIF, err = readString(b); err != nil {
+	if o.TIF, err = readString(b); err != nil {
 		return
 	}
-	if v.OCAGroup, err = readString(b); err != nil {
+	if o.OCAGroup, err = readString(b); err != nil {
 		return
 	}
-	if v.Account, err = readString(b); err != nil {
+	if o.Account, err = readString(b); err != nil {
 		return
 	}
-	if v.OpenClose, err = readString(b); err != nil {
+	if o.OpenClose, err = readString(b); err != nil {
 		return
 	}
-	if v.Origin, err = readInt(b); err != nil {
+	if o.Origin, err = readInt(b); err != nil {
 		return
 	}
-	if v.OrderRef, err = readString(b); err != nil {
+	if o.OrderRef, err = readString(b); err != nil {
 		return
 	}
-	if v.ClientId, err = readInt(b); err != nil {
+	if o.ClientId, err = readInt(b); err != nil {
 		return
 	}
-	if v.PermId, err = readInt(b); err != nil {
+	if o.PermId, err = readInt(b); err != nil {
 		return
 	}
-	if v.OutsideRTH, err = readBool(b); err != nil {
+	if o.OutsideRTH, err = readBool(b); err != nil {
 		return
 	}
-	if v.Hidden, err = readBool(b); err != nil {
+	if o.Hidden, err = readBool(b); err != nil {
 		return
 	}
-	if v.DiscretionaryAmount, err = readFloat(b); err != nil {
+	if o.DiscretionaryAmount, err = readFloat(b); err != nil {
 		return
 	}
-	if v.GoodAfterTime, err = readString(b); err != nil {
+	if o.GoodAfterTime, err = readString(b); err != nil {
 		return
 	}
-	if v.SharesAllocation, err = readString(b); err != nil {
+	if o.SharesAllocation, err = readString(b); err != nil {
 		return
 	}
-	if v.FAGroup, err = readString(b); err != nil {
+	if o.FAGroup, err = readString(b); err != nil {
 		return
 	}
-	if v.FAMethod, err = readString(b); err != nil {
+	if o.FAMethod, err = readString(b); err != nil {
 		return
 	}
-	if v.FAPercentage, err = readString(b); err != nil {
+	if o.FAPercentage, err = readString(b); err != nil {
 		return
 	}
-	if v.FAProfile, err = readString(b); err != nil {
+	if o.FAProfile, err = readString(b); err != nil {
 		return
 	}
-	if v.GoodTillDate, err = readString(b); err != nil {
+	if o.GoodTillDate, err = readString(b); err != nil {
 		return
 	}
-	if v.Rule80A, err = readString(b); err != nil {
+	if o.Rule80A, err = readString(b); err != nil {
 		return
 	}
-	if v.PercentOffset, err = readFloat(b); err != nil {
+	if o.PercentOffset, err = readFloat(b); err != nil {
 		return
 	}
-	if v.ClearingBroker, err = readString(b); err != nil {
+	if o.ClearingBroker, err = readString(b); err != nil {
 		return
 	}
-	if v.ShortSaleSlot, err = readInt(b); err != nil {
+	if o.ShortSaleSlot, err = readInt(b); err != nil {
 		return
 	}
-	if v.DesignatedLocation, err = readString(b); err != nil {
+	if o.DesignatedLocation, err = readString(b); err != nil {
 		return
 	}
-	if v.ExemptCode, err = readInt(b); err != nil {
+	if o.ExemptCode, err = readInt(b); err != nil {
 		return
 	}
-	if v.AuctionStrategy, err = readInt(b); err != nil {
+	if o.AuctionStrategy, err = readInt(b); err != nil {
 		return
 	}
-	if v.StartingPrice, err = readFloat(b); err != nil {
+	if o.StartingPrice, err = readFloat(b); err != nil {
 		return
 	}
-	if v.StockRefPrice, err = readFloat(b); err != nil {
+	if o.StockRefPrice, err = readFloat(b); err != nil {
 		return
 	}
-	if v.Delta, err = readFloat(b); err != nil {
+	if o.Delta, err = readFloat(b); err != nil {
 		return
 	}
-	if v.StockRangeLower, err = readFloat(b); err != nil {
+	if o.StockRangeLower, err = readFloat(b); err != nil {
 		return
 	}
-	if v.StockRangeUpper, err = readFloat(b); err != nil {
+	if o.StockRangeUpper, err = readFloat(b); err != nil {
 		return
 	}
-	if v.DisplaySize, err = readInt(b); err != nil {
+	if o.DisplaySize, err = readInt(b); err != nil {
 		return
 	}
-	if v.BlockOrder, err = readBool(b); err != nil {
+	if o.BlockOrder, err = readBool(b); err != nil {
 		return
 	}
-	if v.SweepToFill, err = readBool(b); err != nil {
+	if o.SweepToFill, err = readBool(b); err != nil {
 		return
 	}
-	if v.AllOrNone, err = readBool(b); err != nil {
+	if o.AllOrNone, err = readBool(b); err != nil {
 		return
 	}
-	if v.MinQty, err = readInt(b); err != nil {
+	if o.MinQty, err = readInt(b); err != nil {
 		return
 	}
-	if v.OCAType, err = readInt(b); err != nil {
+	if o.OCAType, err = readInt(b); err != nil {
 		return
 	}
-	if v.ETradeOnly, err = readInt(b); err != nil {
+	if o.ETradeOnly, err = readInt(b); err != nil {
 		return
 	}
-	if v.FirmQuoteOnly, err = readBool(b); err != nil {
+	if o.FirmQuoteOnly, err = readBool(b); err != nil {
 		return
 	}
-	if v.NBBOPriceCap, err = readFloat(b); err != nil {
+	if o.NBBOPriceCap, err = readFloat(b); err != nil {
 		return
 	}
-	if v.ParentId, err = readInt(b); err != nil {
+	if o.ParentId, err = readInt(b); err != nil {
 		return
 	}
-	if v.TriggerMethod, err = readInt(b); err != nil {
+	if o.TriggerMethod, err = readInt(b); err != nil {
 		return
 	}
-	if v.Volatility, err = readFloat(b); err != nil {
+	if o.Volatility, err = readFloat(b); err != nil {
 		return
 	}
-	if v.VolatilityType, err = readInt(b); err != nil {
+	if o.VolatilityType, err = readInt(b); err != nil {
 		return
 	}
-	if v.DeltaNeutralOrderType, err = readString(b); err != nil {
+	if o.DeltaNeutralOrderType, err = readString(b); err != nil {
 		return
 	}
-	if v.DeltaNeutralAuxPrice, err = readFloat(b); err != nil {
+	if o.DeltaNeutralAuxPrice, err = readFloat(b); err != nil {
 		return
 	}
-	if v.DeltaNeutralOrderType != "" {
-		if err = v.DeltaNeutral.read(b); err != nil {
+	if o.DeltaNeutralOrderType != "" {
+		if err = o.DeltaNeutral.read(b); err != nil {
 			return
 		}
 	}
-	if v.ContinuousUpdate, err = readInt(b); err != nil {
+	if o.ContinuousUpdate, err = readInt(b); err != nil {
 		return
 	}
-	if v.ReferencePriceType, err = readInt(b); err != nil {
+	if o.ReferencePriceType, err = readInt(b); err != nil {
 		return
 	}
-	if v.TrailingStopPrice, err = readFloat(b); err != nil {
+	if o.TrailingStopPrice, err = readFloat(b); err != nil {
 		return
 	}
-	if v.BasisPoints, err = readFloat(b); err != nil {
+	if o.BasisPoints, err = readFloat(b); err != nil {
 		return
 	}
-	if v.BasisPointsType, err = readInt(b); err != nil {
+	if o.BasisPointsType, err = readInt(b); err != nil {
 		return
 	}
-	if v.ComboLegsDescription, err = readString(b); err != nil {
+	if o.ComboLegsDescription, err = readString(b); err != nil {
 		return
 	}
 	var smartSize int64
 	if smartSize, err = readInt(b); err != nil {
 		return
 	}
-	v.SmartComboRoutingParams = make([]TagValue, smartSize)
-	for _, e := range v.SmartComboRoutingParams {
+	o.SmartComboRoutingParams = make([]TagValue, smartSize)
+	for _, e := range o.SmartComboRoutingParams {
 		if err = e.read(b); err != nil {
 			return
 		}
 	}
-	if v.ScaleInitLevelSize, err = readInt(b); err != nil {
+	if o.ScaleInitLevelSize, err = readInt(b); err != nil {
 		return
 	}
-	if v.ScaleSubsLevelSize, err = readInt(b); err != nil {
+	if o.ScaleSubsLevelSize, err = readInt(b); err != nil {
 		return
 	}
-	if v.ScalePriceIncrement, err = readFloat(b); err != nil {
+	if o.ScalePriceIncrement, err = readFloat(b); err != nil {
 		return
 	}
-	if v.HedgeType, err = readString(b); err != nil {
+	if o.HedgeType, err = readString(b); err != nil {
 		return
 	}
-	if v.HedgeType != "" {
-		if err = v.HedgeParam.read(b); err != nil {
+	if o.HedgeType != "" {
+		if err = o.HedgeParam.read(b); err != nil {
 			return
 		}
 	}
-	if v.OptOutSmartRouting, err = readBool(b); err != nil {
+	if o.OptOutSmartRouting, err = readBool(b); err != nil {
 		return
 	}
-	if v.ClearingAccount, err = readString(b); err != nil {
+	if o.ClearingAccount, err = readString(b); err != nil {
 		return
 	}
-	if v.ClearingIntent, err = readString(b); err != nil {
+	if o.ClearingIntent, err = readString(b); err != nil {
 		return
 	}
-	if v.NotHeld, err = readBool(b); err != nil {
+	if o.NotHeld, err = readBool(b); err != nil {
 		return
 	}
-	if v.HaveUnderComp, err = readBool(b); err != nil {
+	if o.HaveUnderComp, err = readBool(b); err != nil {
 		return
 	}
-	if v.HaveUnderComp {
-		if err = v.UnderComp.read(b); err != nil {
+	if o.HaveUnderComp {
+		if err = o.UnderComp.read(b); err != nil {
 			return
 		}
 	}
-	if v.AlgoStrategy, err = readString(b); err != nil {
+	if o.AlgoStrategy, err = readString(b); err != nil {
 		return
 	}
-	if v.AlgoStrategy != "" {
-		if err = v.AlgoParams.read(b); err != nil {
+	if o.AlgoStrategy != "" {
+		if err = o.AlgoParams.read(b); err != nil {
 			return
 		}
 	}
-	return v.OrderState.read(b)
+	return o.OrderState.read(b)
 }
 
 type OrderState struct {
@@ -1099,35 +1099,35 @@ type OrderState struct {
 	WarningText        string
 }
 
-func (v *OrderState) read(b *bufio.Reader) (err error) {
-	if v.WhatIf, err = readBool(b); err != nil {
+func (o *OrderState) read(b *bufio.Reader) (err error) {
+	if o.WhatIf, err = readBool(b); err != nil {
 		return
 	}
-	if v.Status, err = readString(b); err != nil {
+	if o.Status, err = readString(b); err != nil {
 		return
 	}
-	if v.InitialMargin, err = readString(b); err != nil {
+	if o.InitialMargin, err = readString(b); err != nil {
 		return
 	}
-	if v.MaintenanceMargin, err = readString(b); err != nil {
+	if o.MaintenanceMargin, err = readString(b); err != nil {
 		return
 	}
-	if v.EquityWithLoan, err = readString(b); err != nil {
+	if o.EquityWithLoan, err = readString(b); err != nil {
 		return
 	}
-	if v.Commission, err = readFloat(b); err != nil {
+	if o.Commission, err = readFloat(b); err != nil {
 		return
 	}
-	if v.MinCommission, err = readFloat(b); err != nil {
+	if o.MinCommission, err = readFloat(b); err != nil {
 		return
 	}
-	if v.MaxCommission, err = readFloat(b); err != nil {
+	if o.MaxCommission, err = readFloat(b); err != nil {
 		return
 	}
-	if v.CommissionCurrency, err = readString(b); err != nil {
+	if o.CommissionCurrency, err = readString(b); err != nil {
 		return
 	}
-	v.WarningText, err = readString(b)
+	o.WarningText, err = readString(b)
 	return
 }
 
@@ -1135,12 +1135,12 @@ type NextValidId struct {
 	OrderId int64
 }
 
-func (v *NextValidId) code() IncomingMessageId {
+func (n *NextValidId) code() IncomingMessageId {
 	return mNextValidId
 }
 
-func (v *NextValidId) read(b *bufio.Reader) (err error) {
-	v.OrderId, err = readInt(b)
+func (n *NextValidId) read(b *bufio.Reader) (err error) {
+	n.OrderId, err = readInt(b)
 	return
 }
 
@@ -1150,24 +1150,24 @@ type ScannerData struct {
 }
 
 // Id contains the TWS "reqId", which is used for reply correlation.
-func (v *ScannerData) Id() int64 {
-	return v.id
+func (s *ScannerData) Id() int64 {
+	return s.id
 }
 
-func (v *ScannerData) code() IncomingMessageId {
+func (s *ScannerData) code() IncomingMessageId {
 	return mScannerData
 }
 
-func (v *ScannerData) read(b *bufio.Reader) (err error) {
-	if v.id, err = readInt(b); err != nil {
+func (s *ScannerData) read(b *bufio.Reader) (err error) {
+	if s.id, err = readInt(b); err != nil {
 		return
 	}
 	var size int64
 	if size, err = readInt(b); err != nil {
 		return
 	}
-	v.Detail = make([]ScannerDetail, size)
-	for _, e := range v.Detail {
+	s.Detail = make([]ScannerDetail, size)
+	for _, e := range s.Detail {
 		if err = e.read(b); err != nil {
 			return
 		}
@@ -1194,53 +1194,53 @@ type ScannerDetail struct {
 	Legs         string
 }
 
-func (v *ScannerDetail) read(b *bufio.Reader) (err error) {
-	if v.Rank, err = readInt(b); err != nil {
+func (s *ScannerDetail) read(b *bufio.Reader) (err error) {
+	if s.Rank, err = readInt(b); err != nil {
 		return
 	}
-	if v.ContractId, err = readInt(b); err != nil {
+	if s.ContractId, err = readInt(b); err != nil {
 		return
 	}
-	if v.Symbol, err = readString(b); err != nil {
+	if s.Symbol, err = readString(b); err != nil {
 		return
 	}
-	if v.SecType, err = readString(b); err != nil {
+	if s.SecType, err = readString(b); err != nil {
 		return
 	}
-	if v.Expiry, err = readString(b); err != nil {
+	if s.Expiry, err = readString(b); err != nil {
 		return
 	}
-	if v.Strike, err = readFloat(b); err != nil {
+	if s.Strike, err = readFloat(b); err != nil {
 		return
 	}
-	if v.Right, err = readString(b); err != nil {
+	if s.Right, err = readString(b); err != nil {
 		return
 	}
-	if v.Exchange, err = readString(b); err != nil {
+	if s.Exchange, err = readString(b); err != nil {
 		return
 	}
-	if v.Currency, err = readString(b); err != nil {
+	if s.Currency, err = readString(b); err != nil {
 		return
 	}
-	if v.LocalSymbol, err = readString(b); err != nil {
+	if s.LocalSymbol, err = readString(b); err != nil {
 		return
 	}
-	if v.MarketName, err = readString(b); err != nil {
+	if s.MarketName, err = readString(b); err != nil {
 		return
 	}
-	if v.TradingClass, err = readString(b); err != nil {
+	if s.TradingClass, err = readString(b); err != nil {
 		return
 	}
-	if v.Distance, err = readString(b); err != nil {
+	if s.Distance, err = readString(b); err != nil {
 		return
 	}
-	if v.Benchmark, err = readString(b); err != nil {
+	if s.Benchmark, err = readString(b); err != nil {
 		return
 	}
-	if v.Projection, err = readString(b); err != nil {
+	if s.Projection, err = readString(b); err != nil {
 		return
 	}
-	v.Legs, err = readString(b)
+	s.Legs, err = readString(b)
 	return
 }
 
@@ -1266,94 +1266,94 @@ type ContractData struct {
 }
 
 // Id contains the TWS "reqId", which is used for reply correlation.
-func (v *ContractData) Id() int64 {
-	return v.id
+func (c *ContractData) Id() int64 {
+	return c.id
 }
 
-func (v *ContractData) code() IncomingMessageId {
+func (c *ContractData) code() IncomingMessageId {
 	return mContractData
 }
 
-func (v *ContractData) read(b *bufio.Reader) (err error) {
-	if v.id, err = readInt(b); err != nil {
+func (c *ContractData) read(b *bufio.Reader) (err error) {
+	if c.id, err = readInt(b); err != nil {
 		return
 	}
-	if v.Symbol, err = readString(b); err != nil {
+	if c.Symbol, err = readString(b); err != nil {
 		return
 	}
-	if v.SecurityType, err = readString(b); err != nil {
+	if c.SecurityType, err = readString(b); err != nil {
 		return
 	}
-	if v.Expiry, err = readString(b); err != nil {
+	if c.Expiry, err = readString(b); err != nil {
 		return
 	}
-	if v.Strike, err = readFloat(b); err != nil {
+	if c.Strike, err = readFloat(b); err != nil {
 		return
 	}
-	if v.Right, err = readString(b); err != nil {
+	if c.Right, err = readString(b); err != nil {
 		return
 	}
-	if v.Exchange, err = readString(b); err != nil {
+	if c.Exchange, err = readString(b); err != nil {
 		return
 	}
-	if v.Currency, err = readString(b); err != nil {
+	if c.Currency, err = readString(b); err != nil {
 		return
 	}
-	if v.LocalSymbol, err = readString(b); err != nil {
+	if c.LocalSymbol, err = readString(b); err != nil {
 		return
 	}
-	if v.MarketName, err = readString(b); err != nil {
+	if c.MarketName, err = readString(b); err != nil {
 		return
 	}
-	if v.TradingClass, err = readString(b); err != nil {
+	if c.TradingClass, err = readString(b); err != nil {
 		return
 	}
-	if v.ContractId, err = readInt(b); err != nil {
+	if c.ContractId, err = readInt(b); err != nil {
 		return
 	}
-	if v.MinTick, err = readFloat(b); err != nil {
+	if c.MinTick, err = readFloat(b); err != nil {
 		return
 	}
-	if v.Multiplier, err = readString(b); err != nil {
+	if c.Multiplier, err = readString(b); err != nil {
 		return
 	}
-	if v.OrderTypes, err = readString(b); err != nil {
+	if c.OrderTypes, err = readString(b); err != nil {
 		return
 	}
-	if v.ValidExchanges, err = readString(b); err != nil {
+	if c.ValidExchanges, err = readString(b); err != nil {
 		return
 	}
-	if v.PriceMagnifier, err = readInt(b); err != nil {
+	if c.PriceMagnifier, err = readInt(b); err != nil {
 		return
 	}
-	if v.SpotContractId, err = readInt(b); err != nil {
+	if c.SpotContractId, err = readInt(b); err != nil {
 		return
 	}
-	if v.LongName, err = readString(b); err != nil {
+	if c.LongName, err = readString(b); err != nil {
 		return
 	}
-	if v.PrimaryExchange, err = readString(b); err != nil {
+	if c.PrimaryExchange, err = readString(b); err != nil {
 		return
 	}
-	if v.ContractMonth, err = readString(b); err != nil {
+	if c.ContractMonth, err = readString(b); err != nil {
 		return
 	}
-	if v.Industry, err = readString(b); err != nil {
+	if c.Industry, err = readString(b); err != nil {
 		return
 	}
-	if v.Category, err = readString(b); err != nil {
+	if c.Category, err = readString(b); err != nil {
 		return
 	}
-	if v.Subcategory, err = readString(b); err != nil {
+	if c.Subcategory, err = readString(b); err != nil {
 		return
 	}
-	if v.TimezoneId, err = readString(b); err != nil {
+	if c.TimezoneId, err = readString(b); err != nil {
 		return
 	}
-	if v.TradingHours, err = readString(b); err != nil {
+	if c.TradingHours, err = readString(b); err != nil {
 		return
 	}
-	v.LiquidHours, err = readString(b)
+	c.LiquidHours, err = readString(b)
 	return
 }
 
@@ -1388,94 +1388,94 @@ type BondContractData struct {
 }
 
 // Id contains the TWS "reqId", which is used for reply correlation.
-func (v *BondContractData) Id() int64 {
-	return v.id
+func (bcd *BondContractData) Id() int64 {
+	return bcd.id
 }
 
-func (v *BondContractData) code() IncomingMessageId {
+func (bcd *BondContractData) code() IncomingMessageId {
 	return mBondContractData
 }
 
-func (v *BondContractData) read(b *bufio.Reader) (err error) {
-	if v.id, err = readInt(b); err != nil {
+func (bcd *BondContractData) read(b *bufio.Reader) (err error) {
+	if bcd.id, err = readInt(b); err != nil {
 		return
 	}
-	if v.Symbol, err = readString(b); err != nil {
+	if bcd.Symbol, err = readString(b); err != nil {
 		return
 	}
-	if v.SecType, err = readString(b); err != nil {
+	if bcd.SecType, err = readString(b); err != nil {
 		return
 	}
-	if v.Cusip, err = readString(b); err != nil {
+	if bcd.Cusip, err = readString(b); err != nil {
 		return
 	}
-	if v.Coupon, err = readFloat(b); err != nil {
+	if bcd.Coupon, err = readFloat(b); err != nil {
 		return
 	}
-	if v.Maturity, err = readString(b); err != nil {
+	if bcd.Maturity, err = readString(b); err != nil {
 		return
 	}
-	if v.IssueDate, err = readString(b); err != nil {
+	if bcd.IssueDate, err = readString(b); err != nil {
 		return
 	}
-	if v.Ratings, err = readString(b); err != nil {
+	if bcd.Ratings, err = readString(b); err != nil {
 		return
 	}
-	if v.BondType, err = readString(b); err != nil {
+	if bcd.BondType, err = readString(b); err != nil {
 		return
 	}
-	if v.CouponType, err = readString(b); err != nil {
+	if bcd.CouponType, err = readString(b); err != nil {
 		return
 	}
-	if v.Convertible, err = readBool(b); err != nil {
+	if bcd.Convertible, err = readBool(b); err != nil {
 		return
 	}
-	if v.Callable, err = readBool(b); err != nil {
+	if bcd.Callable, err = readBool(b); err != nil {
 		return
 	}
-	if v.Putable, err = readBool(b); err != nil {
+	if bcd.Putable, err = readBool(b); err != nil {
 		return
 	}
-	if v.DescAppend, err = readString(b); err != nil {
+	if bcd.DescAppend, err = readString(b); err != nil {
 		return
 	}
-	if v.Exchange, err = readString(b); err != nil {
+	if bcd.Exchange, err = readString(b); err != nil {
 		return
 	}
-	if v.Currency, err = readString(b); err != nil {
+	if bcd.Currency, err = readString(b); err != nil {
 		return
 	}
-	if v.MarketName, err = readString(b); err != nil {
+	if bcd.MarketName, err = readString(b); err != nil {
 		return
 	}
-	if v.TradingClass, err = readString(b); err != nil {
+	if bcd.TradingClass, err = readString(b); err != nil {
 		return
 	}
-	if v.ContractId, err = readInt(b); err != nil {
+	if bcd.ContractId, err = readInt(b); err != nil {
 		return
 	}
-	if v.MinTick, err = readFloat(b); err != nil {
+	if bcd.MinTick, err = readFloat(b); err != nil {
 		return
 	}
-	if v.OrderTypes, err = readString(b); err != nil {
+	if bcd.OrderTypes, err = readString(b); err != nil {
 		return
 	}
-	if v.ValidExchanges, err = readString(b); err != nil {
+	if bcd.ValidExchanges, err = readString(b); err != nil {
 		return
 	}
-	if v.NextOptionDate, err = readString(b); err != nil {
+	if bcd.NextOptionDate, err = readString(b); err != nil {
 		return
 	}
-	if v.NextOptionType, err = readString(b); err != nil {
+	if bcd.NextOptionType, err = readString(b); err != nil {
 		return
 	}
-	if v.NextOptionPartial, err = readBool(b); err != nil {
+	if bcd.NextOptionPartial, err = readBool(b); err != nil {
 		return
 	}
-	if v.Notes, err = readString(b); err != nil {
+	if bcd.Notes, err = readString(b); err != nil {
 		return
 	}
-	v.LongName, err = readString(b)
+	bcd.LongName, err = readString(b)
 	return
 }
 
@@ -1507,85 +1507,85 @@ type ExecutionData struct {
 }
 
 // Id contains the TWS "reqId", which is used for reply correlation.
-func (v *ExecutionData) Id() int64 {
-	return v.id
+func (e *ExecutionData) Id() int64 {
+	return e.id
 }
 
-func (v *ExecutionData) code() IncomingMessageId {
+func (e *ExecutionData) code() IncomingMessageId {
 	return mExecutionData
 }
 
-func (v *ExecutionData) read(b *bufio.Reader) (err error) {
-	if v.id, err = readInt(b); err != nil {
+func (e *ExecutionData) read(b *bufio.Reader) (err error) {
+	if e.id, err = readInt(b); err != nil {
 		return
 	}
-	if v.OrderId, err = readInt(b); err != nil {
+	if e.OrderId, err = readInt(b); err != nil {
 		return
 	}
-	if v.ContractId, err = readInt(b); err != nil {
+	if e.ContractId, err = readInt(b); err != nil {
 		return
 	}
-	if v.Symbol, err = readString(b); err != nil {
+	if e.Symbol, err = readString(b); err != nil {
 		return
 	}
-	if v.SecType, err = readString(b); err != nil {
+	if e.SecType, err = readString(b); err != nil {
 		return
 	}
-	if v.Expiry, err = readString(b); err != nil {
+	if e.Expiry, err = readString(b); err != nil {
 		return
 	}
-	if v.Strike, err = readFloat(b); err != nil {
+	if e.Strike, err = readFloat(b); err != nil {
 		return
 	}
-	if v.Right, err = readString(b); err != nil {
+	if e.Right, err = readString(b); err != nil {
 		return
 	}
-	if v.Exchange, err = readString(b); err != nil {
+	if e.Exchange, err = readString(b); err != nil {
 		return
 	}
-	if v.Currency, err = readString(b); err != nil {
+	if e.Currency, err = readString(b); err != nil {
 		return
 	}
-	if v.LocalSymbol, err = readString(b); err != nil {
+	if e.LocalSymbol, err = readString(b); err != nil {
 		return
 	}
-	if v.ExecutionId, err = readString(b); err != nil {
+	if e.ExecutionId, err = readString(b); err != nil {
 		return
 	}
-	if v.Time, err = readString(b); err != nil {
+	if e.Time, err = readString(b); err != nil {
 		return
 	}
-	if v.Account, err = readString(b); err != nil {
+	if e.Account, err = readString(b); err != nil {
 		return
 	}
-	if v.ExecutionExchange, err = readString(b); err != nil {
+	if e.ExecutionExchange, err = readString(b); err != nil {
 		return
 	}
-	if v.Side, err = readString(b); err != nil {
+	if e.Side, err = readString(b); err != nil {
 		return
 	}
-	if v.Shares, err = readInt(b); err != nil {
+	if e.Shares, err = readInt(b); err != nil {
 		return
 	}
-	if v.Price, err = readFloat(b); err != nil {
+	if e.Price, err = readFloat(b); err != nil {
 		return
 	}
-	if v.PermId, err = readInt(b); err != nil {
+	if e.PermId, err = readInt(b); err != nil {
 		return
 	}
-	if v.ClientId, err = readInt(b); err != nil {
+	if e.ClientId, err = readInt(b); err != nil {
 		return
 	}
-	if v.Liquidation, err = readInt(b); err != nil {
+	if e.Liquidation, err = readInt(b); err != nil {
 		return
 	}
-	if v.CumQty, err = readInt(b); err != nil {
+	if e.CumQty, err = readInt(b); err != nil {
 		return
 	}
-	if v.AveragePrice, err = readFloat(b); err != nil {
+	if e.AveragePrice, err = readFloat(b); err != nil {
 		return
 	}
-	v.OrderRef, err = readString(b)
+	e.OrderRef, err = readString(b)
 	return
 }
 
@@ -1599,31 +1599,31 @@ type MarketDepth struct {
 }
 
 // Id contains the TWS "tickerId", which was nominated at market data request time.
-func (v *MarketDepth) Id() int64 {
-	return v.id
+func (m *MarketDepth) Id() int64 {
+	return m.id
 }
 
-func (v *MarketDepth) code() IncomingMessageId {
+func (m *MarketDepth) code() IncomingMessageId {
 	return mMarketDepth
 }
 
-func (v *MarketDepth) read(b *bufio.Reader) (err error) {
-	if v.id, err = readInt(b); err != nil {
+func (m *MarketDepth) read(b *bufio.Reader) (err error) {
+	if m.id, err = readInt(b); err != nil {
 		return
 	}
-	if v.Position, err = readInt(b); err != nil {
+	if m.Position, err = readInt(b); err != nil {
 		return
 	}
-	if v.Operation, err = readInt(b); err != nil {
+	if m.Operation, err = readInt(b); err != nil {
 		return
 	}
-	if v.Side, err = readInt(b); err != nil {
+	if m.Side, err = readInt(b); err != nil {
 		return
 	}
-	if v.Price, err = readFloat(b); err != nil {
+	if m.Price, err = readFloat(b); err != nil {
 		return
 	}
-	v.Size, err = readInt(b)
+	m.Size, err = readInt(b)
 	return
 }
 
@@ -1638,34 +1638,34 @@ type MarketDepthL2 struct {
 }
 
 // Id contains the TWS "tickerId", which was nominated at market data request time.
-func (v *MarketDepthL2) Id() int64 {
-	return v.id
+func (m *MarketDepthL2) Id() int64 {
+	return m.id
 }
 
-func (v *MarketDepthL2) code() IncomingMessageId {
+func (m *MarketDepthL2) code() IncomingMessageId {
 	return mMarketDepthL2
 }
 
-func (v *MarketDepthL2) read(b *bufio.Reader) (err error) {
-	if v.id, err = readInt(b); err != nil {
+func (m *MarketDepthL2) read(b *bufio.Reader) (err error) {
+	if m.id, err = readInt(b); err != nil {
 		return
 	}
-	if v.Position, err = readInt(b); err != nil {
+	if m.Position, err = readInt(b); err != nil {
 		return
 	}
-	if v.MarketMaker, err = readString(b); err != nil {
+	if m.MarketMaker, err = readString(b); err != nil {
 		return
 	}
-	if v.Operation, err = readInt(b); err != nil {
+	if m.Operation, err = readInt(b); err != nil {
 		return
 	}
-	if v.Side, err = readInt(b); err != nil {
+	if m.Side, err = readInt(b); err != nil {
 		return
 	}
-	if v.Price, err = readFloat(b); err != nil {
+	if m.Price, err = readFloat(b); err != nil {
 		return
 	}
-	v.Size, err = readInt(b)
+	m.Size, err = readInt(b)
 	return
 }
 
@@ -1676,21 +1676,21 @@ type NewsBulletins struct {
 	Exchange string
 }
 
-func (v *NewsBulletins) code() IncomingMessageId {
+func (n *NewsBulletins) code() IncomingMessageId {
 	return mNewsBulletins
 }
 
-func (v *NewsBulletins) read(b *bufio.Reader) (err error) {
-	if v.MsgId, err = readInt(b); err != nil {
+func (n *NewsBulletins) read(b *bufio.Reader) (err error) {
+	if n.MsgId, err = readInt(b); err != nil {
 		return
 	}
-	if v.Type, err = readInt(b); err != nil {
+	if n.Type, err = readInt(b); err != nil {
 		return
 	}
-	if v.Message, err = readString(b); err != nil {
+	if n.Message, err = readString(b); err != nil {
 		return
 	}
-	v.Exchange, err = readString(b)
+	n.Exchange, err = readString(b)
 	return
 }
 
@@ -1698,12 +1698,12 @@ type ManagedAccounts struct {
 	AccountsList string
 }
 
-func (v *ManagedAccounts) code() IncomingMessageId {
+func (m *ManagedAccounts) code() IncomingMessageId {
 	return mManagedAccounts
 }
 
-func (v *ManagedAccounts) read(b *bufio.Reader) (err error) {
-	v.AccountsList, err = readString(b)
+func (m *ManagedAccounts) read(b *bufio.Reader) (err error) {
+	m.AccountsList, err = readString(b)
 	return
 }
 
@@ -1712,15 +1712,15 @@ type ReceiveFA struct {
 	XML  string
 }
 
-func (v *ReceiveFA) code() IncomingMessageId {
+func (r *ReceiveFA) code() IncomingMessageId {
 	return mReceiveFA
 }
 
-func (v *ReceiveFA) read(b *bufio.Reader) (err error) {
-	if v.Type, err = readInt(b); err != nil {
+func (r *ReceiveFA) read(b *bufio.Reader) (err error) {
+	if r.Type, err = readInt(b); err != nil {
 		return
 	}
-	v.XML, err = readString(b)
+	r.XML, err = readString(b)
 	return
 }
 
@@ -1732,30 +1732,30 @@ type HistoricalData struct {
 }
 
 // Id contains the TWS "reqId", which is used for reply correlation.
-func (v *HistoricalData) Id() int64 {
-	return v.id
+func (h *HistoricalData) Id() int64 {
+	return h.id
 }
 
-func (v *HistoricalData) code() IncomingMessageId {
+func (h *HistoricalData) code() IncomingMessageId {
 	return mHistoricalData
 }
 
-func (v *HistoricalData) read(b *bufio.Reader) (err error) {
-	if v.id, err = readInt(b); err != nil {
+func (h *HistoricalData) read(b *bufio.Reader) (err error) {
+	if h.id, err = readInt(b); err != nil {
 		return
 	}
-	if v.StartDate, err = readString(b); err != nil {
+	if h.StartDate, err = readString(b); err != nil {
 		return
 	}
-	if v.EndDate, err = readString(b); err != nil {
+	if h.EndDate, err = readString(b); err != nil {
 		return
 	}
 	var size int64
 	if size, err = readInt(b); err != nil {
 		return
 	}
-	v.Data = make([]HistoricalDataItem, size)
-	for _, e := range v.Data {
+	h.Data = make([]HistoricalDataItem, size)
+	for _, e := range h.Data {
 		if err = e.read(b); err != nil {
 			return
 		}
@@ -1775,32 +1775,32 @@ type HistoricalDataItem struct {
 	BarCount int64
 }
 
-func (v *HistoricalDataItem) read(b *bufio.Reader) (err error) {
-	if v.Date, err = readString(b); err != nil {
+func (h *HistoricalDataItem) read(b *bufio.Reader) (err error) {
+	if h.Date, err = readString(b); err != nil {
 		return
 	}
-	if v.Open, err = readFloat(b); err != nil {
+	if h.Open, err = readFloat(b); err != nil {
 		return
 	}
-	if v.High, err = readFloat(b); err != nil {
+	if h.High, err = readFloat(b); err != nil {
 		return
 	}
-	if v.Low, err = readFloat(b); err != nil {
+	if h.Low, err = readFloat(b); err != nil {
 		return
 	}
-	if v.Close, err = readFloat(b); err != nil {
+	if h.Close, err = readFloat(b); err != nil {
 		return
 	}
-	if v.Volume, err = readInt(b); err != nil {
+	if h.Volume, err = readInt(b); err != nil {
 		return
 	}
-	if v.WAP, err = readFloat(b); err != nil {
+	if h.WAP, err = readFloat(b); err != nil {
 		return
 	}
-	if v.HasGaps, err = readString(b); err != nil {
+	if h.HasGaps, err = readString(b); err != nil {
 		return
 	}
-	v.BarCount, err = readInt(b)
+	h.BarCount, err = readInt(b)
 	return
 }
 
@@ -1808,12 +1808,12 @@ type ScannerParameters struct {
 	XML string
 }
 
-func (v *ScannerParameters) code() IncomingMessageId {
+func (s *ScannerParameters) code() IncomingMessageId {
 	return mScannerParameters
 }
 
-func (v *ScannerParameters) read(b *bufio.Reader) (err error) {
-	v.XML, err = readString(b)
+func (s *ScannerParameters) read(b *bufio.Reader) (err error) {
+	s.XML, err = readString(b)
 	return
 }
 
@@ -1821,12 +1821,12 @@ type CurrentTime struct {
 	Time int64
 }
 
-func (v *CurrentTime) code() IncomingMessageId {
+func (c *CurrentTime) code() IncomingMessageId {
 	return mCurrentTime
 }
 
-func (v *CurrentTime) read(b *bufio.Reader) (err error) {
-	v.Time, err = readInt(b)
+func (c *CurrentTime) read(b *bufio.Reader) (err error) {
+	c.Time, err = readInt(b)
 	return
 }
 
@@ -1843,40 +1843,40 @@ type RealtimeBars struct {
 }
 
 // Id contains the TWS "reqId", which is used for reply correlation.
-func (v *RealtimeBars) Id() int64 {
-	return v.id
+func (r *RealtimeBars) Id() int64 {
+	return r.id
 }
 
-func (v *RealtimeBars) code() IncomingMessageId {
+func (r *RealtimeBars) code() IncomingMessageId {
 	return mRealtimeBars
 }
 
-func (v *RealtimeBars) read(b *bufio.Reader) (err error) {
-	if v.id, err = readInt(b); err != nil {
+func (r *RealtimeBars) read(b *bufio.Reader) (err error) {
+	if r.id, err = readInt(b); err != nil {
 		return
 	}
-	if v.Time, err = readInt(b); err != nil {
+	if r.Time, err = readInt(b); err != nil {
 		return
 	}
-	if v.Open, err = readFloat(b); err != nil {
+	if r.Open, err = readFloat(b); err != nil {
 		return
 	}
-	if v.High, err = readFloat(b); err != nil {
+	if r.High, err = readFloat(b); err != nil {
 		return
 	}
-	if v.Low, err = readFloat(b); err != nil {
+	if r.Low, err = readFloat(b); err != nil {
 		return
 	}
-	if v.Close, err = readFloat(b); err != nil {
+	if r.Close, err = readFloat(b); err != nil {
 		return
 	}
-	if v.Volume, err = readFloat(b); err != nil {
+	if r.Volume, err = readFloat(b); err != nil {
 		return
 	}
-	if v.WAP, err = readFloat(b); err != nil {
+	if r.WAP, err = readFloat(b); err != nil {
 		return
 	}
-	v.Count, err = readInt(b)
+	r.Count, err = readInt(b)
 	return
 }
 
@@ -1886,19 +1886,19 @@ type FundamentalData struct {
 }
 
 // Id contains the TWS "reqId", which is used for reply correlation.
-func (v *FundamentalData) Id() int64 {
-	return v.id
+func (f *FundamentalData) Id() int64 {
+	return f.id
 }
 
-func (v *FundamentalData) code() IncomingMessageId {
+func (f *FundamentalData) code() IncomingMessageId {
 	return mFundamentalData
 }
 
-func (v *FundamentalData) read(b *bufio.Reader) (err error) {
-	if v.id, err = readInt(b); err != nil {
+func (f *FundamentalData) read(b *bufio.Reader) (err error) {
+	if f.id, err = readInt(b); err != nil {
 		return
 	}
-	v.Data, err = readString(b)
+	f.Data, err = readString(b)
 	return
 }
 
@@ -1907,27 +1907,27 @@ type ContractDataEnd struct {
 }
 
 // Id contains the TWS "reqId", which is used for reply correlation.
-func (v *ContractDataEnd) Id() int64 {
-	return v.id
+func (c *ContractDataEnd) Id() int64 {
+	return c.id
 }
 
-func (v *ContractDataEnd) code() IncomingMessageId {
+func (c *ContractDataEnd) code() IncomingMessageId {
 	return mContractDataEnd
 }
 
-func (v *ContractDataEnd) read(b *bufio.Reader) (err error) {
-	v.id, err = readInt(b)
+func (c *ContractDataEnd) read(b *bufio.Reader) (err error) {
+	c.id, err = readInt(b)
 	return
 }
 
 type OpenOrderEnd struct {
 }
 
-func (v *OpenOrderEnd) code() IncomingMessageId {
+func (o *OpenOrderEnd) code() IncomingMessageId {
 	return mOpenOrderEnd
 }
 
-func (v *OpenOrderEnd) read(b *bufio.Reader) (err error) {
+func (o *OpenOrderEnd) read(b *bufio.Reader) (err error) {
 	return
 }
 
@@ -1935,12 +1935,12 @@ type AccountDownloadEnd struct {
 	Account string
 }
 
-func (v *AccountDownloadEnd) code() IncomingMessageId {
+func (a *AccountDownloadEnd) code() IncomingMessageId {
 	return mAccountDownloadEnd
 }
 
-func (v *AccountDownloadEnd) read(b *bufio.Reader) (err error) {
-	v.Account, err = readString(b)
+func (a *AccountDownloadEnd) read(b *bufio.Reader) (err error) {
+	a.Account, err = readString(b)
 	return
 }
 
@@ -1949,16 +1949,16 @@ type ExecutionDataEnd struct {
 }
 
 // Id contains the TWS "reqId", which is used for reply correlation.
-func (v *ExecutionDataEnd) Id() int64 {
-	return v.id
+func (e *ExecutionDataEnd) Id() int64 {
+	return e.id
 }
 
-func (v *ExecutionDataEnd) code() IncomingMessageId {
+func (e *ExecutionDataEnd) code() IncomingMessageId {
 	return mExecutionDataEnd
 }
 
-func (v *ExecutionDataEnd) read(b *bufio.Reader) (err error) {
-	v.id, err = readInt(b)
+func (e *ExecutionDataEnd) read(b *bufio.Reader) (err error) {
+	e.id, err = readInt(b)
 	return
 }
 
@@ -1969,25 +1969,25 @@ type DeltaNeutralValidation struct {
 	Price      float64
 }
 
-func (v *DeltaNeutralValidation) Id() int64 {
-	return v.id
+func (d *DeltaNeutralValidation) Id() int64 {
+	return d.id
 }
 
-func (v *DeltaNeutralValidation) code() IncomingMessageId {
+func (d *DeltaNeutralValidation) code() IncomingMessageId {
 	return mDeltaNeutralValidation
 }
 
-func (v *DeltaNeutralValidation) read(b *bufio.Reader) (err error) {
-	if v.id, err = readInt(b); err != nil {
+func (d *DeltaNeutralValidation) read(b *bufio.Reader) (err error) {
+	if d.id, err = readInt(b); err != nil {
 		return
 	}
-	if v.ContractId, err = readInt(b); err != nil {
+	if d.ContractId, err = readInt(b); err != nil {
 		return
 	}
-	if v.Delta, err = readFloat(b); err != nil {
+	if d.Delta, err = readFloat(b); err != nil {
 		return
 	}
-	v.Price, err = readFloat(b)
+	d.Price, err = readFloat(b)
 	return
 }
 
@@ -1996,16 +1996,16 @@ type TickSnapshotEnd struct {
 }
 
 // Id contains the TWS "reqId", which is used for reply correlation.
-func (v *TickSnapshotEnd) Id() int64 {
-	return v.id
+func (t *TickSnapshotEnd) Id() int64 {
+	return t.id
 }
 
-func (v *TickSnapshotEnd) code() IncomingMessageId {
+func (t *TickSnapshotEnd) code() IncomingMessageId {
 	return mTickSnapshotEnd
 }
 
-func (v *TickSnapshotEnd) read(b *bufio.Reader) (err error) {
-	v.id, err = readInt(b)
+func (t *TickSnapshotEnd) read(b *bufio.Reader) (err error) {
+	t.id, err = readInt(b)
 	return
 }
 
@@ -2015,19 +2015,19 @@ type MarketDataType struct {
 }
 
 // Id contains the TWS "reqId", which is used for reply correlation.
-func (v *MarketDataType) Id() int64 {
-	return v.id
+func (m *MarketDataType) Id() int64 {
+	return m.id
 }
 
-func (v *MarketDataType) code() IncomingMessageId {
+func (m *MarketDataType) code() IncomingMessageId {
 	return mMarketDataType
 }
 
-func (v *MarketDataType) read(b *bufio.Reader) (err error) {
-	if v.id, err = readInt(b); err != nil {
+func (m *MarketDataType) read(b *bufio.Reader) (err error) {
+	if m.id, err = readInt(b); err != nil {
 		return
 	}
-	v.Type, err = readInt(b)
+	m.Type, err = readInt(b)
 	return
 }
 
@@ -2045,31 +2045,31 @@ type RequestMarketData struct {
 }
 
 // SetId assigns the TWS "tickerId", used for reply correlation and request cancellation.
-func (v *RequestMarketData) SetId(id int64) {
-	v.id = id
+func (r *RequestMarketData) SetId(id int64) {
+	r.id = id
 }
 
-func (v *RequestMarketData) Id() int64 {
-	return v.id
+func (r *RequestMarketData) Id() int64 {
+	return r.id
 }
 
-func (v *RequestMarketData) code() OutgoingMessageId {
+func (r *RequestMarketData) code() OutgoingMessageId {
 	return mRequestMarketData
 }
 
-func (v *RequestMarketData) version() int64 {
+func (r *RequestMarketData) version() int64 {
 	return 9
 }
 
-func (v *RequestMarketData) write(b *bytes.Buffer) (err error) {
-	if err = writeInt(b, v.id); err != nil {
+func (r *RequestMarketData) write(b *bytes.Buffer) (err error) {
+	if err = writeInt(b, r.id); err != nil {
 		return
 	}
-	if err = v.Contract.write(b); err != nil {
+	if err = r.Contract.write(b); err != nil {
 		return
 	}
-	if v.Contract.SecurityType == "BAG" {
-		for _, e := range v.ComboLegs {
+	if r.Contract.SecurityType == "BAG" {
+		for _, e := range r.ComboLegs {
 			if err = e.write(b); err != nil {
 				return
 			}
@@ -2079,15 +2079,15 @@ func (v *RequestMarketData) write(b *bytes.Buffer) (err error) {
 			return
 		}
 	}
-	if v.Comp != nil {
-		if err = v.Comp.write(b); err != nil {
+	if r.Comp != nil {
+		if err = r.Comp.write(b); err != nil {
 			return
 		}
 	}
-	if err = writeString(b, v.GenericTickList); err != nil {
+	if err = writeString(b, r.GenericTickList); err != nil {
 		return
 	}
-	return writeBool(b, v.Snapshot)
+	return writeBool(b, r.Snapshot)
 }
 
 type Contract struct {
@@ -2104,38 +2104,38 @@ type Contract struct {
 	LocalSymbol     string
 }
 
-func (v *Contract) write(b *bytes.Buffer) (err error) {
-	if err = writeInt(b, v.id); err != nil {
+func (c *Contract) write(b *bytes.Buffer) (err error) {
+	if err = writeInt(b, c.id); err != nil {
 		return
 	}
-	if err = writeString(b, v.Symbol); err != nil {
+	if err = writeString(b, c.Symbol); err != nil {
 		return
 	}
-	if err = writeString(b, v.SecurityType); err != nil {
+	if err = writeString(b, c.SecurityType); err != nil {
 		return
 	}
-	if err = writeString(b, v.Expiry); err != nil {
+	if err = writeString(b, c.Expiry); err != nil {
 		return
 	}
-	if err = writeFloat(b, v.Strike); err != nil {
+	if err = writeFloat(b, c.Strike); err != nil {
 		return
 	}
-	if err = writeString(b, v.Right); err != nil {
+	if err = writeString(b, c.Right); err != nil {
 		return
 	}
-	if err = writeString(b, v.Multiplier); err != nil {
+	if err = writeString(b, c.Multiplier); err != nil {
 		return
 	}
-	if err = writeString(b, v.Exchange); err != nil {
+	if err = writeString(b, c.Exchange); err != nil {
 		return
 	}
-	if err = writeString(b, v.PrimaryExchange); err != nil {
+	if err = writeString(b, c.PrimaryExchange); err != nil {
 		return
 	}
-	if err = writeString(b, v.Currency); err != nil {
+	if err = writeString(b, c.Currency); err != nil {
 		return
 	}
-	return writeString(b, v.LocalSymbol)
+	return writeString(b, c.LocalSymbol)
 }
 
 type CancelMarketData struct {
@@ -2143,24 +2143,24 @@ type CancelMarketData struct {
 }
 
 // SetId assigns the TWS "tickerId", which was nominated at market data request time.
-func (v *CancelMarketData) SetId(id int64) {
-	v.id = id
+func (c *CancelMarketData) SetId(id int64) {
+	c.id = id
 }
 
-func (v *CancelMarketData) Id() int64 {
-	return v.id
+func (c *CancelMarketData) Id() int64 {
+	return c.id
 }
 
-func (v *CancelMarketData) code() OutgoingMessageId {
+func (c *CancelMarketData) code() OutgoingMessageId {
 	return mCancelMarketData
 }
 
-func (v *CancelMarketData) version() int64 {
+func (c *CancelMarketData) version() int64 {
 	return 1
 }
 
-func (v *CancelMarketData) write(b *bytes.Buffer) (err error) {
-	return writeInt(b, v.id)
+func (c *CancelMarketData) write(b *bytes.Buffer) (err error) {
+	return writeInt(b, c.id)
 }
 
 type RequestContractData struct {
@@ -2171,57 +2171,57 @@ type RequestContractData struct {
 }
 
 // SetId assigns the TWS "reqId", which is used for reply correlation.
-func (v *RequestContractData) SetId(id int64) {
-	v.id = id
+func (r *RequestContractData) SetId(id int64) {
+	r.id = id
 }
 
-func (v *RequestContractData) Id() int64 {
-	return v.id
+func (r *RequestContractData) Id() int64 {
+	return r.id
 }
 
-func (v *RequestContractData) code() OutgoingMessageId {
+func (r *RequestContractData) code() OutgoingMessageId {
 	return mRequestContractData
 }
 
-func (v *RequestContractData) version() int64 {
+func (r *RequestContractData) version() int64 {
 	return 5
 }
 
-func (v *RequestContractData) write(b *bytes.Buffer) (err error) {
-	if err = writeInt(b, v.id); err != nil {
+func (r *RequestContractData) write(b *bytes.Buffer) (err error) {
+	if err = writeInt(b, r.id); err != nil {
 		return
 	}
-	if err = writeInt(b, v.ContractId); err != nil {
+	if err = writeInt(b, r.ContractId); err != nil {
 		return
 	}
-	if err = writeString(b, v.Symbol); err != nil {
+	if err = writeString(b, r.Symbol); err != nil {
 		return
 	}
-	if err = writeString(b, v.SecurityType); err != nil {
+	if err = writeString(b, r.SecurityType); err != nil {
 		return
 	}
-	if err = writeString(b, v.Expiry); err != nil {
+	if err = writeString(b, r.Expiry); err != nil {
 		return
 	}
-	if err = writeFloat(b, v.Strike); err != nil {
+	if err = writeFloat(b, r.Strike); err != nil {
 		return
 	}
-	if err = writeString(b, v.Right); err != nil {
+	if err = writeString(b, r.Right); err != nil {
 		return
 	}
-	if err = writeString(b, v.Multiplier); err != nil {
+	if err = writeString(b, r.Multiplier); err != nil {
 		return
 	}
-	if err = writeString(b, v.Exchange); err != nil {
+	if err = writeString(b, r.Exchange); err != nil {
 		return
 	}
-	if err = writeString(b, v.Currency); err != nil {
+	if err = writeString(b, r.Currency); err != nil {
 		return
 	}
-	if err = writeString(b, v.LocalSymbol); err != nil {
+	if err = writeString(b, r.LocalSymbol); err != nil {
 		return
 	}
-	return writeBool(b, v.IncludeExpired)
+	return writeBool(b, r.IncludeExpired)
 }
 
 type RequestCalcImpliedVol struct {
@@ -2233,33 +2233,33 @@ type RequestCalcImpliedVol struct {
 }
 
 // SetId assigns the TWS "reqId", which is used for reply correlation and request cancellation.
-func (v *RequestCalcImpliedVol) SetId(id int64) {
-	v.id = id
+func (r *RequestCalcImpliedVol) SetId(id int64) {
+	r.id = id
 }
 
-func (v *RequestCalcImpliedVol) Id() int64 {
-	return v.id
+func (r *RequestCalcImpliedVol) Id() int64 {
+	return r.id
 }
 
-func (v *RequestCalcImpliedVol) code() OutgoingMessageId {
+func (r *RequestCalcImpliedVol) code() OutgoingMessageId {
 	return mRequestCalcImpliedVol
 }
 
-func (v *RequestCalcImpliedVol) version() int64 {
+func (r *RequestCalcImpliedVol) version() int64 {
 	return 1
 }
 
-func (v *RequestCalcImpliedVol) write(b *bytes.Buffer) (err error) {
-	if err = writeInt(b, v.id); err != nil {
+func (r *RequestCalcImpliedVol) write(b *bytes.Buffer) (err error) {
+	if err = writeInt(b, r.id); err != nil {
 		return
 	}
-	if err = v.Contract.write(b); err != nil {
+	if err = r.Contract.write(b); err != nil {
 		return
 	}
-	if err = writeFloat(b, v.OptionPrice); err != nil {
+	if err = writeFloat(b, r.OptionPrice); err != nil {
 		return
 	}
-	return writeFloat(b, v.SpotPrice)
+	return writeFloat(b, r.SpotPrice)
 }
 
 type RequestCalcOptionPrice struct {
@@ -2271,33 +2271,33 @@ type RequestCalcOptionPrice struct {
 }
 
 // SetId assigns the TWS "reqId", which is used for reply correlation and request cancellation.
-func (v *RequestCalcOptionPrice) SetId(id int64) {
-	v.id = id
+func (r *RequestCalcOptionPrice) SetId(id int64) {
+	r.id = id
 }
 
-func (v *RequestCalcOptionPrice) Id() int64 {
-	return v.id
+func (r *RequestCalcOptionPrice) Id() int64 {
+	return r.id
 }
 
-func (v *RequestCalcOptionPrice) code() OutgoingMessageId {
+func (r *RequestCalcOptionPrice) code() OutgoingMessageId {
 	return mRequestCalcOptionPrice
 }
 
-func (v *RequestCalcOptionPrice) version() int64 {
+func (r *RequestCalcOptionPrice) version() int64 {
 	return 1
 }
 
-func (v *RequestCalcOptionPrice) write(b *bytes.Buffer) (err error) {
-	if err = writeInt(b, v.id); err != nil {
+func (r *RequestCalcOptionPrice) write(b *bytes.Buffer) (err error) {
+	if err = writeInt(b, r.id); err != nil {
 		return
 	}
-	if err = v.Contract.write(b); err != nil {
+	if err = r.Contract.write(b); err != nil {
 		return
 	}
-	if err = writeFloat(b, v.Volatility); err != nil {
+	if err = writeFloat(b, r.Volatility); err != nil {
 		return
 	}
-	return writeFloat(b, v.SpotPrice)
+	return writeFloat(b, r.SpotPrice)
 }
 
 type CancelCalcImpliedVol struct {
@@ -2305,24 +2305,24 @@ type CancelCalcImpliedVol struct {
 }
 
 // SetId assigns the TWS "reqId", which was nominated at request time.
-func (v *CancelCalcImpliedVol) SetId(id int64) {
-	v.id = id
+func (c *CancelCalcImpliedVol) SetId(id int64) {
+	c.id = id
 }
 
-func (v *CancelCalcImpliedVol) Id() int64 {
-	return v.id
+func (c *CancelCalcImpliedVol) Id() int64 {
+	return c.id
 }
 
-func (v *CancelCalcImpliedVol) code() OutgoingMessageId {
+func (c *CancelCalcImpliedVol) code() OutgoingMessageId {
 	return mCancelCalcImpliedVol
 }
 
-func (v *CancelCalcImpliedVol) version() int64 {
+func (c *CancelCalcImpliedVol) version() int64 {
 	return 1
 }
 
-func (v *CancelCalcImpliedVol) write(b *bytes.Buffer) (err error) {
-	return writeInt(b, v.id)
+func (c *CancelCalcImpliedVol) write(b *bytes.Buffer) (err error) {
+	return writeInt(b, c.id)
 }
 
 type CancelCalcOptionPrice struct {
@@ -2330,24 +2330,24 @@ type CancelCalcOptionPrice struct {
 }
 
 // SetId assigns the TWS "reqId", which was nominated at request time.
-func (v *CancelCalcOptionPrice) SetId(id int64) {
-	v.id = id
+func (c *CancelCalcOptionPrice) SetId(id int64) {
+	c.id = id
 }
 
-func (v *CancelCalcOptionPrice) Id() int64 {
-	return v.id
+func (c *CancelCalcOptionPrice) Id() int64 {
+	return c.id
 }
 
-func (v *CancelCalcOptionPrice) code() OutgoingMessageId {
+func (c *CancelCalcOptionPrice) code() OutgoingMessageId {
 	return mCancelCalcOptionPrice
 }
 
-func (v *CancelCalcOptionPrice) version() int64 {
+func (c *CancelCalcOptionPrice) version() int64 {
 	return 1
 }
 
-func (v *CancelCalcOptionPrice) write(b *bytes.Buffer) (err error) {
-	return writeInt(b, v.id)
+func (c *CancelCalcOptionPrice) write(b *bytes.Buffer) (err error) {
+	return writeInt(b, c.id)
 }
 
 func code2Msg(code int64) (r Reply, err error) {

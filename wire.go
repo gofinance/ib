@@ -67,27 +67,27 @@ func readTime(b *bufio.Reader) (t time.Time, err error) {
 
 // Encode
 
-func writeString(buf *bytes.Buffer, v string) (err error) {
-	_, err = buf.WriteString(v + "\000")
+func writeString(b *bytes.Buffer, s string) (err error) {
+	_, err = b.WriteString(s + "\000")
 	return
 }
 
-func writeInt(buf *bytes.Buffer, v int64) (err error) {
-	return writeString(buf, strconv.FormatInt(v, 10))
+func writeInt(b *bytes.Buffer, i int64) (err error) {
+	return writeString(b, strconv.FormatInt(i, 10))
 }
 
-func writeFloat(buf *bytes.Buffer, v float64) (err error) {
-	return writeString(buf, strconv.FormatFloat(v, 'g', 10, 64))
+func writeFloat(b *bytes.Buffer, f float64) (err error) {
+	return writeString(b, strconv.FormatFloat(f, 'g', 10, 64))
 }
 
-func writeBool(buf *bytes.Buffer, v bool) (err error) {
+func writeBool(b *bytes.Buffer, bo bool) (err error) {
 	s := "0"
-	if v {
+	if bo {
 		s = "1"
 	}
-	return writeString(buf, s)
+	return writeString(b, s)
 }
 
-func writeTime(buf *bytes.Buffer, v time.Time) (err error) {
-	return writeString(buf, v.Format(ibTimeFormat))
+func writeTime(b *bytes.Buffer, t time.Time) (err error) {
+	return writeString(b, t.Format(ibTimeFormat))
 }
