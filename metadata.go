@@ -11,6 +11,7 @@ type Metadata struct {
 	engine   *Engine
 	contract *Contract
 	options  []option
+	replyc   chan Reply
 	ch       chan func()
 	exit     chan bool
 	update   chan bool
@@ -25,6 +26,7 @@ func NewMetadata(engine *Engine, contract *Contract) *Metadata {
 		metadata: make([]*ContractData, 0),
 		contract: contract,
 		engine:   engine,
+		replyc:   make(chan Reply),
 		ch:       make(chan func(), 1),
 		exit:     make(chan bool, 1),
 		update:   make(chan bool),
@@ -38,6 +40,8 @@ func NewMetadata(engine *Engine, contract *Contract) *Metadata {
 				return
 			case f := <-self.ch:
 				f()
+			case v := <-self.replyc:
+				self.process(v)
 			}
 		}
 	}()
@@ -49,7 +53,7 @@ func (self *Metadata) Update() chan bool { return self.update }
 func (self *Metadata) Error() chan error { return self.error }
 
 func (self *Metadata) Cleanup() {
-	self.engine.Unsubscribe(self.id)
+	self.engine.Unsubscribe(self.replyc, self.id)
 	self.exit <- true
 }
 
@@ -114,13 +118,13 @@ func (self *Metadata) request() error {
 		self.contract.Exchange = opt.exchange
 	}
 
-	self.engine.Unsubscribe(self.id)
+	self.engine.Unsubscribe(self.replyc, self.id)
 	self.id = self.engine.NextRequestId()
 	req := &RequestContractData{
 		Contract: *self.contract,
 	}
 	req.SetId(self.id)
-	self.engine.Subscribe(self, self.id)
+	self.engine.Subscribe(self.replyc, self.id)
 
 	return self.engine.Send(req)
 }

@@ -39,17 +39,33 @@ func TestConnect(t *testing.T) {
 
 	defer engine.Stop()
 
+	if engine.State() != ENGINE_READY {
+		t.Fatalf("engine is not ready")
+	}
+
 	if engine.serverTime.IsZero() {
 		t.Fatalf("server time not provided")
 	}
-}
 
-type Sink struct {
-	ch chan Reply
-}
+	var states chan EngineState = make(chan EngineState)
+	engine.SubscribeState(states)
 
-func (self *Sink) Observe(v Reply) {
-	self.ch <- v
+	// stop the engine in 100 ms
+	go func() {
+		time.Sleep(100 * time.Millisecond)
+		engine.Stop()
+	}()
+
+	newState := <-states
+
+	if newState != ENGINE_EXITED_NORMALLY {
+		t.Fatalf("engine state change error")
+	}
+
+	err = engine.FatalError()
+	if err != nil {
+		t.Fatalf("engine reported an error: %v", err)
+	}
 }
 
 func TestMarketData(t *testing.T) {
@@ -73,7 +89,7 @@ func TestMarketData(t *testing.T) {
 	id := engine.NextRequestId()
 	req1.SetId(id)
 	ch := make(chan Reply)
-	engine.Subscribe(&Sink{ch}, id)
+	engine.Subscribe(ch, id)
 
 	if err := engine.Send(req1); err != nil {
 		t.Fatalf("client %d: cannot send market data request: %s", engine.ClientId(), err)
@@ -89,6 +105,9 @@ func TestMarketData(t *testing.T) {
 	if err := engine.Send(&CancelMarketData{id}); err != nil {
 		t.Fatalf("client %d: cannot send cancel request: %s", engine.ClientId(), err)
 	}
+
+	engine.Unsubscribe(ch, id)
+	engine.Stop()
 }
 
 func TestContractDetails(t *testing.T) {
@@ -112,8 +131,8 @@ func TestContractDetails(t *testing.T) {
 	id := engine.NextRequestId()
 	req1.SetId(id)
 	ch := make(chan Reply)
-	engine.Subscribe(&Sink{ch}, id)
-	defer engine.Unsubscribe(id)
+	engine.Subscribe(ch, id)
+	defer engine.Unsubscribe(ch, id)
 
 	if err := engine.Send(req1); err != nil {
 		t.Fatalf("client %d: cannot send contract data request: %s", engine.ClientId(), err)
@@ -155,8 +174,8 @@ func TestOptionChainRequest(t *testing.T) {
 	id := engine.NextRequestId()
 	req1.SetId(id)
 	ch := make(chan Reply)
-	engine.Subscribe(&Sink{ch}, id)
-	defer engine.Unsubscribe(id)
+	engine.Subscribe(ch, id)
+	defer engine.Unsubscribe(ch, id)
 
 	if err := engine.Send(req1); err != nil {
 		t.Fatalf("cannot send contract data request: %s", err)

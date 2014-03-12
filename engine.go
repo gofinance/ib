@@ -7,7 +7,6 @@ import (
 	"log"
 	"net"
 	"reflect"
-	"runtime"
 	"strings"
 	"time"
 )
@@ -24,7 +23,8 @@ const (
 type Engine struct {
 	id            chan int64
 	exit          chan bool
-	ch            chan func()
+	terminated    chan struct{}
+	ch            chan command
 	gateway       string
 	client        int64
 	con           net.Conn
@@ -34,12 +34,16 @@ type Engine struct {
 	serverTime    time.Time
 	clientVersion int64
 	serverVersion int64
-	observers     map[int64]Observer
+	observers     map[int64]chan Reply
 	lastDumpRead  int64
+	state         EngineState
+	fatalError    error
+	stObservers   []chan EngineState
 }
 
-type Observer interface {
-	Observe(Reply)
+type command struct {
+	fun func()
+	ack chan struct{}
 }
 
 func uniqueId(start int64) chan int64 {
@@ -83,7 +87,8 @@ func NewEngine() (*Engine, error) {
 		reader:    reader,
 		input:     input,
 		output:    output,
-		observers: make(map[int64]Observer),
+		observers: make(map[int64]chan Reply),
+		state:     ENGINE_READY,
 	}
 
 	// write client version and id
@@ -105,50 +110,75 @@ func NewEngine() (*Engine, error) {
 
 	self.serverVersion = serverShake.version
 	self.serverTime = serverShake.time
-	self.exit = make(chan bool, 1)
-	self.ch = make(chan func(), 1)
+	self.exit = make(chan bool)
+	self.ch = make(chan command)
+	self.terminated = make(chan struct{})
 
 	// receiver
 
-	data := make(chan Reply, 1)
-	error := make(chan error, 1)
+	data := make(chan Reply)
+	error := make(chan error)
 
-	// we cannot force a timeout here
-	// so we need a separate goroutine
 	go func() {
-		runtime.LockOSThread()
+		defer func() {
+			close(data)
+			close(error)
+		}()
 		for {
 			v, err := self.receive()
 			if err != nil {
-				error <- err
-				break
+				select {
+				case <-self.terminated:
+					return
+				case error <- err:
+					return
+				}
 			}
-			data <- v
+
+			select {
+			case <-self.terminated:
+				return
+			case data <- v:
+			}
 		}
 	}()
 
 	go func() {
 		defer func() {
-			log.Printf("%d engine: closing connection", self.client)
 			con.Close()
+		outer:
+			for _, ob := range self.stObservers {
+				for {
+					select {
+					case ob <- self.state:
+						continue outer
+					case <-time.After(time.Duration(5) * time.Second):
+						log.Printf("Waited 5 seconds for state channel %v\n", ob)
+					}
+				}
+			}
+			close(self.terminated)
 		}()
 		for {
 			select {
 			case <-self.exit:
-				log.Printf("%d engine: normal exit", self.client)
+				self.state = ENGINE_EXITED_NORMALLY
 				return
 			case err := <-error:
 				log.Printf("%d engine: error %s", self.client, err)
+				self.fatalError = err
+				self.state = ENGINE_EXITED_ERROR
 				return
-			case req := <-self.ch:
-				req()
+			case cmd := <-self.ch:
+				cmd.fun()
+				close(cmd.ack)
 			case v := <-data:
 				dest := UnmatchedReplyId
 				if mr, ok := v.(MatchedReply); ok {
 					dest = mr.Id()
 				}
 				if v.code() == mErrorMessage {
-					var done []Observer
+					var done []chan Reply
 					for _, sub := range self.observers {
 						for _, prevDone := range done {
 							if sub == prevDone {
@@ -156,18 +186,29 @@ func NewEngine() (*Engine, error) {
 							}
 						}
 						done = append(done, sub)
-						sub.Observe(v)
+						self.deliver(sub, v)
 					}
 					continue
 				}
 				if sub, ok := self.observers[dest]; ok {
-					sub.Observe(v)
+					self.deliver(sub, v)
 				}
 			}
 		}
 	}()
 
 	return &self, nil
+}
+
+func (self *Engine) deliver(sub chan Reply, v Reply) {
+	for {
+		select {
+		case sub <- v:
+			return
+		case <-time.After(time.Duration(5) * time.Second):
+			log.Printf("Waited 5 seconds for reply channel %v\n", sub)
+		}
+	}
 }
 
 // NextRequestId returns a unique request id (which is never UnmatchedReplyId).
@@ -179,6 +220,30 @@ func (self *Engine) ClientId() int64 {
 	return self.client
 }
 
+// sendCommand delivers the func to the engine, blocking the calling goroutine
+// until the command is acknowledged as completed or the engine exits.
+func (self *Engine) sendCommand(c func()) {
+	ack := make(chan struct{})
+	cmd := command{c, ack}
+
+	// send cmd
+	select {
+	case <-self.terminated:
+		return
+	case self.ch <- cmd:
+	}
+
+	// await ack (also handle termination, although it shouldn't happen
+	// given the cmd was delivered so we beat any exit/error situations)
+	select {
+	case <-self.terminated:
+		log.Println("Engine unexpectedly terminated after command sent")
+		return
+	case <-cmd.ack:
+		return
+	}
+}
+
 // Subscribe will notify subscribers of future events with given id.
 // Many request types implement MatchedRequest and therefore provide a SetId().
 // To receive the corresponding MatchedReply events, firstly subscribe with the
@@ -188,22 +253,87 @@ func (self *Engine) ClientId() int64 {
 // an attempt is made to send a MatchedRequest with UnmatchedReplyId as its id,
 // given the high unlikelihood of that id being required in normal situations
 // and that NextRequestId() guarantees to never return UnmatchedReplyId.
-// Finally, each ErrorMessage event is delivered once only to each known observer.
-func (self *Engine) Subscribe(observer Observer, id int64) {
-	self.ch <- func() {
-		if observer != nil {
-			self.observers[id] = observer
+// Each ErrorMessage event is delivered once only to each known observer.
+// The engine never closes the channel (allowing reuse across IDs and engines).
+// This call will block until the subscriber is registered or engine terminates.
+func (self *Engine) Subscribe(o chan Reply, id int64) {
+	self.sendCommand(func() { self.observers[id] = o })
+}
+
+// Unsubscribe blocks until the observer is removed. It also maintains a
+// goroutine to sink the channel until the unsubscribe is finalised, which
+// frees the caller from maintaining a separate goroutine.
+func (self *Engine) Unsubscribe(o chan Reply, id int64) {
+	terminate := make(chan struct{})
+	go func() {
+		for {
+			select {
+			case <-o:
+			case <-terminate:
+				return
+			}
 		}
+	}()
+	self.sendCommand(func() { delete(self.observers, id) })
+	close(terminate)
+}
+
+// SubscribeState will register an engine state subscriber that is notified when
+// the engine exits for any reason. The engine will close the channel after use.
+// This call will block until the subscriber is registered or engine terminates.
+func (self *Engine) SubscribeState(o chan EngineState) {
+	if o == nil {
+		return
 	}
+	self.sendCommand(func() { self.stObservers = append(self.stObservers, o) })
 }
 
-// Unsubscribe removes subscriber
-func (self *Engine) Unsubscribe(id int64) {
-	self.ch <- func() { delete(self.observers, id) }
+// UnsubscribeState blocks until the observer is removed. It also maintains a
+// goroutine to sink the channel until the unsubscribe is finalised, which
+// frees the caller from maintaining a separate goroutine.
+func (self *Engine) UnsubscribeState(o chan EngineState) {
+	terminate := make(chan struct{})
+	go func() {
+		for {
+			select {
+			case <-o:
+			case <-terminate:
+				return
+			}
+		}
+	}()
+	self.sendCommand(func() {
+		var r []chan EngineState
+		for _, exist := range self.stObservers {
+			if exist != o {
+				r = append(r, exist)
+			}
+		}
+		self.stObservers = r
+	})
+	close(terminate)
 }
 
+// FatalError returns the error which caused termination (or nil if no error).
+func (self *Engine) FatalError() error {
+	return self.fatalError
+}
+
+// State returns the engine's current state.
+func (self *Engine) State() EngineState {
+	return self.state
+}
+
+// Stop blocks until the engine is fully stopped. It can be safely called on an
+// already-stopped or stopping engine.
 func (self *Engine) Stop() {
-	self.exit <- true
+	select {
+	case <-self.terminated:
+		return
+	case self.exit <- true:
+	}
+
+	<-self.terminated
 }
 
 type header struct {
@@ -226,7 +356,7 @@ func (v *header) read(b *bufio.Reader) (err error) {
 	return
 }
 
-// Send a message to the engine
+// Send a message to the engine.
 func (self *Engine) Send(v Request) (err error) {
 	if mr, ok := v.(MatchedRequest); ok {
 		if mr.Id() == UnmatchedReplyId {
@@ -340,4 +470,24 @@ func (self *Engine) read(v readable) error {
 		return err
 	}
 	return nil
+}
+
+type EngineState int
+
+const (
+	ENGINE_READY EngineState = 1 << iota
+	ENGINE_EXITED_ERROR
+	ENGINE_EXITED_NORMALLY
+)
+
+func (s EngineState) String() string {
+	switch s {
+	case ENGINE_READY:
+		return "Engine is ready and connected with TWS"
+	case ENGINE_EXITED_ERROR:
+		return "Engine exited due to error"
+	case ENGINE_EXITED_NORMALLY:
+		return "Engine exited following user request"
+	}
+	panic("unreachable")
 }

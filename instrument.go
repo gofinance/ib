@@ -7,6 +7,7 @@ type Instrument struct {
 	ask      float64
 	last     float64
 	engine   *Engine
+	replyc   chan Reply
 	ch       chan func()
 	exit     chan bool
 	update   chan bool
@@ -18,6 +19,7 @@ func NewInstrument(engine *Engine, contract *Contract) *Instrument {
 	self := &Instrument{
 		contract: *contract,
 		engine:   engine,
+		replyc:   make(chan Reply),
 		ch:       make(chan func(), 1),
 		exit:     make(chan bool, 1),
 		update:   make(chan bool),
@@ -31,6 +33,8 @@ func NewInstrument(engine *Engine, contract *Contract) *Instrument {
 				return
 			case f := <-self.ch:
 				f()
+			case v := <-self.replyc:
+				self.process(v)
 			}
 		}
 	}()
@@ -54,12 +58,12 @@ func (self *Instrument) StartUpdate() error {
 	req := &RequestMarketData{Contract: self.contract}
 	self.id = self.engine.NextRequestId()
 	req.SetId(self.id)
-	self.engine.Subscribe(self, self.id)
+	self.engine.Subscribe(self.replyc, self.id)
 	return self.engine.Send(req)
 }
 
 func (self *Instrument) StopUpdate() {
-	self.engine.Unsubscribe(self.id)
+	self.engine.Unsubscribe(self.replyc, self.id)
 	req := &CancelMarketData{}
 	req.SetId(self.id)
 	self.engine.Send(req)

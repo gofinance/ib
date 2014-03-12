@@ -29,6 +29,7 @@ type Option struct {
 	price     float64
 	spotPrice float64
 	engine    *Engine
+	replyc    chan Reply
 	ch        chan func()
 	exit      chan bool
 	update    chan bool
@@ -45,6 +46,7 @@ func NewOption(engine *Engine, contract *Contract, spot *Instrument,
 		expiry:   expiry,
 		strike:   strike,
 		kind:     kind,
+		replyc:   make(chan Reply),
 		ch:       make(chan func(), 1),
 		exit:     make(chan bool, 1),
 		update:   make(chan bool),
@@ -58,6 +60,8 @@ func NewOption(engine *Engine, contract *Contract, spot *Instrument,
 				return
 			case f := <-self.ch:
 				f()
+			case v := <-self.replyc:
+				self.process(v)
 			}
 		}
 	}()
@@ -117,12 +121,12 @@ func (self *Option) StartUpdate() error {
 	req := &RequestMarketData{Contract: self.contract}
 	self.id = self.engine.NextRequestId()
 	req.SetId(self.id)
-	self.engine.Subscribe(self, self.id)
+	self.engine.Subscribe(self.replyc, self.id)
 	return self.engine.Send(req)
 }
 
 func (self *Option) StopUpdate() {
-	self.engine.Unsubscribe(self.id)
+	self.engine.Unsubscribe(self.replyc, self.id)
 	req := &CancelMarketData{}
 	req.SetId(self.id)
 	self.engine.Send(req)

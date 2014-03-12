@@ -11,6 +11,7 @@ type OptionRoot struct {
 	contract *Contract
 	engine   *Engine
 	chains   OptionChains
+	replyc   chan Reply
 	ch       chan func()
 	exit     chan bool
 	update   chan bool
@@ -35,6 +36,7 @@ func NewOptionChain(engine *Engine, contract *Contract) *OptionRoot {
 		contract: contract,
 		chains:   make(OptionChains),
 		engine:   engine,
+		replyc:   make(chan Reply),
 		ch:       make(chan func(), 1),
 		exit:     make(chan bool, 1),
 		update:   make(chan bool),
@@ -48,6 +50,8 @@ func NewOptionChain(engine *Engine, contract *Contract) *OptionRoot {
 				return
 			case f := <-self.ch:
 				f()
+			case v := <-self.replyc:
+				self.process(v)
 			}
 		}
 	}()
@@ -56,7 +60,7 @@ func NewOptionChain(engine *Engine, contract *Contract) *OptionRoot {
 }
 
 func (self *OptionRoot) Cleanup() {
-	self.engine.Unsubscribe(self.id)
+	self.engine.Unsubscribe(self.replyc, self.id)
 	self.exit <- true
 }
 
@@ -75,7 +79,7 @@ func (self *OptionRoot) StartUpdate() error {
 		return err
 	}
 
-	self.engine.Subscribe(self, self.id)
+	self.engine.Subscribe(self.replyc, self.id)
 
 	return nil
 }
