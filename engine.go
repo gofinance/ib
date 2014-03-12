@@ -145,13 +145,17 @@ func NewEngine() (*Engine, error) {
 	}()
 
 	go func() {
-		defer con.Close()
+		defer func() {
+			log.Printf("%d engine: closing connection", self.client)
+			con.Close()
+		}()
 		for {
 			select {
 			case <-time.After(self.timeout):
 				log.Printf("%d engine: timeout", self.client)
 				return
 			case <-self.exit:
+				log.Printf("%d engine: normal exit", self.client)
 				return
 			case err := <-error:
 				log.Printf("%d engine: error %s", self.client, err)
