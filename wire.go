@@ -18,14 +18,6 @@ type writable interface {
 	write(buf *bytes.Buffer) error
 }
 
-func read(b *bufio.Reader, v readable) error {
-	return v.read(b)
-}
-
-func write(buf *bytes.Buffer, v writable) error {
-	return v.write(buf)
-}
-
 // Decode
 
 func readString(b *bufio.Reader) (s string, err error) {

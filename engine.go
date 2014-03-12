@@ -93,13 +93,19 @@ func NewEngine() (*Engine, error) {
 
 	// write client version and id
 	clientShake := &clientHandshake{clientVersion, client}
-	if err := self.write(clientShake); err != nil {
+	self.output.Reset()
+	if err := clientShake.write(self.output); err != nil {
+		return nil, err
+	}
+
+	if _, err := self.con.Write(self.output.Bytes()); err != nil {
 		return nil, err
 	}
 
 	// read server version and time
 	serverShake := &serverHandshake{}
-	if err := self.read(serverShake); err != nil {
+	self.input.Reset()
+	if err := serverShake.read(self.reader); err != nil {
 		return nil, err
 	}
 
@@ -371,12 +377,12 @@ func (self *Engine) Send(v Request) (err error) {
 		version: v.version(),
 	}
 
-	if err = write(self.output, hdr); err != nil {
+	if err = hdr.write(self.output); err != nil {
 		return
 	}
 
 	// encode the message itself
-	if err = write(self.output, v); err != nil {
+	if err = v.write(self.output); err != nil {
 		return
 	}
 
@@ -412,7 +418,7 @@ func (self *Engine) receive() (v Reply, err error) {
 	hdr := &header{}
 
 	// decode header
-	if err = read(self.reader, hdr); err != nil {
+	if err = hdr.read(self.reader); err != nil {
 		if dumpConversation {
 			fmt.Printf("%d< %v\n", self.client, err)
 		}
@@ -431,7 +437,7 @@ func (self *Engine) receive() (v Reply, err error) {
 		return
 	}
 
-	if err = read(self.reader, v); err != nil {
+	if err = v.read(self.reader); err != nil {
 		if dump {
 			fmt.Printf("%v\n", err)
 		}
@@ -447,29 +453,6 @@ func (self *Engine) receive() (v Reply, err error) {
 		fmt.Printf("%s\n", str)
 	}
 	return
-}
-
-func (self *Engine) write(v writable) error {
-	self.output.Reset()
-
-	if err := write(self.output, v); err != nil {
-		return err
-	}
-
-	if _, err := self.con.Write(self.output.Bytes()); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (self *Engine) read(v readable) error {
-	self.input.Reset()
-
-	if err := read(self.reader, v); err != nil {
-		return err
-	}
-	return nil
 }
 
 type EngineState int
