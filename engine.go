@@ -22,7 +22,6 @@ const (
 
 // Engine is the entry point to the IB TWS API
 type Engine struct {
-	timeout       time.Duration
 	id            chan int64
 	exit          chan bool
 	ch            chan func()
@@ -41,17 +40,6 @@ type Engine struct {
 
 type Observer interface {
 	Observe(Reply)
-}
-
-type TimeoutError struct {
-}
-
-func (e *TimeoutError) Error() string {
-	return fmt.Sprintf("trading engine: timeout while trying to receive message")
-}
-
-func timeoutError() error {
-	return &TimeoutError{}
 }
 
 func uniqueId(start int64) chan int64 {
@@ -88,7 +76,6 @@ func NewEngine() (*Engine, error) {
 	client := <-client
 
 	self := Engine{
-		timeout:   60 * time.Second,
 		gateway:   gateway,
 		client:    client,
 		id:        reqid,
@@ -147,9 +134,6 @@ func NewEngine() (*Engine, error) {
 		}()
 		for {
 			select {
-			case <-time.After(self.timeout):
-				log.Printf("%d engine: timeout", self.client)
-				return
 			case <-self.exit:
 				log.Printf("%d engine: normal exit", self.client)
 				return
@@ -193,11 +177,6 @@ func (self *Engine) NextRequestId() int64 {
 
 func (self *Engine) ClientId() int64 {
 	return self.client
-}
-
-// SetTimeout sets the timeout used when receiving messages.
-func (self *Engine) SetTimeout(timeout time.Duration) {
-	self.ch <- func() { self.timeout = timeout }
 }
 
 // Subscribe will notify subscribers of future events with given id.

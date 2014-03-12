@@ -1,6 +1,7 @@
 package trade
 
 import (
+	"errors"
 	"fmt"
 	"time"
 )
@@ -15,7 +16,7 @@ type Updatable interface {
 func WaitForUpdate(v Updatable, timeout time.Duration) error {
 	select {
 	case <-time.After(timeout):
-		return updateError(v, timeoutError())
+		return updateError(v, errors.New("Update timeout"))
 	case err := <-v.Error():
 		return updateError(v, err)
 	case <-v.Update():
@@ -68,7 +69,7 @@ func (self *Updatables) StartUpdate(timeout time.Duration) error {
 		for _, v := range self.items {
 			select {
 			case <-time.After(timeout):
-				self.error <- updateError(v, timeoutError())
+				self.error <- updateError(v, errors.New("Update timeout"))
 				return
 			case err := <-v.Error():
 				self.error <- updateError(v, err)
