@@ -236,14 +236,19 @@ type header struct {
 	version int64
 }
 
-func (v *header) write(b *bytes.Buffer) {
-	writeInt(b, v.code)
-	writeInt(b, v.version)
+func (v *header) write(b *bytes.Buffer) (err error) {
+	if err = writeInt(b, v.code); err != nil {
+		return
+	}
+	return writeInt(b, v.version)
 }
 
-func (v *header) read(b *bufio.Reader) {
-	v.code = readInt(b)
-	v.version = readInt(b)
+func (v *header) read(b *bufio.Reader) (err error) {
+	if v.code, err = readInt(b); err != nil {
+		return
+	}
+	v.version, err = readInt(b)
+	return
 }
 
 // Send a message to the engine

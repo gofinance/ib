@@ -56,7 +56,10 @@ func TestReadString(t *testing.T) {
 
 	writeString(b, x)
 	r := bufio.NewReader(bytes.NewReader(b.Bytes()))
-	y := readString(r)
+	y, err := readString(r)
+	if err != nil {
+		t.Fatalf("failed to read: %v", err)
+	}
 
 	if x != y {
 		t.Fatalf("expected %d but got %d", x, y)
@@ -69,7 +72,10 @@ func TestReadInt(t *testing.T) {
 
 	writeInt(b, x)
 	r := bufio.NewReader(bytes.NewReader(b.Bytes()))
-	y := readInt(r)
+	y, err := readInt(r)
+	if err != nil {
+		t.Fatalf("failed to read: %v", err)
+	}
 
 	if x != y {
 		t.Fatalf("expected %d but got %d", x, y)
@@ -83,7 +89,10 @@ func TestReadTime(t *testing.T) {
 
 	writeTime(b, x)
 	r := bufio.NewReader(bytes.NewReader(b.Bytes()))
-	y := readTime(r)
+	y, err := readTime(r)
+	if err != nil {
+		t.Fatalf("failed to read: %v", err)
+	}
 
 	if x != y {
 		t.Fatalf("expected %v but got %v", x, y)
@@ -96,7 +105,10 @@ func TestReadFloat(t *testing.T) {
 
 	writeFloat(b, x)
 	r := bufio.NewReader(bytes.NewReader(b.Bytes()))
-	y := readFloat(r)
+	y, err := readFloat(r)
+	if err != nil {
+		t.Fatalf("failed to read: %v", err)
+	}
 
 	if x != y {
 		t.Fatalf("expected %v but got %v", x, y)
