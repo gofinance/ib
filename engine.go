@@ -31,14 +31,14 @@ type Engine struct {
 	reader        *bufio.Reader
 	input         *bytes.Buffer
 	output        *bytes.Buffer
+	observers     map[int64]chan Reply
+	stObservers   []chan EngineState
+	state         EngineState
 	serverTime    time.Time
 	clientVersion int64
 	serverVersion int64
-	observers     map[int64]chan Reply
 	lastDumpRead  int64
-	state         EngineState
 	fatalError    error
-	stObservers   []chan EngineState
 }
 
 type command struct {
@@ -61,7 +61,7 @@ func uniqueId(start int64) chan int64 {
 	return ch
 }
 
-// Next client id
+// Next client id. Package scope to ensure new engines have unique client IDs.
 var client = uniqueId(1)
 
 // NewEngine takes a client id and returns a new connection
@@ -72,27 +72,23 @@ func NewEngine() (*Engine, error) {
 		return nil, err
 	}
 
-	reader := bufio.NewReader(con)
-	input := bytes.NewBuffer(make([]byte, 0, 4096))
-	output := bytes.NewBuffer(make([]byte, 0, 4096))
-	reqid := uniqueId(100)
-
-	client := <-client
-
 	self := Engine{
-		gateway:   gateway,
-		client:    client,
-		id:        reqid,
-		con:       con,
-		reader:    reader,
-		input:     input,
-		output:    output,
-		observers: make(map[int64]chan Reply),
-		state:     ENGINE_READY,
+		id:         uniqueId(100),
+		exit:       make(chan bool),
+		terminated: make(chan struct{}),
+		ch:         make(chan command),
+		gateway:    gateway,
+		client:     <-client,
+		con:        con,
+		reader:     bufio.NewReader(con),
+		input:      bytes.NewBuffer(make([]byte, 0, 4096)),
+		output:     bytes.NewBuffer(make([]byte, 0, 4096)),
+		observers:  make(map[int64]chan Reply),
+		state:      ENGINE_READY,
 	}
 
 	// write client version and id
-	clientShake := &clientHandshake{clientVersion, client}
+	clientShake := &clientHandshake{clientVersion, self.client}
 	self.output.Reset()
 	if err := clientShake.write(self.output); err != nil {
 		return nil, err
@@ -116,9 +112,6 @@ func NewEngine() (*Engine, error) {
 
 	self.serverVersion = serverShake.version
 	self.serverTime = serverShake.time
-	self.exit = make(chan bool)
-	self.ch = make(chan command)
-	self.terminated = make(chan struct{})
 
 	// receiver
 
