@@ -18,7 +18,6 @@ const (
 	minServerVersion = 53 // TWSAPI 9.65
 	gateway          = "127.0.0.1:4001"
 	UnmatchedReplyId = int64(-9223372036854775808)
-	noData           = "no data"
 )
 
 // Engine is the entry point to the IB TWS API
@@ -133,9 +132,6 @@ func NewEngine() (*Engine, error) {
 		runtime.LockOSThread()
 		for {
 			v, err := self.receive()
-			if err != nil && err.Error() == noData {
-				continue
-			}
 			if err != nil {
 				error <- err
 				break
@@ -252,7 +248,7 @@ func (v *header) read(b *bufio.Reader) (err error) {
 }
 
 // Send a message to the engine
-func (self *Engine) Send(v Request) error {
+func (self *Engine) Send(v Request) (err error) {
 	if mr, ok := v.(MatchedRequest); ok {
 		if mr.Id() == UnmatchedReplyId {
 			return fmt.Errorf("%d is a reserved ID (try using NextRequestId)", UnmatchedReplyId)
@@ -266,13 +262,13 @@ func (self *Engine) Send(v Request) error {
 		version: v.version(),
 	}
 
-	if err := write(self.output, hdr); err != nil {
-		return err
+	if err = write(self.output, hdr); err != nil {
+		return
 	}
 
 	// encode the message itself
-	if err := write(self.output, v); err != nil {
-		return err
+	if err = write(self.output, v); err != nil {
+		return
 	}
 
 	if dumpConversation {
@@ -281,11 +277,8 @@ func (self *Engine) Send(v Request) error {
 		fmt.Printf("%d> '%s'\n", self.client, s)
 	}
 
-	if _, err := self.con.Write(self.output.Bytes()); err != nil {
-		return err
-	}
-
-	return nil
+	_, err = self.con.Write(self.output.Bytes())
+	return
 }
 
 type packetError struct {
@@ -305,16 +298,16 @@ func failPacket(v interface{}) error {
 	}
 }
 
-func (self *Engine) receive() (Reply, error) {
+func (self *Engine) receive() (v Reply, err error) {
 	self.input.Reset()
 	hdr := &header{}
 
 	// decode header
-	if err := read(self.reader, hdr); err != nil {
+	if err = read(self.reader, hdr); err != nil {
 		if dumpConversation {
 			fmt.Printf("%d< %v\n", self.client, err)
 		}
-		return nil, err
+		return
 	}
 
 	dump := dumpConversation && hdr.code != self.lastDumpRead
@@ -322,20 +315,18 @@ func (self *Engine) receive() (Reply, error) {
 		self.lastDumpRead = hdr.code
 		fmt.Printf("%d< %v ", self.client, hdr)
 	}
-	if hdr.code <= 0 {
-		if dump {
-			fmt.Printf("\n")
-		}
-		return nil, fmt.Errorf(noData)
-	}
 
 	// decode message
-	v := code2Msg(hdr.code)
-	if err := read(self.reader, v); err != nil {
+	v, err = code2Msg(hdr.code)
+	if err != nil {
+		return
+	}
+
+	if err = read(self.reader, v); err != nil {
 		if dump {
 			fmt.Printf("%v\n", err)
 		}
-		return nil, err
+		return
 	}
 
 	if dump {
@@ -346,7 +337,7 @@ func (self *Engine) receive() (Reply, error) {
 		}
 		fmt.Printf("%s\n", str)
 	}
-	return v, nil
+	return
 }
 
 func (self *Engine) write(v writable) error {

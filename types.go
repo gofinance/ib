@@ -2350,76 +2350,78 @@ func (v *CancelCalcOptionPrice) write(b *bytes.Buffer) (err error) {
 	return writeInt(b, v.id)
 }
 
-func code2Msg(code int64) Reply {
+func code2Msg(code int64) (r Reply, err error) {
 	switch code {
 	case int64(mTickPrice):
-		return &TickPrice{}
+		r = &TickPrice{}
 	case int64(mTickSize):
-		return &TickSize{}
+		r = &TickSize{}
 	case int64(mTickOptionComputation):
-		return &TickOptionComputation{}
+		r = &TickOptionComputation{}
 	case int64(mTickGeneric):
-		return &TickGeneric{}
+		r = &TickGeneric{}
 	case int64(mTickString):
-		return &TickString{}
+		r = &TickString{}
 	case int64(mTickEFP):
-		return &TickEFP{}
+		r = &TickEFP{}
 	case int64(mOrderStatus):
-		return &OrderStatus{}
+		r = &OrderStatus{}
 	case int64(mAccountValue):
-		return &AccountValue{}
+		r = &AccountValue{}
 	case int64(mPortfolioValue):
-		return &PortfolioValue{}
+		r = &PortfolioValue{}
 	case int64(mAccountUpdateTime):
-		return &AccountUpdateTime{}
+		r = &AccountUpdateTime{}
 	case int64(mErrorMessage):
-		return &ErrorMessage{}
+		r = &ErrorMessage{}
 	case int64(mOpenOrder):
-		return &OpenOrder{}
+		r = &OpenOrder{}
 	case int64(mNextValidId):
-		return &NextValidId{}
+		r = &NextValidId{}
 	case int64(mScannerData):
-		return &ScannerData{}
+		r = &ScannerData{}
 	case int64(mContractData):
-		return &ContractData{}
+		r = &ContractData{}
 	case int64(mBondContractData):
-		return &BondContractData{}
+		r = &BondContractData{}
 	case int64(mExecutionData):
-		return &ExecutionData{}
+		r = &ExecutionData{}
 	case int64(mMarketDepth):
-		return &MarketDepth{}
+		r = &MarketDepth{}
 	case int64(mMarketDepthL2):
-		return &MarketDepthL2{}
+		r = &MarketDepthL2{}
 	case int64(mNewsBulletins):
-		return &NewsBulletins{}
+		r = &NewsBulletins{}
 	case int64(mManagedAccounts):
-		return &ManagedAccounts{}
+		r = &ManagedAccounts{}
 	case int64(mReceiveFA):
-		return &ReceiveFA{}
+		r = &ReceiveFA{}
 	case int64(mHistoricalData):
-		return &HistoricalData{}
+		r = &HistoricalData{}
 	case int64(mScannerParameters):
-		return &ScannerParameters{}
+		r = &ScannerParameters{}
 	case int64(mCurrentTime):
-		return &CurrentTime{}
+		r = &CurrentTime{}
 	case int64(mRealtimeBars):
-		return &RealtimeBars{}
+		r = &RealtimeBars{}
 	case int64(mFundamentalData):
-		return &FundamentalData{}
+		r = &FundamentalData{}
 	case int64(mContractDataEnd):
-		return &ContractDataEnd{}
+		r = &ContractDataEnd{}
 	case int64(mOpenOrderEnd):
-		return &OpenOrderEnd{}
+		r = &OpenOrderEnd{}
 	case int64(mAccountDownloadEnd):
-		return &AccountDownloadEnd{}
+		r = &AccountDownloadEnd{}
 	case int64(mExecutionDataEnd):
-		return &ExecutionDataEnd{}
+		r = &ExecutionDataEnd{}
 	case int64(mDeltaNeutralValidation):
-		return &DeltaNeutralValidation{}
+		r = &DeltaNeutralValidation{}
 	case int64(mTickSnapshotEnd):
-		return &TickSnapshotEnd{}
+		r = &TickSnapshotEnd{}
 	case int64(mMarketDataType):
-		return &MarketDataType{}
+		r = &MarketDataType{}
+	default:
+		err = fmt.Errorf("Unsupported incoming message type %d", code)
 	}
-	return nil
+	return
 }
