@@ -1,3 +1,16 @@
+// Package trade offers a pure Go abstraction over Interactive Brokers TWS API.
+//
+// Engine is the main type. It provides a mechanism to connect to either IB
+// Gateway or TWS, send Request values and receive Reply values. The Engine
+// provides an observer pattern both for receiving Reply values as well as Engine
+// termination notification. Any network level errors will terminate the Engine.
+//
+// A high-level Updatable interface is also provided. This provides a way to
+// easily use TWS API without needing to deal directly with Engine and the
+// associated Request, Reply, message ID and Reply ordering considerations.
+//
+// All types are thread-safe and can be used from multiple goroutines at once.
+// Blocking methods are identified in the documentation.
 package trade
 
 import (

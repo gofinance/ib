@@ -6,6 +6,35 @@ import (
 	"time"
 )
 
+// Updatable provides an asynchronous, high-level abstraction over selected TWS
+// API use cases. There are currently Updatables for metadata, options,
+// instruments and option chains.
+//
+// An Updatable is constructed (via its NewXXX function) with request information
+// relevant to the particular TWS API use case. No Engine calls are made at the
+// time of construction.
+//
+// Invoking StartUpdate() will request the Updatable to communicate with the
+// Engine.
+//
+// After Engine starts receiving Reply values from TWS, it will deliver these to
+// the Updatable. The Updatable will consume those Reply values and signal the
+// updates channel when a new piece of data is ready. The updates channel is
+// available by calling Update().
+//
+// The caller can then invoke use case-specific accessor methods provided by the
+// Updatable. These methods guarantee to return consistent views of the data, with
+// consistency depending on the specific Updatable use case being abstracted.
+//
+// If any error occurs while receiving Reply values, the errors channel will be
+// signalled. The state of an Updatable after signalling errors is unspecified.
+// Callers should consider monitoring Engine state changes directly so they
+// become aware if the Engine exits. In such a case there is no guarantee an
+// Updatable will directly discover this (eg if the Updatable has elected not to
+// subscribe to Engine state changes itself).
+//
+// Callers can stop further updates using StopUpdate(). Most Updatables also
+// provide a Cleanup() method for destroy actions.
 type Updatable interface {
 	StartUpdate() error
 	StopUpdate()
