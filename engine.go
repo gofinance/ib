@@ -33,6 +33,8 @@ type Engine struct {
 	output        *bytes.Buffer
 	rxReply       chan Reply
 	rxErr         chan error
+	txRequest     chan txrequest
+	txErr         chan error
 	observers     map[int64]chan Reply
 	stObservers   []chan EngineState
 	state         EngineState
@@ -45,6 +47,11 @@ type Engine struct {
 
 type command struct {
 	fun func()
+	ack chan struct{}
+}
+
+type txrequest struct {
+	req Request
 	ack chan struct{}
 }
 
@@ -87,6 +94,8 @@ func NewEngine() (*Engine, error) {
 		output:     bytes.NewBuffer(make([]byte, 0, 4096)),
 		rxReply:    make(chan Reply),
 		rxErr:      make(chan error),
+		txRequest:  make(chan txrequest),
+		txErr:      make(chan error),
 		observers:  make(map[int64]chan Reply),
 		state:      ENGINE_READY,
 	}
@@ -98,6 +107,7 @@ func NewEngine() (*Engine, error) {
 
 	// start worker goroutines (these exit on request or error)
 	e.startReceiver()
+	e.startTransmitter()
 	e.startMainLoop()
 
 	return &e, nil
@@ -158,6 +168,32 @@ func (e *Engine) startReceiver() {
 	}()
 }
 
+func (e *Engine) startTransmitter() {
+	go func() {
+		defer func() {
+			close(e.txRequest)
+			close(e.txErr)
+		}()
+		for {
+			select {
+			case <-e.terminated:
+				return
+			case t := <-e.txRequest:
+				err := e.transmit(t.req)
+				if err != nil {
+					select {
+					case <-e.terminated:
+						return
+					case e.txErr <- err:
+						return
+					}
+				}
+				close(t.ack)
+			}
+		}
+	}()
+}
+
 func (e *Engine) startMainLoop() {
 	go func() {
 		defer func() {
@@ -181,7 +217,12 @@ func (e *Engine) startMainLoop() {
 				e.state = ENGINE_EXITED_NORMALLY
 				return
 			case err := <-e.rxErr:
-				log.Printf("%d engine: error %s", e.client, err)
+				log.Printf("%d engine: RX error %s", e.client, err)
+				e.fatalError = err
+				e.state = ENGINE_EXITED_ERROR
+				return
+			case err := <-e.txErr:
+				log.Printf("%d engine: TX error %s", e.client, err)
 				e.fatalError = err
 				e.state = ENGINE_EXITED_ERROR
 				return
@@ -229,6 +270,34 @@ func (e *Engine) deliverToObserver(c chan Reply, r Reply) {
 	}
 }
 
+func (e *Engine) transmit(r Request) (err error) {
+	e.output.Reset()
+
+	// encode message type and client version
+	hdr := &header{
+		code:    int64(r.code()),
+		version: r.version(),
+	}
+
+	if err = hdr.write(e.output); err != nil {
+		return
+	}
+
+	// encode the message itself
+	if err = r.write(e.output); err != nil {
+		return
+	}
+
+	if dumpConversation {
+		b := e.output
+		s := strings.Replace(b.String(), "\000", "-", -1)
+		fmt.Printf("%d> '%s'\n", e.client, s)
+	}
+
+	_, err = e.con.Write(e.output.Bytes())
+	return
+}
+
 // NextRequestId returns a unique request id (which is never UnmatchedReplyId).
 func (e *Engine) NextRequestId() int64 {
 	return <-e.id
@@ -241,8 +310,7 @@ func (e *Engine) ClientId() int64 {
 // sendCommand delivers the func to the engine, blocking the calling goroutine
 // until the command is acknowledged as completed or the engine exits.
 func (e *Engine) sendCommand(c func()) {
-	ack := make(chan struct{})
-	cmd := command{c, ack}
+	cmd := command{c, make(chan struct{})}
 
 	// send cmd
 	select {
@@ -374,38 +442,40 @@ func (v *header) read(b *bufio.Reader) (err error) {
 	return
 }
 
-// Send a message to the engine.
+// Send a message to the engine, blocking until sent or the engine exits.
+// This method will return an error if the UnmatchedReplyId is used or the
+// engine exits. A nil error indicates successful transmission. Any transmission
+// failure (eg connectivity loss) will cause the engine to exit with an error.
 func (e *Engine) Send(r Request) (err error) {
 	if mr, ok := r.(MatchedRequest); ok {
 		if mr.Id() == UnmatchedReplyId {
 			return fmt.Errorf("%d is a reserved ID (try using NextRequestId)", UnmatchedReplyId)
 		}
 	}
-	e.output.Reset()
+	t := txrequest{r, make(chan struct{})}
 
-	// encode message type and client version
-	hdr := &header{
-		code:    int64(r.code()),
-		version: r.version(),
+	// send tx request
+	select {
+	case <-e.terminated:
+		err = e.FatalError()
+		if err == nil {
+			err = fmt.Errorf("Engine has already exited normally")
+		}
+		return err
+	case e.txRequest <- t:
 	}
 
-	if err = hdr.write(e.output); err != nil {
-		return
+	// await ack or error
+	select {
+	case <-e.terminated:
+		err = e.FatalError()
+		if err == nil {
+			err = fmt.Errorf("Engine has already exited normally")
+		}
+		return err
+	case <-t.ack:
+		return nil
 	}
-
-	// encode the message itself
-	if err = r.write(e.output); err != nil {
-		return
-	}
-
-	if dumpConversation {
-		b := e.output
-		s := strings.Replace(b.String(), "\000", "-", -1)
-		fmt.Printf("%d> '%s'\n", e.client, s)
-	}
-
-	_, err = e.con.Write(e.output.Bytes())
-	return
 }
 
 type packetError struct {
