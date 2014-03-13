@@ -35,8 +35,8 @@ type Engine struct {
 	rxErr         chan error
 	txRequest     chan txrequest
 	txErr         chan error
-	observers     map[int64]chan Reply
-	stObservers   []chan EngineState
+	observers     map[int64]chan<- Reply
+	stObservers   []chan<- EngineState
 	state         EngineState
 	serverTime    time.Time
 	clientVersion int64
@@ -96,7 +96,7 @@ func NewEngine() (*Engine, error) {
 		rxErr:      make(chan error),
 		txRequest:  make(chan txrequest),
 		txErr:      make(chan error),
-		observers:  make(map[int64]chan Reply),
+		observers:  make(map[int64]chan<- Reply),
 		state:      ENGINE_READY,
 	}
 
@@ -236,7 +236,7 @@ func (e *Engine) deliverToObservers(r Reply) {
 		dest = mr.Id()
 	}
 	if r.code() == mErrorMessage {
-		var done []chan Reply
+		var done []chan<- Reply
 		for _, o := range e.observers {
 			for _, prevDone := range done {
 				if o == prevDone {
@@ -253,7 +253,7 @@ func (e *Engine) deliverToObservers(r Reply) {
 	}
 }
 
-func (e *Engine) deliverToObserver(c chan Reply, r Reply) {
+func (e *Engine) deliverToObserver(c chan<- Reply, r Reply) {
 	for {
 		select {
 		case c <- r:
@@ -336,7 +336,7 @@ func (e *Engine) sendCommand(c func()) {
 // Each ErrorMessage event is delivered once only to each known observer.
 // The engine never closes the channel (allowing reuse across IDs and engines).
 // This call will block until the subscriber is registered or engine terminates.
-func (e *Engine) Subscribe(o chan Reply, id int64) {
+func (e *Engine) Subscribe(o chan<- Reply, id int64) {
 	e.sendCommand(func() { e.observers[id] = o })
 }
 
@@ -361,7 +361,7 @@ func (e *Engine) Unsubscribe(o chan Reply, id int64) {
 // SubscribeState will register an engine state subscriber that is notified when
 // the engine exits for any reason. The engine will close the channel after use.
 // This call will block until the subscriber is registered or engine terminates.
-func (e *Engine) SubscribeState(o chan EngineState) {
+func (e *Engine) SubscribeState(o chan<- EngineState) {
 	if o == nil {
 		return
 	}
@@ -383,7 +383,7 @@ func (e *Engine) UnsubscribeState(o chan EngineState) {
 		}
 	}()
 	e.sendCommand(func() {
-		var r []chan EngineState
+		var r []chan<- EngineState
 		for _, exist := range e.stObservers {
 			if exist != o {
 				r = append(r, exist)
