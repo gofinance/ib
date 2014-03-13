@@ -106,9 +106,9 @@ func NewEngine() (*Engine, error) {
 	}
 
 	// start worker goroutines (these exit on request or error)
-	e.startReceiver()
-	e.startTransmitter()
-	e.startMainLoop()
+	go e.startReceiver()
+	go e.startTransmitter()
+	go e.startMainLoop()
 
 	return &e, nil
 }
@@ -143,97 +143,91 @@ func (e *Engine) handshake() error {
 }
 
 func (e *Engine) startReceiver() {
-	go func() {
-		defer func() {
-			close(e.rxReply)
-			close(e.rxErr)
-		}()
-		for {
-			r, err := e.receive()
+	defer func() {
+		close(e.rxReply)
+		close(e.rxErr)
+	}()
+	for {
+		r, err := e.receive()
+		if err != nil {
+			select {
+			case <-e.terminated:
+				return
+			case e.rxErr <- err:
+				return
+			}
+		}
+
+		select {
+		case <-e.terminated:
+			return
+		case e.rxReply <- r:
+		}
+	}
+}
+
+func (e *Engine) startTransmitter() {
+	defer func() {
+		close(e.txRequest)
+		close(e.txErr)
+	}()
+	for {
+		select {
+		case <-e.terminated:
+			return
+		case t := <-e.txRequest:
+			err := e.transmit(t.req)
 			if err != nil {
 				select {
 				case <-e.terminated:
 					return
-				case e.rxErr <- err:
+				case e.txErr <- err:
 					return
 				}
 			}
-
-			select {
-			case <-e.terminated:
-				return
-			case e.rxReply <- r:
-			}
+			close(t.ack)
 		}
-	}()
-}
-
-func (e *Engine) startTransmitter() {
-	go func() {
-		defer func() {
-			close(e.txRequest)
-			close(e.txErr)
-		}()
-		for {
-			select {
-			case <-e.terminated:
-				return
-			case t := <-e.txRequest:
-				err := e.transmit(t.req)
-				if err != nil {
-					select {
-					case <-e.terminated:
-						return
-					case e.txErr <- err:
-						return
-					}
-				}
-				close(t.ack)
-			}
-		}
-	}()
+	}
 }
 
 func (e *Engine) startMainLoop() {
-	go func() {
-		defer func() {
-			e.con.Close()
-		outer:
-			for _, ob := range e.stObservers {
-				for {
-					select {
-					case ob <- e.state:
-						continue outer
-					case <-time.After(time.Duration(5) * time.Second):
-						log.Printf("Waited 5 seconds for state channel %v\n", ob)
-					}
+	defer func() {
+		e.con.Close()
+	outer:
+		for _, ob := range e.stObservers {
+			for {
+				select {
+				case ob <- e.state:
+					continue outer
+				case <-time.After(time.Duration(5) * time.Second):
+					log.Printf("Waited 5 seconds for state channel %v\n", ob)
 				}
 			}
-			close(e.terminated)
-		}()
-		for {
-			select {
-			case <-e.exit:
-				e.state = ENGINE_EXITED_NORMALLY
-				return
-			case err := <-e.rxErr:
-				log.Printf("%d engine: RX error %s", e.client, err)
-				e.fatalError = err
-				e.state = ENGINE_EXITED_ERROR
-				return
-			case err := <-e.txErr:
-				log.Printf("%d engine: TX error %s", e.client, err)
-				e.fatalError = err
-				e.state = ENGINE_EXITED_ERROR
-				return
-			case cmd := <-e.ch:
-				cmd.fun()
-				close(cmd.ack)
-			case r := <-e.rxReply:
-				e.deliverToObservers(r)
-			}
 		}
+		close(e.terminated)
 	}()
+	for {
+		select {
+		case <-e.exit:
+			e.state = ENGINE_EXITED_NORMALLY
+			return
+		case err := <-e.rxErr:
+			log.Printf("%d engine: RX error %s", e.client, err)
+			e.fatalError = err
+			e.state = ENGINE_EXITED_ERROR
+			return
+		case err := <-e.txErr:
+			log.Printf("%d engine: TX error %s", e.client, err)
+			e.fatalError = err
+			e.state = ENGINE_EXITED_ERROR
+			return
+		case cmd := <-e.ch:
+			cmd.fun()
+			close(cmd.ack)
+		case r := <-e.rxReply:
+			e.deliverToObservers(r)
+		}
+	}
 }
 
 func (e *Engine) deliverToObservers(r Reply) {
