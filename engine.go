@@ -31,6 +31,8 @@ type Engine struct {
 	reader        *bufio.Reader
 	input         *bytes.Buffer
 	output        *bytes.Buffer
+	rxReply       chan Reply
+	rxErr         chan error
 	observers     map[int64]chan Reply
 	stObservers   []chan EngineState
 	state         EngineState
@@ -83,53 +85,66 @@ func NewEngine() (*Engine, error) {
 		reader:     bufio.NewReader(con),
 		input:      bytes.NewBuffer(make([]byte, 0, 4096)),
 		output:     bytes.NewBuffer(make([]byte, 0, 4096)),
+		rxReply:    make(chan Reply),
+		rxErr:      make(chan error),
 		observers:  make(map[int64]chan Reply),
 		state:      ENGINE_READY,
 	}
 
+	err = e.handshake()
+	if err != nil {
+		return nil, err
+	}
+
+	// start worker goroutines (these exit on request or error)
+	e.startReceiver()
+	e.startMainLoop()
+
+	return &e, nil
+}
+
+func (e *Engine) handshake() error {
 	// write client version and id
 	clientShake := &clientHandshake{clientVersion, e.client}
 	e.output.Reset()
 	if err := clientShake.write(e.output); err != nil {
-		return nil, err
+		return err
 	}
 
 	if _, err := e.con.Write(e.output.Bytes()); err != nil {
-		return nil, err
+		return err
 	}
 
 	// read server version and time
 	serverShake := &serverHandshake{}
 	e.input.Reset()
 	if err := serverShake.read(e.reader); err != nil {
-		return nil, err
+		return err
 	}
 
 	if serverShake.version < minServerVersion {
-		return nil, fmt.Errorf("Server at %s (client ID %d) must be at least version %d (reported %d)",
+		return fmt.Errorf("Server at %s (client ID %d) must be at least version %d (reported %d)",
 			e.gateway, e.client, minServerVersion, serverShake.version)
 	}
 
 	e.serverVersion = serverShake.version
 	e.serverTime = serverShake.time
+	return nil
+}
 
-	// receiver
-
-	data := make(chan Reply)
-	error := make(chan error)
-
+func (e *Engine) startReceiver() {
 	go func() {
 		defer func() {
-			close(data)
-			close(error)
+			close(e.rxReply)
+			close(e.rxErr)
 		}()
 		for {
-			v, err := e.receive()
+			r, err := e.receive()
 			if err != nil {
 				select {
 				case <-e.terminated:
 					return
-				case error <- err:
+				case e.rxErr <- err:
 					return
 				}
 			}
@@ -137,14 +152,16 @@ func NewEngine() (*Engine, error) {
 			select {
 			case <-e.terminated:
 				return
-			case data <- v:
+			case e.rxReply <- r:
 			}
 		}
 	}()
+}
 
+func (e *Engine) startMainLoop() {
 	go func() {
 		defer func() {
-			con.Close()
+			e.con.Close()
 		outer:
 			for _, ob := range e.stObservers {
 				for {
@@ -163,7 +180,7 @@ func NewEngine() (*Engine, error) {
 			case <-e.exit:
 				e.state = ENGINE_EXITED_NORMALLY
 				return
-			case err := <-error:
+			case err := <-e.rxErr:
 				log.Printf("%d engine: error %s", e.client, err)
 				e.fatalError = err
 				e.state = ENGINE_EXITED_ERROR
@@ -171,35 +188,37 @@ func NewEngine() (*Engine, error) {
 			case cmd := <-e.ch:
 				cmd.fun()
 				close(cmd.ack)
-			case v := <-data:
-				dest := UnmatchedReplyId
-				if mr, ok := v.(MatchedReply); ok {
-					dest = mr.Id()
-				}
-				if v.code() == mErrorMessage {
-					var done []chan Reply
-					for _, o := range e.observers {
-						for _, prevDone := range done {
-							if o == prevDone {
-								continue
-							}
-						}
-						done = append(done, o)
-						e.deliver(o, v)
-					}
-					continue
-				}
-				if o, ok := e.observers[dest]; ok {
-					e.deliver(o, v)
-				}
+			case r := <-e.rxReply:
+				e.deliverToObservers(r)
 			}
 		}
 	}()
-
-	return &e, nil
 }
 
-func (e *Engine) deliver(c chan Reply, r Reply) {
+func (e *Engine) deliverToObservers(r Reply) {
+	dest := UnmatchedReplyId
+	if mr, ok := r.(MatchedReply); ok {
+		dest = mr.Id()
+	}
+	if r.code() == mErrorMessage {
+		var done []chan Reply
+		for _, o := range e.observers {
+			for _, prevDone := range done {
+				if o == prevDone {
+					continue
+				}
+			}
+			done = append(done, o)
+			e.deliverToObserver(o, r)
+		}
+		return
+	}
+	if o, ok := e.observers[dest]; ok {
+		e.deliverToObserver(o, r)
+	}
+}
+
+func (e *Engine) deliverToObserver(c chan Reply, r Reply) {
 	for {
 		select {
 		case c <- r:
