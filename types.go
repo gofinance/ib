@@ -49,6 +49,15 @@ const (
 	mDeltaNeutralValidation                       = 56
 	mTickSnapshotEnd                              = 57
 	mMarketDataType                               = 58
+	mCommissionReport                             = 59
+	mPosition                                     = 61
+	mPositionEnd                                  = 62
+	mAccountSummary                               = 63
+	mAccountSummaryEnd                            = 64
+	mVerifyMessageAPI                             = 65
+	mVerifyCompleted                              = 66
+	mDisplayGroupList                             = 67
+	mDisplayGroupUpdated                          = 68
 	mRequestMarketData          OutgoingMessageId = 1
 	mCancelMarketData                             = 2
 	mPlaceOrder                                   = 3
@@ -85,6 +94,17 @@ const (
 	mCancelCalcOptionPrice                        = 57
 	mRequestGlobalCancel                          = 58
 	mRequestMarketDataType                        = 59
+	mRequestPositions                             = 61
+	mRequestAccountSummary                        = 62
+	mCancelAccountSummary                         = 63
+	mCancelPositions                              = 64
+	mVerifyRequest                                = 65
+	mVerifyMessage                                = 66
+	mQueryDisplayGroups                           = 67
+	mSubscribeToGroupEvents                       = 68
+	mUpdateDisplayGroup                           = 69
+	mUnsubscribeFromGroupEvents                   = 70
+	mStartAPI                                     = 71
 	TickBidSize                 TickType          = 0
 	TickBid                                       = 1
 	TickAsk                                       = 2
@@ -144,6 +164,7 @@ const (
 	TickVolumeRate                                = 56
 	TickLastRTHTrade                              = 57
 	TickNotSet                                    = 58
+	TickRegulatoryImbalance                       = 61
 	HistBarSize1Sec             HistDataBarSize   = "1 sec"
 	HistBarSize5Sec                               = "5 secs"
 	HistBarSize15Sec                              = "15 secs"
@@ -2543,6 +2564,24 @@ func code2Msg(code int64) (r Reply, err error) {
 		r = &TickSnapshotEnd{}
 	case int64(mMarketDataType):
 		r = &MarketDataType{}
+	case int64(mCommissionReport):
+		err = fmt.Errorf("Not yet supporting type %d", code)
+	case int64(mPosition):
+		err = fmt.Errorf("Not yet supporting type %d", code)
+	case int64(mPositionEnd):
+		err = fmt.Errorf("Not yet supporting type %d", code)
+	case int64(mAccountSummary):
+		err = fmt.Errorf("Not yet supporting type %d", code)
+	case int64(mAccountSummaryEnd):
+		err = fmt.Errorf("Not yet supporting type %d", code)
+	case int64(mVerifyMessageAPI):
+		err = fmt.Errorf("Not yet supporting type %d", code)
+	case int64(mVerifyCompleted):
+		err = fmt.Errorf("Not yet supporting type %d", code)
+	case int64(mDisplayGroupList):
+		err = fmt.Errorf("Not yet supporting type %d", code)
+	case int64(mDisplayGroupUpdated):
+		err = fmt.Errorf("Not yet supporting type %d", code)
 	default:
 		err = fmt.Errorf("Unsupported incoming message type %d", code)
 	}
