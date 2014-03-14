@@ -5,7 +5,7 @@
 // provides an observer pattern both for receiving Reply values as well as Engine
 // termination notification. Any network level errors will terminate the Engine.
 //
-// A high-level Updatable interface is also provided. This provides a way to
+// A high-level Manager interface is also provided. This provides a way to
 // easily use TWS API without needing to deal directly with Engine and the
 // associated Request, Reply, message ID and Reply ordering considerations.
 //
