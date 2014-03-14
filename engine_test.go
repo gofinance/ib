@@ -39,7 +39,7 @@ func TestConnect(t *testing.T) {
 
 	defer engine.Stop()
 
-	if engine.State() != ENGINE_READY {
+	if engine.State() != EngineReady {
 		t.Fatalf("engine is not ready")
 	}
 
@@ -58,7 +58,7 @@ func TestConnect(t *testing.T) {
 
 	newState := <-states
 
-	if newState != ENGINE_EXITED_NORMALLY {
+	if newState != EngineExitNormal {
 		t.Fatalf("engine state change error")
 	}
 

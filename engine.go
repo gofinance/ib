@@ -110,7 +110,7 @@ func NewEngine() (*Engine, error) {
 		txRequest:  make(chan txrequest),
 		txErr:      make(chan error),
 		observers:  make(map[int64]chan<- Reply),
-		state:      ENGINE_READY,
+		state:      EngineReady,
 	}
 
 	err = e.handshake()
@@ -222,17 +222,17 @@ func (e *Engine) startMainLoop() {
 	for {
 		select {
 		case <-e.exit:
-			e.state = ENGINE_EXITED_NORMALLY
+			e.state = EngineExitNormal
 			return
 		case err := <-e.rxErr:
 			log.Printf("%d engine: RX error %s", e.client, err)
 			e.fatalError = err
-			e.state = ENGINE_EXITED_ERROR
+			e.state = EngineExitError
 			return
 		case err := <-e.txErr:
 			log.Printf("%d engine: TX error %s", e.client, err)
 			e.fatalError = err
-			e.state = ENGINE_EXITED_ERROR
+			e.state = EngineExitError
 			return
 		case cmd := <-e.ch:
 			cmd.fun()
@@ -547,19 +547,19 @@ func (e *Engine) receive() (r Reply, err error) {
 type EngineState int
 
 const (
-	ENGINE_READY EngineState = 1 << iota
-	ENGINE_EXITED_ERROR
-	ENGINE_EXITED_NORMALLY
+	EngineReady EngineState = 1 << iota
+	EngineExitError
+	EngineExitNormal
 )
 
 func (s EngineState) String() string {
 	switch s {
-	case ENGINE_READY:
-		return "Engine is ready and connected with TWS"
-	case ENGINE_EXITED_ERROR:
-		return "Engine exited due to error"
-	case ENGINE_EXITED_NORMALLY:
-		return "Engine exited following user request"
+	case EngineReady:
+		return "EngineReady"
+	case EngineExitError:
+		return "EngineExitError"
+	case EngineExitNormal:
+		return "EngineExitNormal"
 	}
 	panic("unreachable")
 }
