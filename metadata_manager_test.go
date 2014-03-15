@@ -6,13 +6,9 @@ import (
 )
 
 func TestMetadataManagerWithCompleteContractSpec(t *testing.T) {
-	engine, err := NewEngine()
+	engine := NewTestEngine(t)
 
-	if err != nil {
-		t.Fatalf("cannot connect engine: %s", err)
-	}
-
-	defer engine.Stop()
+	defer engine.ConditionalStop(t)
 
 	contract := Contract{
 		Symbol:       "PCLN",
@@ -41,13 +37,9 @@ func TestMetadataManagerWithCompleteContractSpec(t *testing.T) {
 }
 
 func TestMetadataManagerWithIncompleteContractSpec(t *testing.T) {
-	engine, err := NewEngine()
+	engine := NewTestEngine(t)
 
-	if err != nil {
-		t.Fatalf("cannot connect engine: %s", err)
-	}
-
-	defer engine.Stop()
+	defer engine.ConditionalStop(t)
 
 	contract := Contract{
 		Symbol:   "SX7E",

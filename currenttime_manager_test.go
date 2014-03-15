@@ -6,14 +6,15 @@ import (
 )
 
 func TestCurrentTimeManager(t *testing.T) {
-	engine, err := NewEngine()
+	engine := NewTestEngine(t)
 
-	if err != nil {
-		t.Fatalf("cannot connect engine: %s", err)
-	}
-	defer engine.Stop()
+	defer engine.ConditionalStop(t)
 
 	ctm, err := NewCurrentTimeManager(engine)
+	if err != nil {
+		t.Fatalf("error creating CurrentTimeManager, %v", err)
+	}
+
 	defer ctm.Close()
 
 	var m Manager = ctm

@@ -6,13 +6,9 @@ import (
 )
 
 func TestInstrument(t *testing.T) {
-	engine, err := NewEngine()
+	engine := NewTestEngine(t)
 
-	if err != nil {
-		t.Fatalf("cannot connect engine: %s", err)
-	}
-
-	defer engine.Stop()
+	defer engine.ConditionalStop(t)
 
 	contract := &Contract{
 		Symbol:       "AUD",

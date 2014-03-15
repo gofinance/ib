@@ -6,13 +6,9 @@ import (
 )
 
 func TestMetadata(t *testing.T) {
-	engine, err := NewEngine()
+	engine := NewTestEngine(t)
 
-	if err != nil {
-		t.Fatalf("cannot connect engine: %s", err)
-	}
-
-	defer engine.Stop()
+	defer engine.ConditionalStop(t)
 
 	contract := &Contract{
 		Symbol:       "PCLN",
@@ -35,13 +31,9 @@ func TestMetadata(t *testing.T) {
 }
 
 func TestIncomplete(t *testing.T) {
-	engine, err := NewEngine()
+	engine := NewTestEngine(t)
 
-	if err != nil {
-		t.Fatalf("cannot connect engine: %s", err)
-	}
-
-	defer engine.Stop()
+	defer engine.ConditionalStop(t)
 
 	contract := &Contract{
 		Symbol:   "SX7E",

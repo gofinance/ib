@@ -2,6 +2,7 @@ package trade
 
 import (
 	"errors"
+	"flag"
 	"reflect"
 	"testing"
 	"time"
@@ -28,6 +29,52 @@ func (engine *Engine) expect(t *testing.T, seconds int, ch chan Reply, expected 
 	}
 
 	return nil, nil
+}
+
+// private variable for mantaining engine reuse in test
+// use TestEngine instead of this
+var testEngine *Engine
+var noEngineReuse = flag.Bool("no-engine-reuse", false,
+	"Don't keep reusing the engine; each test case gets its own engine.")
+
+// Engine for test reuse.
+//
+// Unless the test runner is passed the -no-engine-reuse flag, this will keep
+// reusing the same engine.
+func NewTestEngine(t *testing.T) *Engine {
+
+	if testEngine == nil {
+
+		engine, err := NewEngine()
+
+		if err != nil {
+			t.Fatalf("cannot connect engine: %s", err)
+		}
+
+		if *noEngineReuse {
+			t.Log("created new engine, no reuse")
+			return engine
+		} else {
+			t.Log("created engine for reuse")
+			testEngine = engine
+			return engine
+		}
+	}
+
+	if testEngine.State() != EngineReady {
+		t.Fatalf("engine (client ID %d) not ready (did a prior test Stop() rather than ConditionalStop() ?)", testEngine.client)
+	}
+
+	t.Log("reusing engine")
+	return testEngine
+}
+
+// Will actually do a stop only if the flag -no-engine-reuse is active
+func (e *Engine) ConditionalStop(t *testing.T) {
+	if *noEngineReuse {
+		t.Log("no engine reuse, stopping engine")
+		e.Stop()
+	}
 }
 
 func TestConnect(t *testing.T) {
@@ -69,13 +116,9 @@ func TestConnect(t *testing.T) {
 }
 
 func TestMarketData(t *testing.T) {
-	engine, err := NewEngine()
+	engine := NewTestEngine(t)
 
-	if err != nil {
-		t.Fatalf("cannot connect engine: %s", err)
-	}
-
-	defer engine.Stop()
+	defer engine.ConditionalStop(t)
 
 	req1 := &RequestMarketData{
 		Contract: Contract{
@@ -107,17 +150,12 @@ func TestMarketData(t *testing.T) {
 	}
 
 	engine.Unsubscribe(ch, id)
-	engine.Stop()
 }
 
 func TestContractDetails(t *testing.T) {
-	engine, err := NewEngine()
+	engine := NewTestEngine(t)
 
-	if err != nil {
-		t.Fatalf("cannot connect engine: %s", err)
-	}
-
-	defer engine.Stop()
+	defer engine.ConditionalStop(t)
 
 	req1 := &RequestContractData{
 		Contract: Contract{
@@ -154,13 +192,9 @@ func TestContractDetails(t *testing.T) {
 }
 
 func TestOptionChainRequest(t *testing.T) {
-	engine, err := NewEngine()
+	engine := NewTestEngine(t)
 
-	if err != nil {
-		t.Fatalf("cannot connect engine: %s", err)
-	}
-
-	defer engine.Stop()
+	defer engine.ConditionalStop(t)
 
 	req1 := &RequestContractData{
 		Contract: Contract{
