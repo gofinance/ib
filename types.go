@@ -2350,6 +2350,20 @@ func (c *CancelCalcOptionPrice) write(b *bytes.Buffer) (err error) {
 	return writeInt(b, c.id)
 }
 
+type RequestCurrentTime struct{}
+
+func (r *RequestCurrentTime) code() OutgoingMessageId {
+	return mRequestCurrentTime
+}
+
+func (r *RequestCurrentTime) version() int64 {
+	return 1
+}
+
+func (r *RequestCurrentTime) write(b *bytes.Buffer) (err error) {
+	return nil
+}
+
 func code2Msg(code int64) (r Reply, err error) {
 	switch code {
 	case int64(mTickPrice):
