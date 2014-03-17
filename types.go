@@ -10,6 +10,8 @@ import (
 type IncomingMessageId int64
 type OutgoingMessageId int64
 type TickType int
+type HistDataBarSize string
+type HistDataToShow string
 
 const (
 	maxInt                                        = int(^uint(0) >> 1)
@@ -142,6 +144,25 @@ const (
 	TickVolumeRate                                = 56
 	TickLastRTHTrade                              = 57
 	TickNotSet                                    = 58
+	HistBarSize1Sec             HistDataBarSize   = "1 sec"
+	HistBarSize5Sec                               = "5 secs"
+	HistBarSize15Sec                              = "15 secs"
+	HistBarSize30Sec                              = "30 secs"
+	HistBarSize1Min                               = "1 min"
+	HistBarSize2Min                               = "2 mins"
+	HistBarSize3Min                               = "3 mins"
+	HistBarSize5Min                               = "5 mins"
+	HistBarSize15Min                              = "15 mins"
+	HistBarSize30Min                              = "30 mins"
+	HistBarSize1Hour                              = "1 hour"
+	HistBarSize1Day                               = "1 day"
+	HistTrades                  HistDataToShow    = "TRADES"
+	HistMidpoint                                  = "MIDPOINT"
+	HistBid                                       = "BID"
+	HistAsk                                       = "ASK"
+	HistBidAsk                                    = "BID_ASK"
+	HistVolatility                                = "HISTORICAL_VOLATILITY"
+	HistOptionIV                                  = "OPTION_IMPLIED_VOLATILITY"
 )
 
 type Request interface {
@@ -1755,8 +1776,8 @@ func (h *HistoricalData) read(b *bufio.Reader) (err error) {
 		return
 	}
 	h.Data = make([]HistoricalDataItem, size)
-	for _, e := range h.Data {
-		if err = e.read(b); err != nil {
+	for i := range h.Data {
+		if err = h.Data[i].read(b); err != nil {
 			return
 		}
 	}
@@ -1771,7 +1792,7 @@ type HistoricalDataItem struct {
 	Close    float64
 	Volume   int64
 	WAP      float64
-	HasGaps  string
+	HasGaps  bool
 	BarCount int64
 }
 
@@ -1797,9 +1818,11 @@ func (h *HistoricalDataItem) read(b *bufio.Reader) (err error) {
 	if h.WAP, err = readFloat(b); err != nil {
 		return
 	}
-	if h.HasGaps, err = readString(b); err != nil {
+	var hasGaps string
+	if hasGaps, err = readString(b); err != nil {
 		return
 	}
+	h.HasGaps = hasGaps == "true"
 	h.BarCount, err = readInt(b)
 	return
 }
@@ -2362,6 +2385,92 @@ func (r *RequestCurrentTime) version() int64 {
 
 func (r *RequestCurrentTime) write(b *bytes.Buffer) (err error) {
 	return nil
+}
+
+type RequestHistoricalData struct {
+	id int64
+	Contract
+	EndDateTime    time.Time
+	Duration       string
+	BarSize        HistDataBarSize
+	WhatToShow     HistDataToShow
+	UseRTH         bool
+	IncludeExpired bool
+}
+
+// SetId assigns the TWS "reqId", which is used for reply correlation.
+func (r *RequestHistoricalData) SetId(id int64) {
+	r.id = id
+}
+
+func (r *RequestHistoricalData) Id() int64 {
+	return r.id
+}
+
+func (r *RequestHistoricalData) code() OutgoingMessageId {
+	return mRequestHistoricalData
+}
+
+func (r *RequestHistoricalData) version() int64 {
+	return 5
+}
+
+func (r *RequestHistoricalData) write(b *bytes.Buffer) (err error) {
+
+	if err = writeInt(b, r.id); err != nil {
+		return
+	}
+	if err = r.Contract.write(b); err != nil {
+		return
+	}
+	// FIXME: placeholder for m_tradingClass, need to implement??
+	if err = writeString(b, ""); err != nil {
+		return
+	}
+	if err = writeBool(b, r.IncludeExpired); err != nil {
+		return
+	}
+	if err = writeString(b, r.EndDateTime.UTC().Format(ibTimeFormat)+" GMT"); err != nil {
+		return
+	}
+	if err = writeString(b, string(r.BarSize)); err != nil {
+		return
+	}
+	if err = writeString(b, r.Duration); err != nil {
+		return
+	}
+	if err = writeBool(b, r.UseRTH); err != nil {
+		return
+	}
+	if err = writeString(b, string(r.WhatToShow)); err != nil {
+		return
+	}
+	return writeInt(b, 1) // Using 2 doesn't appear to do anything different?
+}
+
+type CancelHistoricalData struct {
+	id int64
+}
+
+// SetId assigns the TWS "tickerId", which was nominated at market data request time.
+func (c *CancelHistoricalData) SetId(id int64) {
+	c.id = id
+}
+
+func (c *CancelHistoricalData) Id() int64 {
+	return c.id
+}
+
+func (c *CancelHistoricalData) code() OutgoingMessageId {
+	return mCancelHistoricalData
+}
+
+func (c *CancelHistoricalData) version() int64 {
+	return 1
+}
+
+func (c *CancelHistoricalData) write(b *bytes.Buffer) (err error) {
+	return writeInt(b, c.id)
 }
 
 func code2Msg(code int64) (r Reply, err error) {
