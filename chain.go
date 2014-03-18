@@ -110,7 +110,7 @@ func (o *OptionRoot) process(r Reply) {
 		return
 	case *ContractData:
 		r := r.(*ContractData)
-		expiry, err := time.Parse("20060102", r.Expiry)
+		expiry, err := time.Parse("20060102", r.Contract.Summary.Expiry)
 		if err != nil {
 			o.error <- err
 			return
@@ -129,22 +129,22 @@ func (o *OptionRoot) process(r Reply) {
 }
 
 func (o *OptionChain) update(c *ContractData) {
-	if strike, ok := o.Strikes[c.Strike]; ok {
+	if strike, ok := o.Strikes[c.Contract.Summary.Strike]; ok {
 		// strike exists
 		strike.update(c)
 	} else {
 		// no strike exists
 		strike := &OptionStrike{
 			expiry: o.Expiry,
-			Price:  c.Strike,
+			Price:  c.Contract.Summary.Strike,
 		}
-		o.Strikes[c.Strike] = strike
+		o.Strikes[c.Contract.Summary.Strike] = strike
 		strike.update(c)
 	}
 }
 
 func (o *OptionStrike) update(c *ContractData) {
-	if c.Right == "C" {
+	if c.Contract.Summary.Right == "C" {
 		o.Call = c
 	} else {
 		o.Put = c
