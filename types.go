@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"strconv"
 	"time"
 )
 
@@ -165,7 +166,7 @@ const (
 	TickLastRTHTrade                              = 57
 	TickNotSet                                    = 58
 	TickRegulatoryImbalance                       = 61
-	HistBarSize1Sec             HistDataBarSize   = "1 sec"
+	HistBarSize1Sec             HistDataBarSize   = "1 secs"
 	HistBarSize5Sec                               = "5 secs"
 	HistBarSize15Sec                              = "15 secs"
 	HistBarSize30Sec                              = "30 secs"
@@ -1806,7 +1807,7 @@ func (h *HistoricalData) read(b *bufio.Reader) (err error) {
 }
 
 type HistoricalDataItem struct {
-	Date     string
+	Date     time.Time
 	Open     float64
 	High     float64
 	Low      float64
@@ -1818,9 +1819,26 @@ type HistoricalDataItem struct {
 }
 
 func (h *HistoricalDataItem) read(b *bufio.Reader) (err error) {
-	if h.Date, err = readString(b); err != nil {
+	// The date can either be in YYYYMMDD format (if daily bars were requested)
+	// or in seconds since 1/1/1970 UTC (since we passed 2 as formatDate to the request)
+	var dateStr string
+	if dateStr, err = readString(b); err != nil {
 		return
 	}
+	if len(dateStr) == 8 {
+		// handle YYYYMMDD format (received daily bars)
+		if h.Date, err = time.Parse("20060102", dateStr); err != nil {
+			return
+		}
+	} else {
+		// handle bars that are less than daily (seconds since epoch)
+		var epochSecs int64
+		if epochSecs, err = strconv.ParseInt(dateStr, 10, 64); err != nil {
+			return
+		}
+		h.Date = time.Unix(epochSecs, 0)
+	}
+
 	if h.Open, err = readFloat(b); err != nil {
 		return
 	}
@@ -2466,7 +2484,9 @@ func (r *RequestHistoricalData) write(b *bytes.Buffer) (err error) {
 	if err = writeString(b, string(r.WhatToShow)); err != nil {
 		return
 	}
-	return writeInt(b, 1) // Using 2 doesn't appear to do anything different?
+	// for 2, daily bars returns the date in YYYYMMDD format, but returns
+	// according to the spec (unix time in seconds) for shorter bar sizes
+	return writeInt(b, 2)
 }
 
 type CancelHistoricalData struct {
