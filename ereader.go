@@ -127,22 +127,31 @@ func code2Msg(code int64) (r Reply, err error) {
 	case int64(mMarketDataType):
 		r = &MarketDataType{}
 	case int64(mCommissionReport):
+		// TODO: Add support for this reply type
 		err = fmt.Errorf("Not yet supporting type %d", code)
 	case int64(mPosition):
+		// TODO: Add support for this reply type
 		err = fmt.Errorf("Not yet supporting type %d", code)
 	case int64(mPositionEnd):
+		// TODO: Add support for this reply type
 		err = fmt.Errorf("Not yet supporting type %d", code)
 	case int64(mAccountSummary):
+		// TODO: Add support for this reply type
 		err = fmt.Errorf("Not yet supporting type %d", code)
 	case int64(mAccountSummaryEnd):
+		// TODO: Add support for this reply type
 		err = fmt.Errorf("Not yet supporting type %d", code)
 	case int64(mVerifyMessageAPI):
+		// TODO: Add support for this reply type
 		err = fmt.Errorf("Not yet supporting type %d", code)
 	case int64(mVerifyCompleted):
+		// TODO: Add support for this reply type
 		err = fmt.Errorf("Not yet supporting type %d", code)
 	case int64(mDisplayGroupList):
+		// TODO: Add support for this reply type
 		err = fmt.Errorf("Not yet supporting type %d", code)
 	case int64(mDisplayGroupUpdated):
+		// TODO: Add support for this reply type
 		err = fmt.Errorf("Not yet supporting type %d", code)
 	default:
 		err = fmt.Errorf("Unsupported incoming message type %d", code)
