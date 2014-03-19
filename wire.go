@@ -65,6 +65,29 @@ func readTime(b *bufio.Reader) (t time.Time, err error) {
 	return
 }
 
+func readHistDataTime(b *bufio.Reader) (t time.Time, err error) {
+	// The date can either be in YYYYMMDD format (if daily bars were requested)
+	// or in seconds since 1/1/1970 UTC (since we passed 2 as formatDate to the request)
+	var timeString string
+	if timeString, err = readString(b); err != nil {
+		return
+	}
+	if len(timeString) == 8 {
+		// handle YYYYMMDD format (received daily bars)
+		if t, err = time.Parse("20060102", timeString); err != nil {
+			return
+		}
+	} else {
+		// handle bars that are less than daily (seconds since epoch)
+		var epochSecs int64
+		if epochSecs, err = strconv.ParseInt(timeString, 10, 64); err != nil {
+			return
+		}
+		t = time.Unix(epochSecs, 0)
+	}
+	return
+}
+
 // Encode
 
 func writeString(b *bytes.Buffer, s string) (err error) {

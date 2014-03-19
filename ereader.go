@@ -3,8 +3,6 @@ package trade
 import (
 	"bufio"
 	"fmt"
-	"strconv"
-	"time"
 )
 
 // This file ports TWSAPI EReader.java. Please preserve declaration order.
@@ -1462,24 +1460,8 @@ func (h *HistoricalData) read(b *bufio.Reader) (err error) {
 	}
 	h.Data = make([]HistoricalDataItem, itemCount)
 	for i := range h.Data {
-		// The date can either be in YYYYMMDD format (if daily bars were requested)
-		// or in seconds since 1/1/1970 UTC (since we passed 2 as formatDate to the request)
-		var dateStr string
-		if dateStr, err = readString(b); err != nil {
+		if h.Data[i].Date, err = readHistDataTime(b); err != nil {
 			return
-		}
-		if len(dateStr) == 8 {
-			// handle YYYYMMDD format (received daily bars)
-			if h.Data[i].Date, err = time.Parse("20060102", dateStr); err != nil {
-				return
-			}
-		} else {
-			// handle bars that are less than daily (seconds since epoch)
-			var epochSecs int64
-			if epochSecs, err = strconv.ParseInt(dateStr, 10, 64); err != nil {
-				return
-			}
-			h.Data[i].Date = time.Unix(epochSecs, 0)
 		}
 		if h.Data[i].Open, err = readFloat(b); err != nil {
 			return
