@@ -31,8 +31,8 @@ func TestMetadataManagerWithCompleteContractSpec(t *testing.T) {
 		t.Fatalf("Expected 1 contract to be returned")
 	}
 
-	if m.ContractData()[0].Industry != "Communications" {
-		t.Fatalf("Expected contract to be 'Communications', not '%v'", m.ContractData()[0].Industry)
+	if m.ContractData()[0].Contract.Industry != "Communications" {
+		t.Fatalf("Expected contract to be 'Communications', not '%v'", m.ContractData()[0].Contract.Industry)
 	}
 }
 
@@ -60,8 +60,8 @@ func TestMetadataManagerWithIncompleteContractSpec(t *testing.T) {
 		t.Fatalf("Expected 1 contract to be returned")
 	}
 
-	if m.ContractData()[0].Currency != "EUR" {
-		t.Fatalf("Expected currency to be 'EUR', not '%v'", m.ContractData()[0].Currency)
+	if m.ContractData()[0].Contract.Summary.Currency != "EUR" {
+		t.Fatalf("Expected currency to be 'EUR', not '%v'", m.ContractData()[0].Contract.Summary.Currency)
 	}
 
 }
