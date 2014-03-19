@@ -53,6 +53,7 @@ type Engine struct {
 	clientVersion int64
 	serverVersion int64
 	lastDumpRead  int64
+	lastDumpId    int64
 	fatalError    error
 }
 
@@ -512,12 +513,6 @@ func (e *Engine) receive() (r Reply, err error) {
 		return
 	}
 
-	dump := dumpConversation && hdr.code != e.lastDumpRead
-	if dump {
-		e.lastDumpRead = hdr.code
-		fmt.Printf("%d< %v ", e.client, hdr)
-	}
-
 	// decode message
 	r, err = code2Msg(hdr.code)
 	if err != nil {
@@ -525,20 +520,31 @@ func (e *Engine) receive() (r Reply, err error) {
 	}
 
 	if err = r.read(e.reader); err != nil {
-		if dump {
-			fmt.Printf("%v\n", err)
+		if dumpConversation {
+			fmt.Printf("%d< %v\n", e.client, err)
 		}
 		return
 	}
 
-	if dump {
-		str := fmt.Sprintf("%v", r)
-		cut := len(str)
-		if cut > 80 {
-			str = str[:76] + "..."
+	if dumpConversation {
+		dump := hdr.code != e.lastDumpRead
+		e.lastDumpRead = hdr.code
+
+		if mr, ok := r.(MatchedReply); ok {
+			dump = dump || mr.Id() != e.lastDumpId
+			e.lastDumpId = mr.Id()
 		}
-		fmt.Printf("%s\n", str)
+
+		if dump {
+			str := fmt.Sprintf("%v", r)
+			cut := len(str)
+			if cut > 80 {
+				str = str[:76] + "..."
+			}
+			fmt.Printf("%d< %v %s\n", e.client, hdr, str)
+		}
 	}
+
 	return
 }
 
