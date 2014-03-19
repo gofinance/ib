@@ -9,13 +9,9 @@ func TestOptionChains(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping test in short mode.")
 	}
-	engine, err := NewEngine()
+	engine := NewTestEngine(t)
 
-	if err != nil {
-		t.Fatalf("cannot connect engine: %s", err)
-	}
-
-	defer engine.Stop()
+	defer engine.ConditionalStop(t)
 
 	contract := &Contract{
 		Symbol:       "AAPL",
