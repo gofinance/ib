@@ -323,8 +323,8 @@ func (r *RequestHistoricalData) write(b *bytes.Buffer) (err error) {
 	if err = writeString(b, string(r.WhatToShow)); err != nil {
 		return
 	}
-	// for formatDate==2, using daily bars return the date in YYYYMMDD format, but returns
-	// according to the spec (unix time in seconds) for shorter bar sizes
+	// for formatDate==2, requesting daily bars returns the date in YYYYMMDD format
+	// for more frequent bar sizes, IB returns according to the spec (unix time in seconds)
 	return writeInt(b, 2)
 }
 
