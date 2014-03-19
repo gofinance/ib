@@ -11,7 +11,7 @@ func TestHistoricalData(t *testing.T) {
 	defer engine.ConditionalStop(t)
 
 	contract := Contract{
-		Symbol:       "AUD",
+		Symbol:       "GBP",
 		SecurityType: "CASH",
 		Exchange:     "IDEALPRO",
 		Currency:     "USD",
