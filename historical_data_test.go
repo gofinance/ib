@@ -29,6 +29,8 @@ func TestHistoricalData(t *testing.T) {
 	req.SetId(id)
 	ch := make(chan Reply)
 	engine.Subscribe(ch, id)
+	defer engine.Unsubscribe(ch, id)
+	defer engine.Send(&CancelHistoricalData{id})
 
 	if err := engine.Send(req); err != nil {
 		t.Fatalf("client %d: cannot send a historical data request: %s", engine.ClientId(), err)
@@ -41,12 +43,6 @@ func TestHistoricalData(t *testing.T) {
 	}
 
 	checkHistDataReply(t, rep)
-
-	if err := engine.Send(&CancelHistoricalData{id}); err != nil {
-		t.Fatalf("client %d: cannot send cancel request: %s", engine.ClientId(), err)
-	}
-	engine.Unsubscribe(ch, id)
-
 }
 
 func TestHistBarSizes(t *testing.T) {
@@ -88,6 +84,8 @@ func TestHistBarSizes(t *testing.T) {
 		req.SetId(id)
 
 		engine.Subscribe(ch, id)
+		defer engine.Unsubscribe(ch, id)
+		defer engine.Send(&CancelHistoricalData{id})
 
 		if err := engine.Send(req); err != nil {
 			t.Fatalf("client %d: cannot send a historical data request: %s", engine.ClientId(), err)
@@ -100,14 +98,10 @@ func TestHistBarSizes(t *testing.T) {
 		// logreply(t, rep, err)
 
 		checkHistDataReply(t, rep)
-
-		engine.Unsubscribe(ch, id)
-
 	}
 }
 
 func checkHistDataReply(t *testing.T, rep Reply) {
-
 	hd, ok := rep.(*HistoricalData)
 	if !ok {
 		t.Fatalf("couldn't convert the reply to HistoricalData, got %T", rep)
