@@ -34,6 +34,9 @@ func (i *InstrumentManager) preLoop() {
 
 func (i *InstrumentManager) preDestroy() {
 	i.eng.Unsubscribe(i.rc, i.id)
+	req := &CancelMarketData{}
+	req.SetId(i.id)
+	i.eng.Send(req)
 }
 
 func (i *InstrumentManager) receive(r Reply) (UpdateStatus, error) {
