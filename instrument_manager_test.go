@@ -11,10 +11,10 @@ func TestInstrumentManager(t *testing.T) {
 	defer engine.ConditionalStop(t)
 
 	contract := Contract{
-		Symbol:       "AUD",
+		Symbol:       "USD",
 		SecurityType: "CASH",
 		Exchange:     "IDEALPRO",
-		Currency:     "USD",
+		Currency:     "JPY",
 	}
 
 	i, err := NewInstrumentManager(engine, contract)

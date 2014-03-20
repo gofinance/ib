@@ -11,7 +11,7 @@ func TestMetadataManagerWithCompleteContractSpec(t *testing.T) {
 	defer engine.ConditionalStop(t)
 
 	contract := Contract{
-		Symbol:       "PCLN",
+		Symbol:       "ORCL",
 		SecurityType: "STK",
 		Exchange:     "SMART",
 		Currency:     "USD",
@@ -31,8 +31,8 @@ func TestMetadataManagerWithCompleteContractSpec(t *testing.T) {
 		t.Fatalf("Expected 1 contract to be returned")
 	}
 
-	if m.ContractData()[0].Contract.Industry != "Communications" {
-		t.Fatalf("Expected contract to be 'Communications', not '%v'", m.ContractData()[0].Contract.Industry)
+	if m.ContractData()[0].Contract.Industry != "Technology" {
+		t.Fatalf("Expected contract to be 'Technology', not '%v'", m.ContractData()[0].Contract.Industry)
 	}
 }
 
@@ -42,7 +42,7 @@ func TestMetadataManagerWithIncompleteContractSpec(t *testing.T) {
 	defer engine.ConditionalStop(t)
 
 	contract := Contract{
-		Symbol:   "SX7E",
+		Symbol:   "SX4E",
 		Exchange: "DTB",
 	}
 
