@@ -4,10 +4,6 @@ import (
 	"bytes"
 )
 
-const (
-	maxInt = int(^uint(0) >> 1)
-)
-
 type Request interface {
 	writable
 	code() OutgoingMessageId
@@ -37,6 +33,12 @@ type clientHandshake struct {
 
 func (c *clientHandshake) write(b *bytes.Buffer) (err error) {
 	if err = writeInt(b, c.version); err != nil {
+		return
+	}
+	if err = writeInt(b, mStartAPI); err != nil {
+		return
+	}
+	if err = writeInt(b, 1); err != nil {
 		return
 	}
 	return writeInt(b, c.id)

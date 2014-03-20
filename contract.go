@@ -13,11 +13,12 @@ type Contract struct {
 	Exchange             string
 	Currency             string
 	LocalSymbol          string
+	TradingClass         string
 	PrimaryExchange      string
 	IncludeExpired       bool
 	SecIdType            string
 	SecId                string
 	ComboLegsDescription string
-	ComboLegs            bool // TODO: fix field type when we're reading it
+	ComboLegs            []ComboLeg
 	UnderComp            UnderComp
 }

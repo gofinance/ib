@@ -23,5 +23,5 @@ type ComboLeg struct {
 	OpenClose          int64
 	ShortSaleSlot      int64
 	DesignatedLocation string
-	ExemptCode         int
+	ExemptCode         int64
 }

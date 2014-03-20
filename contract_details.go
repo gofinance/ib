@@ -6,7 +6,6 @@ package trade
 type ContractDetails struct {
 	Summary         Contract
 	MarketName      string
-	TradingClass    string
 	MinTick         float64
 	PriceMagnifier  int64
 	OrderTypes      string
@@ -20,6 +19,9 @@ type ContractDetails struct {
 	TimezoneId      string
 	TradingHours    string
 	LiquidHours     string
+	EVRule          string
+	EVMultiplier    float64
+	SecIdList       []TagValue
 }
 
 type BondContractDetails struct {
@@ -45,4 +47,7 @@ type BondContractDetails struct {
 	NextOptionType    string
 	NextOptionPartial bool
 	Notes             string
+	EVRule            string
+	EVMultiplier      float64
+	SecIdList         []TagValue
 }

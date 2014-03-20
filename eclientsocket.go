@@ -31,8 +31,8 @@ func (s FaMsgType) String() string {
 type OutgoingMessageId int64
 
 const (
-	clientVersion                                 = 53 // TWSAPI 9.66 beta 3
-	minServerVersion                              = 53 // TWSAPI 9.65
+	clientVersion                                 = 63 // http://interactivebrokers.github.io/downloads/twsapi_macunix.971.01.jar
+	minServerVersion                              = 70
 	bagSecType                                    = "BAG"
 	FaMsgTypeGroups             FaMsgType         = 1
 	FaMsgTypeProfiles                             = 2
@@ -109,10 +109,11 @@ func (s *serverHandshake) read(b *bufio.Reader) (err error) {
 type RequestMarketData struct {
 	id int64
 	Contract
-	ComboLegs       []ComboLeg `when:"SecurityType" cond:"not" value:"BAG"`
-	Comp            *UnderComp
-	GenericTickList string
-	Snapshot        bool
+	ComboLegs         []ComboLeg `when:"SecurityType" cond:"not" value:"BAG"`
+	Comp              *UnderComp
+	GenericTickList   string
+	Snapshot          bool
+	MarketDataOptions []TagValue
 }
 
 // SetId assigns the TWS "tickerId", used for reply correlation and request cancellation.
@@ -129,7 +130,7 @@ func (r *RequestMarketData) code() OutgoingMessageId {
 }
 
 func (r *RequestMarketData) version() int64 {
-	return 9
+	return 11
 }
 
 func (r *RequestMarketData) write(b *bytes.Buffer) (err error) {
@@ -169,6 +170,9 @@ func (r *RequestMarketData) write(b *bytes.Buffer) (err error) {
 	if err = writeString(b, r.Contract.LocalSymbol); err != nil {
 		return
 	}
+	if err = writeString(b, r.Contract.TradingClass); err != nil {
+		return
+	}
 	if r.Contract.SecurityType == bagSecType {
 		for _, cl := range r.ComboLegs {
 			if err = writeInt(b, cl.ContractId); err != nil {
@@ -203,7 +207,18 @@ func (r *RequestMarketData) write(b *bytes.Buffer) (err error) {
 	if err = writeString(b, r.GenericTickList); err != nil {
 		return
 	}
-	return writeBool(b, r.Snapshot)
+	if err = writeBool(b, r.Snapshot); err != nil {
+		return
+	}
+	var mktData bytes.Buffer
+	mktData.WriteString("")
+	for _, opt := range r.MarketDataOptions {
+		mktData.WriteString(opt.Tag)
+		mktData.WriteString("=")
+		mktData.WriteString(opt.Value)
+		mktData.WriteString(";")
+	}
+	return writeString(b, mktData.String())
 }
 
 // CancelHistoricalData is equivalent of TWSAPI EClientSocket.cancelHistoricalData().
@@ -244,6 +259,7 @@ type RequestHistoricalData struct {
 	WhatToShow     HistDataToShow
 	UseRTH         bool
 	IncludeExpired bool
+	ChartOptions   []TagValue
 }
 
 // SetId assigns the TWS "reqId", which is used for reply correlation.
@@ -260,7 +276,7 @@ func (r *RequestHistoricalData) code() OutgoingMessageId {
 }
 
 func (r *RequestHistoricalData) version() int64 {
-	return 5 // only ver 4 in TWSAPI 9.66 beta 3
+	return 6
 }
 
 func (r *RequestHistoricalData) write(b *bytes.Buffer) (err error) {
@@ -300,8 +316,7 @@ func (r *RequestHistoricalData) write(b *bytes.Buffer) (err error) {
 	if err = writeString(b, r.Contract.LocalSymbol); err != nil {
 		return
 	}
-	// TODO: placeholder for m_tradingClass, need to implement??
-	if err = writeString(b, ""); err != nil {
+	if err = writeString(b, r.Contract.TradingClass); err != nil {
 		return
 	}
 	if err = writeBool(b, r.IncludeExpired); err != nil {
@@ -310,7 +325,6 @@ func (r *RequestHistoricalData) write(b *bytes.Buffer) (err error) {
 	if err = writeString(b, r.EndDateTime.UTC().Format(ibTimeFormat)+" GMT"); err != nil {
 		return
 	}
-	// TODO: Review following during TWSAPI 9.71.01 update
 	if err = writeString(b, string(r.BarSize)); err != nil {
 		return
 	}
@@ -325,7 +339,18 @@ func (r *RequestHistoricalData) write(b *bytes.Buffer) (err error) {
 	}
 	// for formatDate==2, requesting daily bars returns the date in YYYYMMDD format
 	// for more frequent bar sizes, IB returns according to the spec (unix time in seconds)
-	return writeInt(b, 2)
+	if err = writeInt(b, 2); err != nil {
+		return
+	}
+	var mktData bytes.Buffer
+	mktData.WriteString("")
+	for _, opt := range r.ChartOptions {
+		mktData.WriteString(opt.Tag)
+		mktData.WriteString("=")
+		mktData.WriteString(opt.Value)
+		mktData.WriteString(";")
+	}
+	return writeString(b, mktData.String())
 }
 
 // TODO: Add equivalent of EClientSocket.reqRealTimeBars()
@@ -350,7 +375,7 @@ func (r *RequestContractData) code() OutgoingMessageId {
 }
 
 func (r *RequestContractData) version() int64 {
-	return 6
+	return 7
 }
 
 func (r *RequestContractData) write(b *bytes.Buffer) (err error) {
@@ -385,6 +410,9 @@ func (r *RequestContractData) write(b *bytes.Buffer) (err error) {
 		return
 	}
 	if err = writeString(b, r.Contract.LocalSymbol); err != nil {
+		return
+	}
+	if err = writeString(b, r.Contract.TradingClass); err != nil {
 		return
 	}
 	if err = writeBool(b, r.Contract.IncludeExpired); err != nil {
@@ -497,7 +525,7 @@ func (r *RequestCalcImpliedVol) code() OutgoingMessageId {
 }
 
 func (r *RequestCalcImpliedVol) version() int64 {
-	return 1
+	return 2
 }
 
 func (r *RequestCalcImpliedVol) write(b *bytes.Buffer) (err error) {
@@ -535,6 +563,9 @@ func (r *RequestCalcImpliedVol) write(b *bytes.Buffer) (err error) {
 		return
 	}
 	if err = writeString(b, r.Contract.LocalSymbol); err != nil {
+		return
+	}
+	if err = writeString(b, r.Contract.TradingClass); err != nil {
 		return
 	}
 	if err = writeFloat(b, r.OptionPrice); err != nil {
@@ -591,7 +622,7 @@ func (r *RequestCalcOptionPrice) code() OutgoingMessageId {
 }
 
 func (r *RequestCalcOptionPrice) version() int64 {
-	return 1
+	return 2
 }
 
 func (r *RequestCalcOptionPrice) write(b *bytes.Buffer) (err error) {
@@ -631,6 +662,9 @@ func (r *RequestCalcOptionPrice) write(b *bytes.Buffer) (err error) {
 	if err = writeString(b, r.Contract.LocalSymbol); err != nil {
 		return
 	}
+	if err = writeString(b, r.Contract.TradingClass); err != nil {
+		return
+	}
 	if err = writeFloat(b, r.Volatility); err != nil {
 		return
 	}
@@ -664,3 +698,25 @@ func (c *CancelCalcOptionPrice) write(b *bytes.Buffer) (err error) {
 }
 
 // TODO: Add equivalent of EClientSocket.reqGlobalCancel()
+
+// TODO: Add equivalent of EClientSocket.reqMarketDataType()
+
+// TODO: Add equivalent of EClientSocket.reqPositions()
+
+// TODO: Add equivalent of EClientSocket.cancelPositions()
+
+// TODO: Add equivalent of EClientSocket.reqAccountSummary()
+
+// TODO: Add equivalent of EClientSocket.cancelAccountSummary()
+
+// TODO: Add equivalent of EClientSocket.verifyRequest()
+
+// TODO: Add equivalent of EClientSocket.verifyMessage()
+
+// TODO: Add equivalent of EClientSocket.queryDisplayGroups()
+
+// TODO: Add equivalent of EClientSocket.subscribeToGroupEvents()
+
+// TODO: Add equivalent of EClientSocket.updateDisplayGroup()
+
+// TODO: Add equivalent of EClientSocket.unsubscribeFromGroupEvents()

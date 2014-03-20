@@ -12,6 +12,8 @@ type Order struct {
 	LimitPrice                    float64
 	AuxPrice                      float64
 	TIF                           string
+	ActiveStartTime               string
+	ActiveStopTime                string
 	OCAGroup                      string
 	OCAType                       int64
 	OrderRef                      string
@@ -31,6 +33,7 @@ type Order struct {
 	MinQty                        int64
 	PercentOffset                 float64
 	TrailingStopPrice             float64
+	TrailingPercent               float64
 	FAGroup                       string
 	FAProfile                     string
 	FAMethod                      string
@@ -63,6 +66,14 @@ type Order struct {
 	ScaleInitLevelSize            int64   // max
 	ScaleSubsLevelSize            int64   // max
 	ScalePriceIncrement           float64 // max
+	ScalePriceAdjustValue         float64
+	ScalePriceAdjustInterval      int64
+	ScaleProfitOffset             float64
+	ScaleAutoReset                bool
+	ScaleInitPosition             int64
+	ScaleInitFillQty              int64
+	ScaleRandomPercent            bool
+	ScaleTable                    string
 	HedgeType                     string
 	HedgeParam                    string
 	Account                       string
@@ -74,6 +85,8 @@ type Order struct {
 	WhatIf                        bool
 	NotHeld                       bool
 	SmartComboRoutingParams       []TagValue
+	OrderComboLegs                []OrderComboLeg
+	OrderMiscOptions              []TagValue
 }
 
 type DeltaNeutralData struct {
@@ -81,6 +94,10 @@ type DeltaNeutralData struct {
 	ClearingSettlingFirm string
 	ClearingAccount      string
 	ClearingIntent       string
+	OpenClose            string
+	ShortSale            bool
+	ShortSaleSlot        int64
+	DesignatedLocation   string
 }
 
 type AlgoParams struct {

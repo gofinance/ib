@@ -498,6 +498,9 @@ func (p *PortfolioValue) read(b *bufio.Reader) (err error) {
 	if p.Contract.LocalSymbol, err = readString(b); err != nil {
 		return
 	}
+	if p.Contract.TradingClass, err = readString(b); err != nil {
+		return
+	}
 	if p.Position, err = readInt(b); err != nil {
 		return
 	}
@@ -609,13 +612,16 @@ func (o *OpenOrder) read(b *bufio.Reader) (err error) {
 	if o.Contract.Multiplier, err = readString(b); err != nil {
 		return
 	}
-	if o.Contract.PrimaryExchange, err = readString(b); err != nil {
+	if o.Contract.Exchange, err = readString(b); err != nil {
 		return
 	}
 	if o.Contract.Currency, err = readString(b); err != nil {
 		return
 	}
 	if o.Contract.LocalSymbol, err = readString(b); err != nil {
+		return
+	}
+	if o.Contract.TradingClass, err = readString(b); err != nil {
 		return
 	}
 	if o.Contract.ContractId, err = readInt(b); err != nil {
@@ -809,6 +815,18 @@ func (o *OpenOrder) read(b *bufio.Reader) (err error) {
 		if o.Order.DeltaNeutral.ClearingIntent, err = readString(b); err != nil {
 			return
 		}
+		if o.Order.DeltaNeutral.OpenClose, err = readString(b); err != nil {
+			return
+		}
+		if o.Order.DeltaNeutral.ShortSale, err = readBool(b); err != nil {
+			return
+		}
+		if o.Order.DeltaNeutral.ShortSaleSlot, err = readInt(b); err != nil {
+			return
+		}
+		if o.Order.DeltaNeutral.DesignatedLocation, err = readString(b); err != nil {
+			return
+		}
 	}
 	if o.Order.ContinuousUpdate, err = readInt(b); err != nil {
 		return
@@ -819,6 +837,9 @@ func (o *OpenOrder) read(b *bufio.Reader) (err error) {
 	if o.Order.TrailingStopPrice, err = readFloat(b); err != nil {
 		return
 	}
+	if o.Order.TrailingPercent, err = readFloat(b); err != nil {
+		return
+	}
 	if o.Order.BasisPoints, err = readFloat(b); err != nil {
 		return
 	}
@@ -827,6 +848,47 @@ func (o *OpenOrder) read(b *bufio.Reader) (err error) {
 	}
 	if o.Contract.ComboLegsDescription, err = readString(b); err != nil {
 		return
+	}
+	var comboLegsCount int64
+	if comboLegsCount, err = readInt(b); err != nil {
+		return
+	}
+	o.Contract.ComboLegs = make([]ComboLeg, comboLegsCount)
+	for _, cl := range o.Contract.ComboLegs {
+		if cl.ContractId, err = readInt(b); err != nil {
+			return
+		}
+		if cl.Ratio, err = readInt(b); err != nil {
+			return
+		}
+		if cl.Action, err = readString(b); err != nil {
+			return
+		}
+		if cl.Exchange, err = readString(b); err != nil {
+			return
+		}
+		if cl.OpenClose, err = readInt(b); err != nil {
+			return
+		}
+		if cl.ShortSaleSlot, err = readInt(b); err != nil {
+			return
+		}
+		if cl.DesignatedLocation, err = readString(b); err != nil {
+			return
+		}
+		if cl.ExemptCode, err = readInt(b); err != nil {
+			return
+		}
+	}
+	var orderComboLegsCount int64
+	if orderComboLegsCount, err = readInt(b); err != nil {
+		return
+	}
+	o.Order.OrderComboLegs = make([]OrderComboLeg, orderComboLegsCount)
+	for _, ocl := range o.Order.OrderComboLegs {
+		if ocl.Price, err = readFloat(b); err != nil {
+			return
+		}
 	}
 	var smartSize int64
 	if smartSize, err = readInt(b); err != nil {
@@ -849,6 +911,29 @@ func (o *OpenOrder) read(b *bufio.Reader) (err error) {
 	}
 	if o.Order.ScalePriceIncrement, err = readFloat(b); err != nil {
 		return
+	}
+	if o.Order.ScalePriceIncrement > 0.0 {
+		if o.Order.ScalePriceAdjustValue, err = readFloat(b); err != nil {
+			return
+		}
+		if o.Order.ScalePriceAdjustInterval, err = readInt(b); err != nil {
+			return
+		}
+		if o.Order.ScaleProfitOffset, err = readFloat(b); err != nil {
+			return
+		}
+		if o.Order.ScaleAutoReset, err = readBool(b); err != nil {
+			return
+		}
+		if o.Order.ScaleInitPosition, err = readInt(b); err != nil {
+			return
+		}
+		if o.Order.ScaleInitFillQty, err = readInt(b); err != nil {
+			return
+		}
+		if o.Order.ScaleRandomPercent, err = readBool(b); err != nil {
+			return
+		}
 	}
 	if o.Order.HedgeType, err = readString(b); err != nil {
 		return
@@ -1004,7 +1089,7 @@ func (s *ScannerData) read(b *bufio.Reader) (err error) {
 		if sd.Contract.MarketName, err = readString(b); err != nil {
 			return
 		}
-		if sd.Contract.TradingClass, err = readString(b); err != nil {
+		if sd.Contract.Summary.TradingClass, err = readString(b); err != nil {
 			return
 		}
 		if sd.Distance, err = readString(b); err != nil {
@@ -1068,7 +1153,7 @@ func (c *ContractData) read(b *bufio.Reader) (err error) {
 	if c.Contract.MarketName, err = readString(b); err != nil {
 		return
 	}
-	if c.Contract.TradingClass, err = readString(b); err != nil {
+	if c.Contract.Summary.TradingClass, err = readString(b); err != nil {
 		return
 	}
 	if c.Contract.Summary.ContractId, err = readInt(b); err != nil {
@@ -1116,7 +1201,28 @@ func (c *ContractData) read(b *bufio.Reader) (err error) {
 	if c.Contract.TradingHours, err = readString(b); err != nil {
 		return
 	}
-	c.Contract.LiquidHours, err = readString(b)
+	if c.Contract.LiquidHours, err = readString(b); err != nil {
+		return
+	}
+	if c.Contract.EVRule, err = readString(b); err != nil {
+		return
+	}
+	if c.Contract.EVMultiplier, err = readFloat(b); err != nil {
+		return
+	}
+	var secIdListCount int64
+	if secIdListCount, err = readInt(b); err != nil {
+		return
+	}
+	c.Contract.SecIdList = make([]TagValue, secIdListCount)
+	for _, si := range c.Contract.SecIdList {
+		if si.Tag, err = readString(b); err != nil {
+			return
+		}
+		if si.Value, err = readString(b); err != nil {
+			return
+		}
+	}
 	return
 }
 
@@ -1213,8 +1319,30 @@ func (bcd *BondContractData) read(b *bufio.Reader) (err error) {
 	if bcd.Contract.Notes, err = readString(b); err != nil {
 		return
 	}
-	bcd.Contract.LongName, err = readString(b)
+	if bcd.Contract.LongName, err = readString(b); err != nil {
+		return
+	}
+	if bcd.Contract.EVRule, err = readString(b); err != nil {
+		return
+	}
+	if bcd.Contract.EVMultiplier, err = readFloat(b); err != nil {
+		return
+	}
+	var secIdListCount int64
+	if secIdListCount, err = readInt(b); err != nil {
+		return
+	}
+	bcd.Contract.SecIdList = make([]TagValue, secIdListCount)
+	for _, si := range bcd.Contract.SecIdList {
+		if si.Tag, err = readString(b); err != nil {
+			return
+		}
+		if si.Value, err = readString(b); err != nil {
+			return
+		}
+	}
 	return
+
 }
 
 type ExecutionData struct {
@@ -1257,6 +1385,9 @@ func (e *ExecutionData) read(b *bufio.Reader) (err error) {
 	if e.Contract.Right, err = readString(b); err != nil {
 		return
 	}
+	if e.Contract.Multiplier, err = readString(b); err != nil {
+		return
+	}
 	if e.Contract.Exchange, err = readString(b); err != nil {
 		return
 	}
@@ -1264,6 +1395,9 @@ func (e *ExecutionData) read(b *bufio.Reader) (err error) {
 		return
 	}
 	if e.Contract.LocalSymbol, err = readString(b); err != nil {
+		return
+	}
+	if e.Contract.TradingClass, err = readString(b); err != nil {
 		return
 	}
 	if e.Exec.ExecId, err = readString(b); err != nil {
@@ -1302,7 +1436,13 @@ func (e *ExecutionData) read(b *bufio.Reader) (err error) {
 	if e.Exec.AveragePrice, err = readFloat(b); err != nil {
 		return
 	}
-	e.Exec.OrderRef, err = readString(b)
+	if e.Exec.OrderRef, err = readString(b); err != nil {
+		return
+	}
+	if e.Exec.EVRule, err = readString(b); err != nil {
+		return
+	}
+	e.Exec.EVMultiplier, err = readFloat(b)
 	return
 }
 

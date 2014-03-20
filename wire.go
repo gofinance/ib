@@ -3,12 +3,15 @@ package trade
 import (
 	"bufio"
 	"bytes"
+	"math"
 	"strconv"
 	"time"
 )
 
 //const ibTimeFormat = "20060102 15:04:05.000000 MST"
-const ibTimeFormat = "20060102 15:04:05"
+const (
+	ibTimeFormat = "20060102 15:04:05"
+)
 
 type readable interface {
 	read(b *bufio.Reader) error
@@ -32,6 +35,9 @@ func readInt(b *bufio.Reader) (i int64, err error) {
 	if str, err = readString(b); err != nil {
 		return
 	}
+	if str == "" {
+		return math.MaxInt64, nil
+	}
 	i, err = strconv.ParseInt(str, 10, 64)
 	return
 }
@@ -40,6 +46,9 @@ func readFloat(b *bufio.Reader) (f float64, err error) {
 	var str string
 	if str, err = readString(b); err != nil {
 		return
+	}
+	if str == "" {
+		return math.MaxFloat64, nil
 	}
 	f, err = strconv.ParseFloat(str, 64)
 	return

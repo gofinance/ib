@@ -17,4 +17,6 @@ type Execution struct {
 	CumQty       int64
 	AveragePrice float64
 	OrderRef     string
+	EVRule       string
+	EVMultiplier float64
 }
