@@ -541,6 +541,10 @@ type ErrorMessage struct {
 	Message string
 }
 
+func (e *ErrorMessage) Id() int64 {
+	return e.id
+}
+
 func (e *ErrorMessage) code() IncomingMessageId {
 	return mErrorMessage
 }
