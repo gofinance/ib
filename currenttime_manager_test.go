@@ -18,7 +18,7 @@ func TestCurrentTimeManager(t *testing.T) {
 	defer ctm.Close()
 
 	var m Manager = ctm
-	SinkManagerTest(t, &m, 5*time.Second, 1)
+	SinkManagerTest(t, &m, 15*time.Second, 1)
 
 	ctmTime := ctm.Time()
 	t.Logf("got time: %s\n", ctmTime.String())
