@@ -191,38 +191,6 @@ func TestContractDetails(t *testing.T) {
 	}
 }
 
-func TestOptionChainRequest(t *testing.T) {
-	engine := NewTestEngine(t)
-
-	defer engine.ConditionalStop(t)
-
-	req1 := &RequestContractData{
-		Contract: Contract{
-			Symbol:       "AAPL",
-			SecurityType: "OPT",
-			Exchange:     "SMART",
-			Currency:     "USD",
-		},
-	}
-
-	id := engine.NextRequestId()
-	req1.SetId(id)
-	ch := make(chan Reply)
-	engine.Subscribe(ch, id)
-	defer engine.Unsubscribe(ch, id)
-
-	if err := engine.Send(req1); err != nil {
-		t.Fatalf("cannot send contract data request: %s", err)
-	}
-
-	rep1, err := engine.expect(t, 30, ch, []IncomingMessageId{mContractDataEnd})
-	logreply(t, rep1, err)
-
-	if err != nil {
-		t.Fatalf("cannot receive contract details: %v", err)
-	}
-}
-
 func logreply(t *testing.T, reply Reply, err error) {
 	if reply == nil {
 		t.Logf("received reply nil")
