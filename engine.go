@@ -530,6 +530,8 @@ func (e *Engine) receive() (r Reply, err error) {
 		dump := hdr.code != e.lastDumpRead
 		e.lastDumpRead = hdr.code
 
+		dump = r.code() == mErrorMessage
+
 		if mr, ok := r.(MatchedReply); ok {
 			dump = dump || mr.Id() != e.lastDumpId
 			e.lastDumpId = mr.Id()
