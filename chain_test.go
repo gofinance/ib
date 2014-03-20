@@ -6,9 +6,6 @@ import (
 )
 
 func TestOptionChains(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping test in short mode.")
-	}
 	engine := NewTestEngine(t)
 
 	defer engine.ConditionalStop(t)
