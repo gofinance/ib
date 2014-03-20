@@ -10,7 +10,7 @@ func TestOptionChains(t *testing.T) {
 
 	defer engine.ConditionalStop(t)
 
-	contract := &Contract{
+	contract := Contract{
 		Symbol:       "GOOG",
 		SecurityType: "STK",
 		Exchange:     "SMART",

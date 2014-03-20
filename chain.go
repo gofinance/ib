@@ -4,43 +4,29 @@ import (
 	"time"
 )
 
-type OptionChains map[time.Time]*OptionChain
-
 type OptionRoot struct {
-	id       int64
-	contract *Contract
-	engine   *Engine
-	chains   OptionChains
-	replyc   chan Reply
-	ch       chan func()
-	exit     chan bool
-	update   chan bool
-	error    chan error
+	id     int64
+	c      *Contract
+	engine *Engine
+	chains OptionChains
+	replyc chan Reply
+	ch     chan func()
+	exit   chan bool
+	update chan bool
+	error  chan error
 }
 
-type OptionChain struct {
-	Expiry  time.Time
-	Strikes map[float64]*OptionStrike
-}
-
-type OptionStrike struct {
-	expiry time.Time
-	Price  float64
-	Put    *ContractData
-	Call   *ContractData
-}
-
-func NewOptionChain(e *Engine, c *Contract) *OptionRoot {
+func NewOptionChain(e *Engine, c Contract) *OptionRoot {
 	o := &OptionRoot{
-		id:       e.NextRequestId(),
-		contract: c,
-		chains:   make(OptionChains),
-		engine:   e,
-		replyc:   make(chan Reply),
-		ch:       make(chan func(), 1),
-		exit:     make(chan bool, 1),
-		update:   make(chan bool),
-		error:    make(chan error),
+		id:     e.NextRequestId(),
+		c:      &c,
+		chains: make(OptionChains),
+		engine: e,
+		replyc: make(chan Reply),
+		ch:     make(chan func(), 1),
+		exit:   make(chan bool, 1),
+		update: make(chan bool),
+		error:  make(chan error),
 	}
 
 	go func() {
@@ -69,7 +55,7 @@ func (o *OptionRoot) Error() chan error { return o.error }
 
 func (o *OptionRoot) StartUpdate() error {
 	req := &RequestContractData{
-		Contract: *o.contract,
+		Contract: *o.c,
 	}
 	req.Contract.SecurityType = "OPT"
 	req.Contract.LocalSymbol = ""
@@ -125,28 +111,5 @@ func (o *OptionRoot) process(r Reply) {
 			chain.update(r)
 			o.chains[expiry] = chain
 		}
-	}
-}
-
-func (o *OptionChain) update(c *ContractData) {
-	if strike, ok := o.Strikes[c.Contract.Summary.Strike]; ok {
-		// strike exists
-		strike.update(c)
-	} else {
-		// no strike exists
-		strike := &OptionStrike{
-			expiry: o.Expiry,
-			Price:  c.Contract.Summary.Strike,
-		}
-		o.Strikes[c.Contract.Summary.Strike] = strike
-		strike.update(c)
-	}
-}
-
-func (o *OptionStrike) update(c *ContractData) {
-	if c.Contract.Summary.Right == "C" {
-		o.Call = c
-	} else {
-		o.Put = c
 	}
 }
