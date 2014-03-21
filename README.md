@@ -2,6 +2,7 @@ GoIB
 ====
 
 [![Build Status](https://drone.io/github.com/benalexau/go.trade/status.png)](https://drone.io/github.com/benalexau/go.trade/latest)
+[![GoDoc](https://godoc.org/github.com/benalexau/go.trade?status.png)](https://godoc.org/github.com/benalexau/go.trade)
 
 This is a pure Go interface to
 [Interactive Brokers](https://www.interactivebrokers.com/)
@@ -10,8 +11,10 @@ This is a pure Go interface to
 * 100% pure Go (no Java/C calls)
 * Idiomatic design (Go naming conventions, channels, error handling etc)
 * Choice of low-level types or our high-level [Manager](manager.go) types
-* Extensively tested (lots of tests, CI via [Drone](https://drone.io), local
+* Extensively tested (lots of tests, CI via
+  [Drone](https://drone.io/github.com/benalexau/go.trade/latest), local
   [test server](testserver/README.md))
+* Documentation on [GoDoc](https://godoc.org/github.com/benalexau/go.trade)
 * Reflects very up-to-date TWSAPI version
 
 We welcome your involvement and contributions! If you like the project, please
