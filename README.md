@@ -18,7 +18,7 @@ This is a pure Go interface to
 * Reflects very up-to-date TWSAPI version
 
 We welcome your involvement and contributions! If you like the project, please
-click the GitHub "Star" or "[Fork]((../../fork))" button. We also invite you to
+click the GitHub "Star" or "[Fork](../../fork)" button. We also invite you to
 join the [contributor list](../../graphs/contributors) by submitting
 [pull requests](../../pulls).
 
