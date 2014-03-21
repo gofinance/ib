@@ -8,15 +8,15 @@ provided for testing convenience only.
   home page is http://sourceforge.net/projects/ibcontroller/ and is GPLv3
   licensed.
 
-* Trader Workstation (in unixmacosx-*.jar) is the official, unmodified
+* Trader Workstation (in ```unixmacosx-*.jar```) is the official, unmodified
   distribution JAR from Interactive Brokers. Its home page is
   http://www.interactivebrokers.com/en/pagemap/pagemap_APISolutions.php and its
   license is shown by loading TWS and clicking  Help > About Trader Workstation.
 
-The ibcontroller-*.ini has been configured to automatically login with IB's
-demo account. This is adequate for most IB tests. Ports configured:
+The ```ibcontroller-*.ini``` has been configured to automatically login with
+IB's demo account. This is adequate for most IB tests. Ports configured:
 
-* 4001 is the TWSAPI port. It is what the unit tests will use.
+* 4001 is the TWSAPI port. It is what the tests will use.
 
 * 7462 is the IBController telnet control port (bound to 127.0.0.1).
 
