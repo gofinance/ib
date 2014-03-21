@@ -2,7 +2,7 @@ GoIB
 ====
 
 [![Build Status](https://drone.io/github.com/benalexau/go.trade/status.png)](https://drone.io/github.com/benalexau/go.trade/latest)
-[![GoDoc](https://godoc.org/github.com/benalexau/go.trade?status.png)](https://godoc.org/github.com/benalexau/go.trade)
+[![GoDoc](https://godoc.org/github.com/benalexau/go.trade?status.png)]
 
 This is a pure Go interface to
 [Interactive Brokers](https://www.interactivebrokers.com/)
@@ -18,9 +18,9 @@ This is a pure Go interface to
 * Reflects very up-to-date TWSAPI version
 
 We welcome your involvement and contributions! If you like the project, please
-click [star](../../star) to help others find it, or [fork](../../fork) it to
-produce [pull requests](../../pulls) and join the [contributor
-list](../../graphs/contributors).
+click the GitHub "Star" or "[Fork]((../../fork))" button. We also invite you to
+join the [contributor list](../../graphs/contributors) by submitting
+[pull requests](../../pulls).
 
 Status
 ------
