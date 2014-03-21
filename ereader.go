@@ -127,32 +127,23 @@ func code2Msg(code int64) (r Reply, err error) {
 	case int64(mMarketDataType):
 		r = &MarketDataType{}
 	case int64(mCommissionReport):
-		// TODO: Add support for this reply type
-		err = fmt.Errorf("Not yet supporting type %d", code)
+		r = &CommissionReport{}
 	case int64(mPosition):
-		// TODO: Add support for this reply type
-		err = fmt.Errorf("Not yet supporting type %d", code)
+		r = &Position{}
 	case int64(mPositionEnd):
-		// TODO: Add support for this reply type
-		err = fmt.Errorf("Not yet supporting type %d", code)
+		r = &PositionEnd{}
 	case int64(mAccountSummary):
-		// TODO: Add support for this reply type
-		err = fmt.Errorf("Not yet supporting type %d", code)
+		r = &AccountSummary{}
 	case int64(mAccountSummaryEnd):
-		// TODO: Add support for this reply type
-		err = fmt.Errorf("Not yet supporting type %d", code)
+		r = &AccountSummaryEnd{}
 	case int64(mVerifyMessageAPI):
-		// TODO: Add support for this reply type
-		err = fmt.Errorf("Not yet supporting type %d", code)
+		r = &VerifyMessageAPI{}
 	case int64(mVerifyCompleted):
-		// TODO: Add support for this reply type
-		err = fmt.Errorf("Not yet supporting type %d", code)
+		r = &VerifyCompleted{}
 	case int64(mDisplayGroupList):
-		// TODO: Add support for this reply type
-		err = fmt.Errorf("Not yet supporting type %d", code)
+		r = &DisplayGroupList{}
 	case int64(mDisplayGroupUpdated):
-		// TODO: Add support for this reply type
-		err = fmt.Errorf("Not yet supporting type %d", code)
+		r = &DisplayGroupUpdated{}
 	default:
 		err = fmt.Errorf("Unsupported incoming message type %d", code)
 	}
@@ -1869,5 +1860,230 @@ func (m *MarketDataType) read(b *bufio.Reader) (err error) {
 		return
 	}
 	m.Type, err = readInt(b)
+	return
+}
+
+func (c *CommissionReport) code() IncomingMessageId {
+	return mCommissionReport
+}
+
+func (c *CommissionReport) read(b *bufio.Reader) (err error) {
+	if c.ExecutionId, err = readString(b); err != nil {
+		return
+	}
+	if c.Commission, err = readFloat(b); err != nil {
+		return
+	}
+	if c.Currency, err = readString(b); err != nil {
+		return
+	}
+	if c.RealizedPNL, err = readFloat(b); err != nil {
+		return
+	}
+	if c.Yield, err = readFloat(b); err != nil {
+		return
+	}
+	c.YieldRedemptionDate, err = readInt(b)
+	return
+}
+
+type Position struct {
+	Account     string
+	Contract    Contract
+	Position    float64
+	AverageCost float64
+}
+
+func (p *Position) code() IncomingMessageId {
+	return mPosition
+}
+
+func (p *Position) read(b *bufio.Reader) (err error) {
+	if p.Account, err = readString(b); err != nil {
+		return
+	}
+	if p.Contract.ContractId, err = readInt(b); err != nil {
+		return
+	}
+	if p.Contract.Symbol, err = readString(b); err != nil {
+		return
+	}
+	if p.Contract.SecurityType, err = readString(b); err != nil {
+		return
+	}
+	if p.Contract.Expiry, err = readString(b); err != nil {
+		return
+	}
+	if p.Contract.Strike, err = readFloat(b); err != nil {
+		return
+	}
+	if p.Contract.Right, err = readString(b); err != nil {
+		return
+	}
+	if p.Contract.Multiplier, err = readString(b); err != nil {
+		return
+	}
+	if p.Contract.Exchange, err = readString(b); err != nil {
+		return
+	}
+	if p.Contract.Currency, err = readString(b); err != nil {
+		return
+	}
+	if p.Contract.LocalSymbol, err = readString(b); err != nil {
+		return
+	}
+	if p.Contract.TradingClass, err = readString(b); err != nil {
+		return
+	}
+	if p.Position, err = readFloat(b); err != nil {
+		return
+	}
+	p.AverageCost, err = readFloat(b)
+	return
+}
+
+type PositionEnd struct {
+}
+
+func (p *PositionEnd) code() IncomingMessageId {
+	return mPositionEnd
+}
+
+func (p *PositionEnd) read(b *bufio.Reader) (err error) {
+	return
+}
+
+type AccountSummary struct {
+	id       int64
+	Account  string
+	Tag      string
+	Value    string
+	Currency string
+}
+
+// Id contains the TWS "reqId", which is used for reply correlation.
+func (a *AccountSummary) Id() int64 {
+	return a.id
+}
+
+func (a *AccountSummary) code() IncomingMessageId {
+	return mAccountSummary
+}
+
+func (a *AccountSummary) read(b *bufio.Reader) (err error) {
+	if a.id, err = readInt(b); err != nil {
+		return
+	}
+	if a.Account, err = readString(b); err != nil {
+		return
+	}
+	if a.Tag, err = readString(b); err != nil {
+		return
+	}
+	if a.Value, err = readString(b); err != nil {
+		return
+	}
+	a.Currency, err = readString(b)
+	return
+}
+
+type AccountSummaryEnd struct {
+	id int64
+}
+
+// Id contains tha TWS "reqId", which is used for reply correlation.
+func (a *AccountSummaryEnd) Id() int64 {
+	return a.id
+}
+
+func (a *AccountSummaryEnd) code() IncomingMessageId {
+	return mAccountSummaryEnd
+}
+
+func (a *AccountSummaryEnd) read(b *bufio.Reader) (err error) {
+	a.id, err = readInt(b)
+	return
+}
+
+type VerifyMessageAPI struct {
+	APIData string
+}
+
+func (v *VerifyMessageAPI) code() IncomingMessageId {
+	return mVerifyMessageAPI
+}
+
+func (v *VerifyMessageAPI) read(b *bufio.Reader) (err error) {
+	v.APIData, err = readString(b)
+	return
+}
+
+type VerifyCompleted struct {
+	Successful bool
+	ErrorText  string
+}
+
+func (v *VerifyCompleted) code() IncomingMessageId {
+	return mVerifyCompleted
+}
+
+func (v *VerifyCompleted) read(b *bufio.Reader) (err error) {
+	success, err := readString(b)
+	if err != nil {
+		return
+	}
+	if v.ErrorText, err = readString(b); err != nil {
+		return
+	}
+	v.Successful = success == "true"
+	// TODO: Consider modifying engine handshake logic to support verification
+	return fmt.Errorf("Verification complete received; GoIB already started")
+}
+
+type DisplayGroupList struct {
+	id     int64
+	Groups []int
+}
+
+// Id contains tha TWS "reqId", which is used for reply correlation.
+func (d *DisplayGroupList) Id() int64 {
+	return d.id
+}
+
+func (d *DisplayGroupList) code() IncomingMessageId {
+	return mDisplayGroupList
+}
+
+func (d *DisplayGroupList) read(b *bufio.Reader) (err error) {
+	if d.id, err = readInt(b); err != nil {
+		return
+	}
+	groups, err := readString(b)
+	if err != nil {
+		return
+	}
+	d.Groups, err = pipeSplitInt(groups)
+	return
+}
+
+type DisplayGroupUpdated struct {
+	id           int64
+	ContractInfo string
+}
+
+// Id contains tha TWS "reqId", which is used for reply correlation.
+func (d *DisplayGroupUpdated) Id() int64 {
+	return d.id
+}
+
+func (d *DisplayGroupUpdated) code() IncomingMessageId {
+	return mDisplayGroupUpdated
+}
+
+func (d *DisplayGroupUpdated) read(b *bufio.Reader) (err error) {
+	if d.id, err = readInt(b); err != nil {
+		return
+	}
+	d.ContractInfo, err = readString(b)
 	return
 }

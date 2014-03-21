@@ -28,7 +28,7 @@ Status
 ------
 
 * The code presently supports TWSAPI 971.01 (latest as of March 2014)
-* Most reply types (see [ereader.go](ereader.go)) are already handled
+* All reply types (see [ereader.go](ereader.go)) are supported
 * Some request types (see [eclientsocket.go](eclientsocket.go)) require porting
 
 Testing
