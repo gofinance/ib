@@ -3,6 +3,7 @@ package trade
 import (
 	"errors"
 	"flag"
+	"os"
 	"reflect"
 	"testing"
 	"time"
@@ -44,8 +45,11 @@ var noEngineReuse = flag.Bool("no-engine-reuse", false,
 func NewTestEngine(t *testing.T) *Engine {
 
 	if testEngine == nil {
-
-		engine, err := NewEngine()
+		opts := NewEngineOptions{}
+		if os.Getenv("CI") != "" || os.Getenv("IB_ENGINE_DUMP") != "" {
+			opts.DumpConversation = true
+		}
+		engine, err := NewEngine(opts)
 
 		if err != nil {
 			t.Fatalf("cannot connect engine: %s", err)
@@ -78,7 +82,11 @@ func (e *Engine) ConditionalStop(t *testing.T) {
 }
 
 func TestConnect(t *testing.T) {
-	engine, err := NewEngine()
+	opts := NewEngineOptions{}
+	if os.Getenv("CI") != "" || os.Getenv("IB_ENGINE_DUMP") != "" {
+		opts.DumpConversation = true
+	}
+	engine, err := NewEngine(opts)
 
 	if err != nil {
 		t.Fatalf("cannot connect engine: %s", err)

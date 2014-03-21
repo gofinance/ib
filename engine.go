@@ -25,36 +25,42 @@ import (
 )
 
 const (
-	dumpConversation = false
-	gateway          = "127.0.0.1:4001"
+	gatewayDefault   = "127.0.0.1:4001"
 	UnmatchedReplyId = int64(-9223372036854775808)
 )
 
+type NewEngineOptions struct {
+	Gateway          string
+	Client           int64
+	DumpConversation bool
+}
+
 // Engine is the entry point to the IB TWS API
 type Engine struct {
-	id            chan int64
-	exit          chan bool
-	terminated    chan struct{}
-	ch            chan command
-	gateway       string
-	client        int64
-	con           net.Conn
-	reader        *bufio.Reader
-	input         *bytes.Buffer
-	output        *bytes.Buffer
-	rxReply       chan Reply
-	rxErr         chan error
-	txRequest     chan txrequest
-	txErr         chan error
-	observers     map[int64]chan<- Reply
-	stObservers   []chan<- EngineState
-	state         EngineState
-	serverTime    time.Time
-	clientVersion int64
-	serverVersion int64
-	lastDumpRead  int64
-	lastDumpId    int64
-	fatalError    error
+	id               chan int64
+	exit             chan bool
+	terminated       chan struct{}
+	ch               chan command
+	gateway          string
+	client           int64
+	con              net.Conn
+	reader           *bufio.Reader
+	input            *bytes.Buffer
+	output           *bytes.Buffer
+	rxReply          chan Reply
+	rxErr            chan error
+	txRequest        chan txrequest
+	txErr            chan error
+	observers        map[int64]chan<- Reply
+	stObservers      []chan<- EngineState
+	state            EngineState
+	serverTime       time.Time
+	clientVersion    int64
+	serverVersion    int64
+	dumpConversation bool
+	lastDumpRead     int64
+	lastDumpId       int64
+	fatalError       error
 }
 
 type command struct {
@@ -83,33 +89,43 @@ func uniqueId(start int64) chan int64 {
 }
 
 // Next client id. Package scope to ensure new engines have unique client IDs.
-var client = uniqueId(1)
+var clientSeq = uniqueId(1)
 
 // NewEngine takes a client id and returns a new connection
 // to IB Gateway or IB Trader Workstation.
-func NewEngine() (*Engine, error) {
+func NewEngine(opt NewEngineOptions) (*Engine, error) {
+	gateway := opt.Gateway
+	if gateway == "" {
+		gateway = gatewayDefault
+	}
 	con, err := net.Dial("tcp", gateway)
 	if err != nil {
 		return nil, err
 	}
 
+	client := opt.Client
+	if client == 0 {
+		client = <-clientSeq
+	}
+
 	e := Engine{
-		id:         uniqueId(100),
-		exit:       make(chan bool),
-		terminated: make(chan struct{}),
-		ch:         make(chan command),
-		gateway:    gateway,
-		client:     <-client,
-		con:        con,
-		reader:     bufio.NewReader(con),
-		input:      bytes.NewBuffer(make([]byte, 0, 4096)),
-		output:     bytes.NewBuffer(make([]byte, 0, 4096)),
-		rxReply:    make(chan Reply),
-		rxErr:      make(chan error),
-		txRequest:  make(chan txrequest),
-		txErr:      make(chan error),
-		observers:  make(map[int64]chan<- Reply),
-		state:      EngineReady,
+		id:               uniqueId(100),
+		exit:             make(chan bool),
+		terminated:       make(chan struct{}),
+		ch:               make(chan command),
+		gateway:          gateway,
+		client:           client,
+		con:              con,
+		reader:           bufio.NewReader(con),
+		input:            bytes.NewBuffer(make([]byte, 0, 4096)),
+		output:           bytes.NewBuffer(make([]byte, 0, 4096)),
+		rxReply:          make(chan Reply),
+		rxErr:            make(chan error),
+		txRequest:        make(chan txrequest),
+		txErr:            make(chan error),
+		observers:        make(map[int64]chan<- Reply),
+		state:            EngineReady,
+		dumpConversation: opt.DumpConversation,
 	}
 
 	err = e.handshake()
@@ -294,7 +310,7 @@ func (e *Engine) transmit(r Request) (err error) {
 		return
 	}
 
-	if dumpConversation {
+	if e.dumpConversation {
 		b := e.output
 		s := strings.Replace(b.String(), "\000", "-", -1)
 		fmt.Printf("%d> '%s'\n", e.client, s)
@@ -507,7 +523,7 @@ func (e *Engine) receive() (r Reply, err error) {
 
 	// decode header
 	if err = hdr.read(e.reader); err != nil {
-		if dumpConversation {
+		if e.dumpConversation {
 			fmt.Printf("%d< %v\n", e.client, err)
 		}
 		return
@@ -520,13 +536,13 @@ func (e *Engine) receive() (r Reply, err error) {
 	}
 
 	if err = r.read(e.reader); err != nil {
-		if dumpConversation {
+		if e.dumpConversation {
 			fmt.Printf("%d< %v\n", e.client, err)
 		}
 		return
 	}
 
-	if dumpConversation {
+	if e.dumpConversation {
 		dump := hdr.code != e.lastDumpRead
 		e.lastDumpRead = hdr.code
 
