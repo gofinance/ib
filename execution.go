@@ -1,6 +1,6 @@
 package ib
 
-// This file ports TWSAPI Execution.java. Please preserve declaration order.
+// This file ports IB API Execution.java. Please preserve declaration order.
 
 type Execution struct {
 	OrderId      int64

@@ -1,6 +1,6 @@
 package ib
 
-// This file ports TWSAPI Contract.java. Please preserve declaration order.
+// This file ports IB API Contract.java. Please preserve declaration order.
 
 type Contract struct {
 	ContractId           int64

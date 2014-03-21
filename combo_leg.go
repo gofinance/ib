@@ -1,6 +1,6 @@
 package ib
 
-// This file ports TWSAPI ComboLeg.java. Please preserve declaration order.
+// This file ports IB API ComboLeg.java. Please preserve declaration order.
 
 type LegOpenClose int64
 

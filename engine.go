@@ -1,4 +1,4 @@
-// Package trade offers a pure Go abstraction over Interactive Brokers TWS API.
+// Package trade offers a pure Go abstraction over Interactive Brokers IB API.
 //
 // Engine is the main type. It provides a mechanism to connect to either IB
 // Gateway or TWS, send Request values and receive Reply values. The Engine
@@ -6,7 +6,7 @@
 // termination notification. Any network level errors will terminate the Engine.
 //
 // A high-level Manager interface is also provided. This provides a way to
-// easily use TWS API without needing to deal directly with Engine and the
+// easily use IB API without needing to deal directly with Engine and the
 // associated Request, Reply, message ID and Reply ordering considerations.
 //
 // All types are thread-safe and can be used from multiple goroutines at once.
@@ -35,7 +35,7 @@ type NewEngineOptions struct {
 	DumpConversation bool
 }
 
-// Engine is the entry point to the IB TWS API
+// Engine is the entry point to the IB IB API
 type Engine struct {
 	id               chan int64
 	exit             chan bool

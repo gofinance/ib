@@ -1,6 +1,6 @@
 package ib
 
-// This file ports TWSAPI ScannerSubscription.java. Please preserve declaration order.
+// This file ports IB API ScannerSubscription.java. Please preserve declaration order.
 
 type ScannerSubscription struct {
 	NumberOfRows             int64

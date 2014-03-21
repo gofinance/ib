@@ -1,6 +1,6 @@
 package ib
 
-// This file ports TWSAPI ExecutionFilter.java. Please preserve declaration order.
+// This file ports IB API ExecutionFilter.java. Please preserve declaration order.
 
 type ExecutionFilter struct {
 	ClientId int64

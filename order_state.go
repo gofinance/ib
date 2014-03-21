@@ -1,6 +1,6 @@
 package ib
 
-// This file ports TWSAPI OrderState.java. Please preserve declaration order.
+// This file ports IB API OrderState.java. Please preserve declaration order.
 
 type OrderState struct {
 	Status             string

@@ -7,7 +7,7 @@ GoIB
 
 This is a pure Go interface to
 [Interactive Brokers](https://www.interactivebrokers.com/)
-[TWSAPI](http://interactivebrokers.github.io). Features include:
+[IB API](http://interactivebrokers.github.io). Features include:
 
 * 100% pure Go (no Java/C calls)
 * Idiomatic design (Go naming conventions, channels, error handling etc)
@@ -17,7 +17,7 @@ This is a pure Go interface to
   [Drone](https://drone.io/github.com/benalexau/go.trade/latest), local
   [test server](testserver/README.md))
 * Documentation on [GoDoc](https://godoc.org/github.com/benalexau/go.trade)
-* Reflects very up-to-date TWSAPI version
+* Reflects very up-to-date IB API version
 
 We welcome your involvement and contributions! If you like the project, please
 click the GitHub "Star" or "[Fork](../../fork)" button. We also invite you to
@@ -27,7 +27,7 @@ join the [contributor list](../../graphs/contributors) by submitting
 Status
 ------
 
-* The code presently supports TWSAPI 971.01 (latest as of March 2014)
+* The code presently supports IB API 971.01 (latest as of March 2014)
 * All reply types (see [ereader.go](ereader.go)) are supported
 * Some request types (see [eclientsocket.go](eclientsocket.go)) require porting
 

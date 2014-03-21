@@ -5,7 +5,7 @@ import (
 	"fmt"
 )
 
-// This file ports TWSAPI EReader.java. Please preserve declaration order.
+// This file ports IB API EReader.java. Please preserve declaration order.
 
 type IncomingMessageId int64
 

@@ -1,6 +1,6 @@
 package ib
 
-// This file ports TWSAPI TagValue.java. Please preserve declaration order.
+// This file ports IB API TagValue.java. Please preserve declaration order.
 
 type TagValue struct {
 	Tag   string

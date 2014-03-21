@@ -1,6 +1,6 @@
 package ib
 
-// This file ports TWSAPI Order.java. Please preserve declaration order.
+// This file ports IB API Order.java. Please preserve declaration order.
 
 type Order struct {
 	OrderId                       int64

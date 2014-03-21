@@ -1,6 +1,6 @@
 package ib
 
-// This file ports TWSAPI CommissionReport.java. Please preserve declaration order.
+// This file ports IB API CommissionReport.java. Please preserve declaration order.
 
 type CommissionReport struct {
 	ExecutionId         string

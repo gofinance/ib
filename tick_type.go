@@ -1,6 +1,6 @@
 package ib
 
-// This file ports TWSAPI TickType.java. Please preserve declaration order.
+// This file ports IB API TickType.java. Please preserve declaration order.
 
 type TickType int
 

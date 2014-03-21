@@ -15,8 +15,8 @@ const (
 	UpdateFinish
 )
 
-// Manager provides a high-level abstraction over selected TWS API use cases.
-// It defines a contract for executing TWS API operations with explicit
+// Manager provides a high-level abstraction over selected IB API use cases.
+// It defines a contract for executing IB API operations with explicit
 // isolation, error handling and concurrency guarantees.
 //
 // To use a Manager, invoke its NewXXManager function. This will immediately
@@ -27,7 +27,7 @@ const (
 //
 // A Manager provides idempotent accessors to obtain data or the state of the
 // construction-specified operation. Accessors guarantee to never return data
-// from a partially-consumed TWS API Reply. They may return zero or nil if data
+// from a partially-consumed IB API Reply. They may return zero or nil if data
 // isn't yet available. Accessors remain usable even after a Manager is closed.
 //
 // Clients must invoke the Refresh() method to obtain the channel that will be
@@ -36,9 +36,9 @@ const (
 // will be provided. This may occur for three reasons: (i) a client has invoked
 // Close(); (ii) the Manager encountered an error (which is available via
 // FatalError()) or (iii) the Manager is aware no new data will be sent by this
-// Manager (typically as the TWS API has sent an "end of data" Reply). In either
+// Manager (typically as the IB API has sent an "end of data" Reply). In either
 // of the latter two situations the Manager will automatically unsubscribe from
-// TWS API subscriptions and Engine subscriptions (this is a performance
+// IB API subscriptions and Engine subscriptions (this is a performance
 // optimisation only; users should still use "defer manager.Close()").
 //
 // A Manager will block until a client can consume from the refresh channel.

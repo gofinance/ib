@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-// This file ports TWSAPI EClientSocket.java. Please preserve declaration order.
+// This file ports IB API EClientSocket.java. Please preserve declaration order.
 
 // We do not check for min server versions because the Engine handshake ensures
 // the remote server reports the minServerVersion defined below.
@@ -105,7 +105,7 @@ func (s *serverHandshake) read(b *bufio.Reader) (err error) {
 
 // TODO: Add equivalent of EClientSocket.reqScannerSubscription()
 
-// RequestMarketData is equivalent of TWSAPI EClientSocket.reqMktData().
+// RequestMarketData is equivalent of IB API EClientSocket.reqMktData().
 type RequestMarketData struct {
 	id int64
 	Contract
@@ -221,7 +221,7 @@ func (r *RequestMarketData) write(b *bytes.Buffer) (err error) {
 	return writeString(b, mktData.String())
 }
 
-// CancelHistoricalData is equivalent of TWSAPI EClientSocket.cancelHistoricalData().
+// CancelHistoricalData is equivalent of IB API EClientSocket.cancelHistoricalData().
 type CancelHistoricalData struct {
 	id int64
 }
@@ -249,7 +249,7 @@ func (c *CancelHistoricalData) write(b *bytes.Buffer) (err error) {
 
 // TODO: Add equivalent of EClientSocket.cancelRealTimeBars()
 
-// RequestHistoricalData is equivalent of TWSAPI EClientSocket.requestHistoricalData().
+// RequestHistoricalData is equivalent of IB API EClientSocket.requestHistoricalData().
 type RequestHistoricalData struct {
 	id             int64
 	Contract       Contract
@@ -355,7 +355,7 @@ func (r *RequestHistoricalData) write(b *bytes.Buffer) (err error) {
 
 // TODO: Add equivalent of EClientSocket.reqRealTimeBars()
 
-// RequestContractData is equivalent of TWSAPI EClientSocket.reqContractDetails().
+// RequestContractData is equivalent of IB API EClientSocket.reqContractDetails().
 type RequestContractData struct {
 	id       int64
 	Contract Contract
@@ -426,7 +426,7 @@ func (r *RequestContractData) write(b *bytes.Buffer) (err error) {
 
 // TODO: Add equivalent of EClientSocket.reqMktDepth()
 
-// CancelMarketData is equivalent of TWSAPI EClientSocket.cancelMktData().
+// CancelMarketData is equivalent of IB API EClientSocket.cancelMktData().
 type CancelMarketData struct {
 	id int64
 }
@@ -484,7 +484,7 @@ func (c *CancelMarketData) write(b *bytes.Buffer) (err error) {
 
 // TODO: Add equivalent of EClientSocket.replaceFA()
 
-// RequestCurrentTime is equivalent of TWSAPI EClientSocket.reqCurrentTime().
+// RequestCurrentTime is equivalent of IB API EClientSocket.reqCurrentTime().
 type RequestCurrentTime struct{}
 
 func (r *RequestCurrentTime) code() OutgoingMessageId {
@@ -503,7 +503,7 @@ func (r *RequestCurrentTime) write(b *bytes.Buffer) (err error) {
 
 // TODO: Add equivalent of EClientSocket.cancelFundamentalData()
 
-// RequestCalcImpliedVol is equivalent of TWSAPI EClientSocket.calculateImpliedVolatility().
+// RequestCalcImpliedVol is equivalent of IB API EClientSocket.calculateImpliedVolatility().
 type RequestCalcImpliedVol struct {
 	id int64
 	Contract
@@ -574,7 +574,7 @@ func (r *RequestCalcImpliedVol) write(b *bytes.Buffer) (err error) {
 	return writeFloat(b, r.UnderPrice)
 }
 
-// CancelCalcImpliedVol is equivalent of TWSAPI EClientSocket.cancelCalculateImpliedVolatility().
+// CancelCalcImpliedVol is equivalent of IB API EClientSocket.cancelCalculateImpliedVolatility().
 type CancelCalcImpliedVol struct {
 	id int64
 }
@@ -600,7 +600,7 @@ func (c *CancelCalcImpliedVol) write(b *bytes.Buffer) (err error) {
 	return writeInt(b, c.id)
 }
 
-// RequestCalcOptionPrice is equivalent of TWSAPI EClientSocket.calculateOptionPrice().
+// RequestCalcOptionPrice is equivalent of IB API EClientSocket.calculateOptionPrice().
 type RequestCalcOptionPrice struct {
 	id int64
 	Contract
@@ -671,7 +671,7 @@ func (r *RequestCalcOptionPrice) write(b *bytes.Buffer) (err error) {
 	return writeFloat(b, r.UnderPrice)
 }
 
-// CancelCalcOptionPrice is equivalent of TWSAPI EClientSocket.cancelCalculateOptionPrice().
+// CancelCalcOptionPrice is equivalent of IB API EClientSocket.cancelCalculateOptionPrice().
 type CancelCalcOptionPrice struct {
 	id int64
 }
