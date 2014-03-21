@@ -43,7 +43,7 @@ By default the tests produce no output. If you'd like to view engine
 communication logs during test execution, set the ```IB_ENGINE_DUMP```
 environment variable to any value. For example, ```IB_ENGINE_DUMP=t go test```.
 
-If you fork this project and would like to configure Drone for your fork, our
+If you fork this project and would like to configure Drone for your fork,
 our [Drone instructions](drone.md) should be of help.
 
 License
