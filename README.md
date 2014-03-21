@@ -3,6 +3,7 @@ GoIB
 
 [![Build Status](https://drone.io/github.com/benalexau/go.trade/status.png)](https://drone.io/github.com/benalexau/go.trade/latest)
 [![GoDoc](https://godoc.org/github.com/benalexau/go.trade?status.png)](https://godoc.org/github.com/benalexau/go.trade)
+[![Coverage Status](https://coveralls.io/repos/benalexau/go.trade/badge.png?branch=master)](https://coveralls.io/r/benalexau/go.trade?branch=master)
 
 This is a pure Go interface to
 [Interactive Brokers](https://www.interactivebrokers.com/)
@@ -11,7 +12,8 @@ This is a pure Go interface to
 * 100% pure Go (no Java/C calls)
 * Idiomatic design (Go naming conventions, channels, error handling etc)
 * Choice of low-level types or our high-level [Manager](manager.go) types
-* Extensively tested (lots of tests, CI via
+* Extensively tested (test coverage via
+  [Coveralls](https://coveralls.io/r/benalexau/go.trade?branch=master), CI via
   [Drone](https://drone.io/github.com/benalexau/go.trade/latest), local
   [test server](testserver/README.md))
 * Documentation on [GoDoc](https://godoc.org/github.com/benalexau/go.trade)
@@ -43,8 +45,8 @@ By default the tests produce no output. If you'd like to view engine
 communication logs during test execution, set the ```IB_ENGINE_DUMP```
 environment variable to any value. For example, ```IB_ENGINE_DUMP=t go test```.
 
-If you fork this project and would like to configure Drone for your fork,
-our [Drone instructions](drone.md) should be of help.
+If you fork this project and would like to configure Drone and Coveralls for
+your fork, our [Drone instructions](drone.md) should be of help.
 
 License
 -------
