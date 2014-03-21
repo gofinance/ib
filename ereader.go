@@ -2058,11 +2058,7 @@ func (d *DisplayGroupList) read(b *bufio.Reader) (err error) {
 	if d.id, err = readInt(b); err != nil {
 		return
 	}
-	groups, err := readString(b)
-	if err != nil {
-		return
-	}
-	d.Groups, err = pipeSplitInt(groups)
+	d.Groups, err = readIntList(b)
 	return
 }
 

@@ -43,6 +43,23 @@ func readInt(b *bufio.Reader) (i int64, err error) {
 	return
 }
 
+// readIntList reads an IB pipe-separated string of integers into a Go slice.
+func readIntList(b *bufio.Reader) (r []int, err error) {
+	s, err := readString(b)
+	if err != nil {
+		return
+	}
+	split := strings.Split(s, "|")
+	r = make([]int, len(split))
+	for i, val := range split {
+		r[i], err = strconv.Atoi(val)
+		if err != nil {
+			return
+		}
+	}
+	return
+}
+
 func readFloat(b *bufio.Reader) (f float64, err error) {
 	var str string
 	if str, err = readString(b); err != nil {
@@ -123,19 +140,4 @@ func writeBool(b *bytes.Buffer, bo bool) (err error) {
 
 func writeTime(b *bytes.Buffer, t time.Time) (err error) {
 	return writeString(b, t.Format(ibTimeFormat))
-}
-
-// Conversion
-
-// pipeSplitInt converts an IB pipe-separated list of integers into a Go slice.
-func pipeSplitInt(s string) (r []int, err error) {
-	split := strings.Split(s, "|")
-	r = make([]int, len(split))
-	for i, val := range split {
-		r[i], err = strconv.Atoi(val)
-		if err != nil {
-			return
-		}
-	}
-	return
 }
