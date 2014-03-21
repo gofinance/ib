@@ -2,7 +2,7 @@ GoIB
 ====
 
 [![Build Status](https://drone.io/github.com/benalexau/go.trade/status.png)](https://drone.io/github.com/benalexau/go.trade/latest)
-[![GoDoc](https://godoc.org/github.com/benalexau/go.trade?status.png)]
+[![GoDoc](https://godoc.org/github.com/benalexau/go.trade?status.png)](https://godoc.org/github.com/benalexau/go.trade)
 
 This is a pure Go interface to
 [Interactive Brokers](https://www.interactivebrokers.com/)
