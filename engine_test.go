@@ -1,4 +1,4 @@
-package trade
+package ib
 
 import (
 	"errors"

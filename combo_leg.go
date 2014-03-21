@@ -1,4 +1,4 @@
-package trade
+package ib
 
 // This file ports TWSAPI ComboLeg.java. Please preserve declaration order.
 

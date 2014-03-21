@@ -1,4 +1,4 @@
-package trade
+package ib
 
 type InstrumentManager struct {
 	AbstractManager

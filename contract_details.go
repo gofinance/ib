@@ -1,4 +1,4 @@
-package trade
+package ib
 
 // This file ports TWSAPI ContractDetails.java. Please preserve declaration order.
 // We have separated the Java code into the two natural structs they should be.

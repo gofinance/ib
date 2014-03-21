@@ -1,4 +1,4 @@
-package trade
+package ib
 
 type ScannerDetail struct {
 	ContractId int64

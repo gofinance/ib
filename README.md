@@ -1,22 +1,46 @@
-go-trade
-========
+GoIB
+====
 
 [![Build Status](https://drone.io/github.com/benalexau/go.trade/status.png)](https://drone.io/github.com/benalexau/go.trade/latest)
 
-Go implementation of the Interactive Brokers TWS API  
+This is a pure Go interface to
+[Interactive Brokers](https://www.interactivebrokers.com/)
+[TWSAPI](http://interactivebrokers.github.io). Features include:
+
+* 100% pure Go (no Java/C calls)
+* Idiomatic design (Go naming conventions, channels, error handling etc)
+* Choice of low-level types or our high-level [Manager](manager.go) types
+* Extensively tested (lots of tests, CI via [Drone](https://drone.io), local
+  [test server](testserver/README.md))
+* Reflects very up-to-date TWSAPI version
+
+We welcome your involvement and contributions! If you like the project, please
+click [star](star) to help others find it, or send us a [pull request](pulls)
+and join the [contributor list](graphs/contributors).
+
+Status
+------
+
+* The code presently supports TWSAPI 971.01 (latest as of March 2014)
+* Most reply types (see [ereader.go](ereader.go)) are already handled
+* Some request types (see [eclientsocket.go](eclientsocket.go)) require porting
 
 Testing
-=======
+-------
 
 ```go test``` requires IB Gateway be running at 127.0.0.1:4001. Always use a
-demo or paper trade account, as the tests may modify your account state.
+demo or paper trade account, as the tests may modify your account.
 
-The easiest way to start IB Gateway with the demo account is to run
-```testserver/ibgwstart``` (shutdown with ```ibgwstop```).
+The easiest way to start IB Gateway with a demo account is to use the test
+server. Have a look at the [test server instructions](testserver/README.md) for
+all the details.
 
-By default the tests are quiet. To view key engine communication logs during
-test execution, set the ```IB_ENGINE_DUMP``` environment variable. For example,
-```IB_ENGINE_DUMP=t go test```.
+By default the tests produce no output. If you'd like to view engine
+communication logs during test execution, set the ```IB_ENGINE_DUMP```
+environment variable to any value. For example, ```IB_ENGINE_DUMP=t go test```.
+
+If you fork this project and would like to configure Drone for your fork, our
+our [Drone instructions](drone.md) should be of help.
 
 License
 -------

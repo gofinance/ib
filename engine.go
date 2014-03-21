@@ -11,7 +11,7 @@
 //
 // All types are thread-safe and can be used from multiple goroutines at once.
 // Blocking methods are identified in the documentation.
-package trade
+package ib
 
 import (
 	"bufio"
