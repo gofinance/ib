@@ -52,6 +52,7 @@ type Engine struct {
 	txRequest        chan txrequest
 	txErr            chan error
 	observers        map[int64]chan<- Reply
+	unObservers      []chan<- Reply
 	stObservers      []chan<- EngineState
 	state            EngineState
 	serverTime       time.Time
@@ -259,10 +260,6 @@ func (e *Engine) startMainLoop() {
 }
 
 func (e *Engine) deliverToObservers(r Reply) {
-	dest := UnmatchedReplyId
-	if mr, ok := r.(MatchedReply); ok {
-		dest = mr.Id()
-	}
 	if r.code() == mErrorMessage {
 		var done []chan<- Reply
 		for _, o := range e.observers {
@@ -274,9 +271,19 @@ func (e *Engine) deliverToObservers(r Reply) {
 			done = append(done, o)
 			e.deliverToObserver(o, r)
 		}
+		for _, o := range e.unObservers {
+			e.deliverToObserver(o, r)
+		}
 		return
 	}
-	if o, ok := e.observers[dest]; ok {
+	if mr, ok := r.(MatchedReply); ok {
+		if o, ok := e.observers[mr.Id()]; ok {
+			e.deliverToObserver(o, r)
+		}
+		return
+	}
+	// must be a non-error, unmatched reply
+	for _, o := range e.unObservers {
 		e.deliverToObserver(o, r)
 	}
 }
@@ -365,7 +372,14 @@ func (e *Engine) sendCommand(c func()) {
 // The engine never closes the channel (allowing reuse across IDs and engines).
 // This call will block until the subscriber is registered or engine terminates.
 func (e *Engine) Subscribe(o chan<- Reply, id int64) {
-	e.sendCommand(func() { e.observers[id] = o })
+	e.sendCommand(func() {
+		if id != UnmatchedReplyId {
+			e.observers[id] = o
+			return
+		}
+
+		e.unObservers = append(e.unObservers, o)
+	})
 }
 
 // Unsubscribe blocks until the observer is removed. It also maintains a
@@ -382,7 +396,20 @@ func (e *Engine) Unsubscribe(o chan Reply, id int64) {
 			}
 		}
 	}()
-	e.sendCommand(func() { delete(e.observers, id) })
+	e.sendCommand(func() {
+		if id != UnmatchedReplyId {
+			delete(e.observers, id)
+			return
+		}
+
+		newUnObs := make([]chan<- Reply, 0)
+		for _, existing := range e.unObservers {
+			if existing != o {
+				newUnObs = append(newUnObs, o)
+			}
+		}
+		e.unObservers = newUnObs
+	})
 	close(terminate)
 }
 
