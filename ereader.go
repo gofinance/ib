@@ -3,6 +3,7 @@ package ib
 import (
 	"bufio"
 	"fmt"
+	"time"
 )
 
 // This file ports IB API EReader.java. Please preserve declaration order.
@@ -1652,7 +1653,7 @@ func (s *ScannerParameters) read(b *bufio.Reader) (err error) {
 }
 
 type CurrentTime struct {
-	Time int64
+	Time time.Time
 }
 
 func (c *CurrentTime) code() IncomingMessageId {
@@ -1660,7 +1661,7 @@ func (c *CurrentTime) code() IncomingMessageId {
 }
 
 func (c *CurrentTime) read(b *bufio.Reader) (err error) {
-	c.Time, err = readInt(b)
+	c.Time, err = readTime(b, timeReadEpoch)
 	return
 }
 

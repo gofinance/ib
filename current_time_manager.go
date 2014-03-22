@@ -38,7 +38,7 @@ func (m *CurrentTimeManager) receive(r Reply) (UpdateStatus, error) {
 		return UpdateFalse, r.Error()
 	case *CurrentTime:
 		ct := r.(*CurrentTime)
-		m.t = time.Unix(ct.Time, 0)
+		m.t = ct.Time
 		return UpdateFinish, nil
 	}
 	return UpdateFalse, nil
