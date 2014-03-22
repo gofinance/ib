@@ -96,14 +96,20 @@ func TestReadTimeAutoDetect(t *testing.T) {
 	if f, _ := detectTime("349834583"); f != timeReadEpoch {
 		t.Fatalf("failed to detect epoch")
 	}
-	if f, _ := detectTime("20140322 23:59:31"); f != timeReadLocalTime {
+	if f, _ := detectTime("20140322 23:59:31"); f != timeReadLocalDateTime {
 		t.Fatalf("failed to detect local time")
 	}
-	if f, _ := detectTime("20140322 23:59:31 US"); f != timeReadLocalTime {
+	if f, _ := detectTime("20140322 23:59:31 US"); f != timeReadLocalDateTime {
 		t.Fatalf("failed to detect local time when timezone present")
 	}
 	if f, _ := detectTime("20140322"); f != timeReadLocalDate {
 		t.Fatalf("failed to detect local date")
+	}
+	if f, _ := detectTime("15:33"); f != timeReadLocalTime {
+		t.Fatalf("failed to detect local hh:mm time")
+	}
+	if f, _ := detectTime("15:33:42"); f != timeReadLocalTime {
+		t.Fatalf("failed to detect local hh:mm:ss time")
 	}
 	if _, err := detectTime("2014/03/22"); err == nil {
 		t.Fatalf("failed to return error for unknown time format")
@@ -130,7 +136,7 @@ func TestReadTimeEpoch(t *testing.T) {
 	}
 }
 
-func TestReadTimeLocalTime(t *testing.T) {
+func TestReadTimeLocalDateTime(t *testing.T) {
 	x := time.Now()
 	x = x.Add(time.Duration(-1 * x.Nanosecond()))
 	b := makebuf()
@@ -141,7 +147,7 @@ func TestReadTimeLocalTime(t *testing.T) {
 	}
 
 	r := bufio.NewReader(bytes.NewReader(b.Bytes()))
-	y, err := readTime(r, timeReadLocalTime)
+	y, err := readTime(r, timeReadLocalDateTime)
 	if err != nil {
 		t.Fatalf("failed to read: %v", err)
 	}
@@ -166,6 +172,44 @@ func TestReadTimeLocalDate(t *testing.T) {
 	}
 
 	if x != y {
+		t.Fatalf("expected %v but got %v", x, y)
+	}
+}
+
+func TestReadTimeLocalTimeShort(t *testing.T) {
+	x := time.Date(2014, 3, 22, 14, 4, 0, 0, time.Local)
+	b := makebuf()
+	err := writeString(b, x.Format("15:04"))
+	if err != nil {
+		t.Fatalf("failed to write: %v", err)
+	}
+
+	r := bufio.NewReader(bytes.NewReader(b.Bytes()))
+	y, err := readTime(r, timeReadLocalTime)
+	if err != nil {
+		t.Fatalf("failed to read: %v", err)
+	}
+
+	if x.Hour() != y.Hour() || x.Minute() != y.Minute() {
+		t.Fatalf("expected %v but got %v", x, y)
+	}
+}
+
+func TestReadTimeLocalTimeLong(t *testing.T) {
+	x := time.Date(2014, 3, 22, 14, 4, 32, 0, time.Local)
+	b := makebuf()
+	err := writeString(b, x.Format("15:04:05"))
+	if err != nil {
+		t.Fatalf("failed to write: %v", err)
+	}
+
+	r := bufio.NewReader(bytes.NewReader(b.Bytes()))
+	y, err := readTime(r, timeReadLocalTime)
+	if err != nil {
+		t.Fatalf("failed to read: %v", err)
+	}
+
+	if x.Hour() != y.Hour() || x.Minute() != y.Minute() || x.Second() != y.Second() {
 		t.Fatalf("expected %v but got %v", x, y)
 	}
 }

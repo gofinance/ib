@@ -13,12 +13,13 @@ import (
 type timeFmt int
 
 const (
-	timeWriteUTC       timeFmt = iota // write datetime as UTC converted time string with explicit UTC TZ designator
-	timeWriteLocalTime                // write datetime as local time without an explicit TZ designator
-	timeReadAutoDetect                // read datetime (or date) by auto-detecting likely format (first checks epoch)
-	timeReadEpoch                     // read datetime as epoch in seconds since 1/1/70 UTC
-	timeReadLocalTime                 // read datetime which is in local time (any TZ designator is ignored)
-	timeReadLocalDate                 // read date which is in local time and does not have any timezone designator
+	timeWriteUTC          timeFmt = iota // write datetime as UTC converted time string with explicit UTC TZ designator
+	timeWriteLocalTime                   // write datetime as local time without an explicit TZ designator
+	timeReadAutoDetect                   // read datetime (or date) by auto-detecting likely format (first checks epoch)
+	timeReadEpoch                        // read datetime as epoch in seconds since 1/1/70 UTC
+	timeReadLocalDateTime                // read datetime which is in local time (any TZ designator is ignored)
+	timeReadLocalDate                    // read date which is in local time and does not have any timezone designator
+	timeReadLocalTime                    // read time which is in local time and does not have any timezone designator
 )
 
 type readable interface {
@@ -109,10 +110,10 @@ func readTime(b *bufio.Reader, f timeFmt) (t time.Time, err error) {
 		return time.Unix(epochSecs, 0), nil
 	}
 
-	if f == timeReadLocalTime {
+	if f == timeReadLocalDateTime {
 		format := "20060102 15:04:05"
 		if len(timeString) < len(format) {
-			return time.Now(), fmt.Errorf("ibgo: '%s' too short to be time format '%s'", timeString, format)
+			return time.Now(), fmt.Errorf("ibgo: '%s' too short to be datetime format '%s'", timeString, format)
 		}
 
 		// Truncate any portion this parse does not require (ie timezones)
@@ -124,9 +125,22 @@ func readTime(b *bufio.Reader, f timeFmt) (t time.Time, err error) {
 	if f == timeReadLocalDate {
 		format := "20060102"
 		if len(timeString) != len(format) {
-			return time.Now(), fmt.Errorf("ibgo: '%s' wrong length to be time format '%s'", timeString, format)
+			return time.Now(), fmt.Errorf("ibgo: '%s' wrong length to be datetime format '%s'", timeString, format)
 		}
 		return time.ParseInLocation(format, timeString, time.Local)
+	}
+
+	if f == timeReadLocalTime {
+		formatShort := "15:04"
+		formatLong := "15:04:05"
+		switch len(timeString) {
+		case len(formatShort):
+			return time.ParseInLocation(formatShort, timeString, time.Local)
+		case len(formatLong):
+			return time.ParseInLocation(formatLong, timeString, time.Local)
+		default:
+			return time.Now(), fmt.Errorf("ibgo: '%s' wrong length to be time format '%s' or '%s'", timeString, formatShort, formatLong)
+		}
 	}
 
 	return time.Now(), fmt.Errorf("ibgo: unsupported read time format '%v'", f)
@@ -167,8 +181,24 @@ func writeTime(b *bytes.Buffer, t time.Time, f timeFmt) (err error) {
 }
 
 func detectTime(timeString string) (f timeFmt, err error) {
+	if len(timeString) == len("14:52") && strings.Contains(timeString, ":") {
+		return timeReadLocalTime, nil
+	}
+
+	if len(timeString) == len("14:52:02") && strings.Contains(timeString, ":") {
+		return timeReadLocalTime, nil
+	}
+
+	if len(timeString) == len("20060102 15:04:05") && strings.Contains(timeString, ":") {
+		return timeReadLocalDateTime, nil
+	}
+
+	if len(timeString) >= len("20060102 15:04:05 ") && strings.Contains(timeString, ":") {
+		return timeReadLocalDateTime, nil
+	}
+
 	// 8 character time strings are ambiguous as they can be a yyyymmdd date
-	// or an epoch. So we try yyyymmdd first, as 8 chars is less likely
+	// or an epoch. So try yyyymmdd first, as 8 char epochs are less likely
 	if len(timeString) == len("20060102") {
 		return timeReadLocalDate, nil
 	}
@@ -177,12 +207,5 @@ func detectTime(timeString string) (f timeFmt, err error) {
 		return timeReadEpoch, nil
 	}
 
-	if len(timeString) == len("20060102 15:04:05") {
-		return timeReadLocalTime, nil
-	}
-
-	if len(timeString) >= len("20060102 15:04:05 ") {
-		return timeReadLocalTime, nil
-	}
 	return f, fmt.Errorf("ibgo: '%s' has unknown time format", timeString)
 }
