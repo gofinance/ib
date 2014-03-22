@@ -37,6 +37,15 @@ func readString(b *bufio.Reader) (s string, err error) {
 	return string(s[:len(s)-1]), nil
 }
 
+// readStringList reads an IB delimited separated string of strings into a Go slice.
+func readStringList(b *bufio.Reader, sep string) (r []string, err error) {
+	s, err := readString(b)
+	if err != nil {
+		return
+	}
+	return strings.Split(s, sep), nil
+}
+
 func readInt(b *bufio.Reader) (i int64, err error) {
 	var str string
 	if str, err = readString(b); err != nil {
