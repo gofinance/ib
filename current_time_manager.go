@@ -29,8 +29,15 @@ func (m *CurrentTimeManager) preLoop() {
 }
 
 func (m *CurrentTimeManager) receive(r Reply) (UpdateStatus, error) {
-
-	if ct, ok := r.(*CurrentTime); ok {
+	switch r.(type) {
+	case *ErrorMessage:
+		r := r.(*ErrorMessage)
+		if r.SeverityWarning() {
+			return UpdateFalse, nil
+		}
+		return UpdateFalse, r.Error()
+	case *CurrentTime:
+		ct := r.(*CurrentTime)
 		m.t = time.Unix(ct.Time, 0)
 		return UpdateFinish, nil
 	}
