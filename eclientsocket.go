@@ -42,7 +42,7 @@ const (
 	mPlaceOrder                                   = 3
 	mCancelOrder                                  = 4
 	mRequestOpenOrders                            = 5
-	mRequestACcountData                           = 6
+	mRequestAccountData                           = 6
 	mRequestExecutions                            = 7
 	mRequestIds                                   = 8
 	mRequestContractData                          = 9
@@ -95,7 +95,7 @@ func (s *serverHandshake) read(b *bufio.Reader) (err error) {
 	if s.version, err = readInt(b); err != nil {
 		return
 	}
-	s.time, err = readTime(b, timeReadLocalTime)
+	s.time, err = readTime(b, timeReadLocalDateTime)
 	return
 }
 
@@ -458,7 +458,26 @@ func (c *CancelMarketData) write(b *bytes.Buffer) (err error) {
 
 // TODO: Add equivalent of EClientSocket.placeOrder()
 
-// TODO: Add equivalent of EClientSocket.reqAccountUpdates()
+// RequestAccountUpdates is equivalent of IB API EClientSocket.reqAccountUpdates().
+type RequestAccountUpdates struct {
+	Subscribe   bool
+	AccountCode string
+}
+
+func (r *RequestAccountUpdates) code() OutgoingMessageId {
+	return mRequestAccountData
+}
+
+func (r *RequestAccountUpdates) version() int64 {
+	return 2
+}
+
+func (r *RequestAccountUpdates) write(b *bytes.Buffer) (err error) {
+	if err = writeBool(b, r.Subscribe); err != nil {
+		return
+	}
+	return writeString(b, r.AccountCode)
+}
 
 // TODO: Add equivalent of EClientSocket.reqExecutions()
 
@@ -478,7 +497,20 @@ func (c *CancelMarketData) write(b *bytes.Buffer) (err error) {
 
 // TODO: Add equivalent of EClientSocket.reqAllOpenOrders()
 
-// TODO: Add equivalent of EClientSocket.reqManagedAccts()
+// RequestManagedAccounts is equivalent of IB API EClientSocket.reqManagedAccts().
+type RequestManagedAccounts struct{}
+
+func (r *RequestManagedAccounts) code() OutgoingMessageId {
+	return mRequestManagedAccounts
+}
+
+func (r *RequestManagedAccounts) version() int64 {
+	return 1
+}
+
+func (r *RequestManagedAccounts) write(b *bytes.Buffer) (err error) {
+	return nil
+}
 
 // TODO: Add equivalent of EClientSocket.reqFA()
 

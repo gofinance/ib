@@ -423,9 +423,13 @@ func (o *OrderStatus) read(b *bufio.Reader) (err error) {
 }
 
 type AccountValue struct {
+	Key      AccountValueKey
+	Value    string
+	Currency string
+}
+
+type AccountValueKey struct {
 	Key         string
-	Value       string
-	Current     string
 	AccountName string
 }
 
@@ -434,20 +438,21 @@ func (a *AccountValue) code() IncomingMessageId {
 }
 
 func (a *AccountValue) read(b *bufio.Reader) (err error) {
-	if a.Key, err = readString(b); err != nil {
+	if a.Key.Key, err = readString(b); err != nil {
 		return
 	}
 	if a.Value, err = readString(b); err != nil {
 		return
 	}
-	if a.Current, err = readString(b); err != nil {
+	if a.Currency, err = readString(b); err != nil {
 		return
 	}
-	a.AccountName, err = readString(b)
+	a.Key.AccountName, err = readString(b)
 	return
 }
 
 type PortfolioValue struct {
+	Key           PortfolioValueKey
 	Contract      Contract
 	Position      int64
 	MarketPrice   float64
@@ -455,7 +460,11 @@ type PortfolioValue struct {
 	AverageCost   float64
 	UnrealizedPNL float64
 	RealizedPNL   float64
-	AccountName   string
+}
+
+type PortfolioValueKey struct {
+	ContractId  int64
+	AccountName string
 }
 
 func (p *PortfolioValue) code() IncomingMessageId {
@@ -466,6 +475,7 @@ func (p *PortfolioValue) read(b *bufio.Reader) (err error) {
 	if p.Contract.ContractId, err = readInt(b); err != nil {
 		return
 	}
+	p.Key.ContractId = p.Contract.ContractId
 	if p.Contract.Symbol, err = readString(b); err != nil {
 		return
 	}
@@ -511,14 +521,14 @@ func (p *PortfolioValue) read(b *bufio.Reader) (err error) {
 	if p.RealizedPNL, err = readFloat(b); err != nil {
 		return
 	}
-	if p.AccountName, err = readString(b); err != nil {
+	if p.Key.AccountName, err = readString(b); err != nil {
 		return
 	}
 	return
 }
 
 type AccountUpdateTime struct {
-	Timestamp string
+	Time time.Time
 }
 
 func (a *AccountUpdateTime) code() IncomingMessageId {
@@ -526,7 +536,7 @@ func (a *AccountUpdateTime) code() IncomingMessageId {
 }
 
 func (a *AccountUpdateTime) read(b *bufio.Reader) (err error) {
-	a.Timestamp, err = readString(b)
+	a.Time, err = readTime(b, timeReadLocalTime)
 	return
 }
 
@@ -1544,7 +1554,7 @@ func (n *NewsBulletins) read(b *bufio.Reader) (err error) {
 }
 
 type ManagedAccounts struct {
-	AccountsList string
+	AccountsList []string
 }
 
 func (m *ManagedAccounts) code() IncomingMessageId {
@@ -1552,7 +1562,7 @@ func (m *ManagedAccounts) code() IncomingMessageId {
 }
 
 func (m *ManagedAccounts) read(b *bufio.Reader) (err error) {
-	m.AccountsList, err = readString(b)
+	m.AccountsList, err = readStringList(b, ",")
 	return
 }
 
