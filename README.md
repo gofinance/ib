@@ -35,11 +35,13 @@ Testing
 -------
 
 ```go test``` requires IB Gateway be running at 127.0.0.1:4001. Always use a
-demo or paper trade account, as the tests may modify your account.
+demo or paper trade account, as the tests may modify your account. The tests
+will work with both financial advisor and non-advisor accounts, however using
+a financial advisor account will test a greater number of use cases.
 
-The easiest way to start IB Gateway with a demo account is to use the test
-server. Have a look at the [test server instructions](testserver/README.md) for
-all the details.
+The easiest way to start IB Gateway with a financial advisor demo account is to
+use the test server. Have a look at the
+[test server instructions](testserver/README.md) for all the details.
 
 By default the tests produce no output. If you'd like to view engine
 communication logs during test execution, set the ```IB_ENGINE_DUMP```

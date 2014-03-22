@@ -13,8 +13,8 @@ The files in this directory are not part of GoIB, but they will help you test it
   automated management of IB Gateway. It is GPLv3 licensed.
 
 The ``ibcontroller-*.ini`` has been configured to automatically load IB
-Gateway and login with Interactive Brokers' demo account. This is adequate for
-most GoIB tests. Two ports are bound:
+Gateway and login with Interactive Brokers' ``fdemo`` account. This is adequate
+for most GoIB tests. Two ports are bound:
 
 * 4001 is the IB API port. This is what the tests will use.
 * 7462 is the IBController telnet control port (bound to 127.0.0.1). Tests do
