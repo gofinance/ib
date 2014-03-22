@@ -95,7 +95,7 @@ func (s *serverHandshake) read(b *bufio.Reader) (err error) {
 	if s.version, err = readInt(b); err != nil {
 		return
 	}
-	s.time, err = readTime(b)
+	s.time, err = readTime(b, timeReadLocalTime)
 	return
 }
 
@@ -322,7 +322,7 @@ func (r *RequestHistoricalData) write(b *bytes.Buffer) (err error) {
 	if err = writeBool(b, r.IncludeExpired); err != nil {
 		return
 	}
-	if err = writeString(b, r.EndDateTime.UTC().Format(ibTimeFormat)+" GMT"); err != nil {
+	if err = writeTime(b, r.EndDateTime, timeWriteUTC); err != nil {
 		return
 	}
 	if err = writeString(b, string(r.BarSize)); err != nil {

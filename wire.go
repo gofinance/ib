@@ -3,15 +3,22 @@ package ib
 import (
 	"bufio"
 	"bytes"
+	"fmt"
 	"math"
 	"strconv"
 	"strings"
 	"time"
 )
 
-//const ibTimeFormat = "20060102 15:04:05.000000 MST"
+type timeFmt int
+
 const (
-	ibTimeFormat = "20060102 15:04:05"
+	timeWriteUTC       timeFmt = iota // write datetime as UTC converted time string with explicit UTC TZ designator
+	timeWriteLocalTime                // write datetime as local time without an explicit TZ designator
+	timeReadAutoDetect                // read datetime (or date) by auto-detecting likely format (first checks epoch)
+	timeReadEpoch                     // read datetime as epoch in seconds since 1/1/70 UTC
+	timeReadLocalTime                 // read datetime which is in local time (any TZ designator is ignored)
+	timeReadLocalDate                 // read date which is in local time and does not have any timezone designator
 )
 
 type readable interface {
@@ -21,8 +28,6 @@ type readable interface {
 type writable interface {
 	write(buf *bytes.Buffer) error
 }
-
-// Decode
 
 func readString(b *bufio.Reader) (s string, err error) {
 	if s, err = b.ReadString(0); err != nil {
@@ -72,6 +77,7 @@ func readFloat(b *bufio.Reader) (f float64, err error) {
 	return
 }
 
+// readBool is equivalent of IB API EReader.readBoolFromInt.
 func readBool(b *bufio.Reader) (bo bool, err error) {
 	var i int64
 	if i, err = readInt(b); err != nil {
@@ -80,42 +86,52 @@ func readBool(b *bufio.Reader) (bo bool, err error) {
 	return (i > 0), err
 }
 
-func readTime(b *bufio.Reader) (t time.Time, err error) {
+// readTime reads a string and then parses it according to the given time format.
+// Returned times are always in the local timezone (convert with time.UTC()).
+func readTime(b *bufio.Reader, f timeFmt) (t time.Time, err error) {
 	var timeString string
 	if timeString, err = readString(b); err != nil {
 		return
 	}
-	length := len(ibTimeFormat)
-	timeString = timeString[0:length]
 
-	t, err = time.ParseInLocation(ibTimeFormat, timeString, time.Local)
-	return
-}
-
-func readHistDataTime(b *bufio.Reader) (t time.Time, err error) {
-	// The date can either be in YYYYMMDD format (if daily bars were requested)
-	// or in seconds since 1/1/1970 UTC (since we passed 2 as formatDate to the request)
-	var timeString string
-	if timeString, err = readString(b); err != nil {
-		return
-	}
-	if len(timeString) == 8 {
-		// handle YYYYMMDD format (received daily bars)
-		if t, err = time.Parse("20060102", timeString); err != nil {
+	if f == timeReadAutoDetect {
+		f, err = detectTime(timeString)
+		if err != nil {
 			return
 		}
-	} else {
-		// handle bars that are less than daily (seconds since epoch)
+	}
+
+	if f == timeReadEpoch {
 		var epochSecs int64
 		if epochSecs, err = strconv.ParseInt(timeString, 10, 64); err != nil {
 			return
 		}
-		t = time.Unix(epochSecs, 0)
+		return time.Unix(epochSecs, 0), nil
 	}
-	return
-}
 
-// Encode
+	if f == timeReadLocalTime {
+		format := "20060102 15:04:05"
+		if len(timeString) < len(format) {
+			return time.Now(), fmt.Errorf("ibgo: '%s' too short to be time format '%s'", timeString, format)
+		}
+
+		// Truncate any portion this parse does not require (ie timezones)
+		timeString = timeString[0:len(format)]
+
+		return time.ParseInLocation(format, timeString, time.Local)
+	}
+
+	if f == timeReadLocalDate {
+		format := "20060102"
+		if len(timeString) != len(format) {
+			return time.Now(), fmt.Errorf("ibgo: '%s' wrong length to be time format '%s'", timeString, format)
+		}
+		return time.ParseInLocation(format, timeString, time.Local)
+	}
+
+	return time.Now(), fmt.Errorf("ibgo: unsupported read time format '%v'", f)
+
+}
 
 func writeString(b *bytes.Buffer, s string) (err error) {
 	_, err = b.WriteString(s + "\000")
@@ -138,6 +154,35 @@ func writeBool(b *bytes.Buffer, bo bool) (err error) {
 	return writeString(b, s)
 }
 
-func writeTime(b *bytes.Buffer, t time.Time) (err error) {
-	return writeString(b, t.Format(ibTimeFormat))
+func writeTime(b *bytes.Buffer, t time.Time, f timeFmt) (err error) {
+	switch f {
+	case timeWriteUTC:
+		return writeString(b, t.UTC().Format("20060102 15:04:05")+" UTC")
+	case timeWriteLocalTime:
+		return writeString(b, t.Format("20060102 15:04:05"))
+	default:
+		return fmt.Errorf("goib: cannot write time format '%v'", f)
+	}
+	panic("unreachable")
+}
+
+func detectTime(timeString string) (f timeFmt, err error) {
+	// 8 character time strings are ambiguous as they can be a yyyymmdd date
+	// or an epoch. So we try yyyymmdd first, as 8 chars is less likely
+	if len(timeString) == len("20060102") {
+		return timeReadLocalDate, nil
+	}
+
+	if _, err = strconv.ParseInt(timeString, 10, 64); err == nil {
+		return timeReadEpoch, nil
+	}
+
+	if len(timeString) == len("20060102 15:04:05") {
+		return timeReadLocalTime, nil
+	}
+
+	if len(timeString) >= len("20060102 15:04:05 ") {
+		return timeReadLocalTime, nil
+	}
+	return f, fmt.Errorf("ibgo: '%s' has unknown time format", timeString)
 }

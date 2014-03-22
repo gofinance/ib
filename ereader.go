@@ -1604,7 +1604,7 @@ func (h *HistoricalData) read(b *bufio.Reader) (err error) {
 	}
 	h.Data = make([]HistoricalDataItem, itemCount)
 	for i := range h.Data {
-		if h.Data[i].Date, err = readHistDataTime(b); err != nil {
+		if h.Data[i].Date, err = readTime(b, timeReadAutoDetect); err != nil {
 			return
 		}
 		if h.Data[i].Open, err = readFloat(b); err != nil {
