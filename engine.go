@@ -559,12 +559,15 @@ func (e *Engine) receive() (r Reply, err error) {
 	// decode message
 	r, err = code2Msg(hdr.code)
 	if err != nil {
+		if e.dumpConversation {
+			fmt.Printf("%d< %v %s\n", e.client, hdr, err)
+		}
 		return
 	}
 
 	if err = r.read(e.reader); err != nil {
 		if e.dumpConversation {
-			fmt.Printf("%d< %v\n", e.client, err)
+			fmt.Printf("%d< %v %s\n", e.client, hdr, err)
 		}
 		return
 	}
