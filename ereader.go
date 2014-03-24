@@ -497,6 +497,9 @@ func (p *PortfolioValue) read(b *bufio.Reader) (err error) {
 	if p.Contract.PrimaryExchange, err = readString(b); err != nil {
 		return
 	}
+	if p.Contract.Currency, err = readString(b); err != nil {
+		return
+	}
 	if p.Contract.LocalSymbol, err = readString(b); err != nil {
 		return
 	}
