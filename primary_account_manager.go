@@ -10,11 +10,11 @@ import (
 // with an FA account it will only return the details of the FA account.
 type PrimaryAccountManager struct {
 	AbstractManager
-	id        int64
-	t         time.Time
-	refined   bool
-	values    map[AccountValueKey]AccountValue
-	portfolio map[PortfolioValueKey]PortfolioValue
+	id          int64
+	t           time.Time
+	accountCode string
+	values      map[AccountValueKey]AccountValue
+	portfolio   map[PortfolioValueKey]PortfolioValue
 }
 
 func NewPrimaryAccountManager(e *Engine) (*PrimaryAccountManager, error) {
@@ -42,8 +42,6 @@ func (p *PrimaryAccountManager) preLoop() {
 	// To address if being run under an FA account, request our accounts
 	// (the 321 warning-level error will be ignored for non-FA accounts)
 	p.eng.Send(&RequestManagedAccounts{})
-
-	p.refined = false
 }
 
 func (p *PrimaryAccountManager) receive(r Reply) (UpdateStatus, error) {
@@ -73,12 +71,12 @@ func (p *PrimaryAccountManager) receive(r Reply) (UpdateStatus, error) {
 		}
 
 		// Refine the request so we don't block if an FA login
-		if !p.refined {
+		if p.accountCode == "" {
+			p.accountCode = t.AccountsList[0]
 			req := &RequestAccountUpdates{}
 			req.Subscribe = true
-			req.AccountCode = t.AccountsList[0]
+			req.AccountCode = p.accountCode
 			p.eng.Send(req)
-			p.refined = true
 		}
 		return UpdateFalse, nil
 	}
@@ -87,6 +85,10 @@ func (p *PrimaryAccountManager) receive(r Reply) (UpdateStatus, error) {
 
 func (p *PrimaryAccountManager) preDestroy() {
 	p.eng.Unsubscribe(p.rc, p.id)
+	req := &RequestAccountUpdates{}
+	req.Subscribe = false
+	req.AccountCode = p.accountCode
+	p.eng.Send(req)
 }
 
 // Values returns the most recent snapshot of account information.
