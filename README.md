@@ -34,7 +34,7 @@ Status
 Testing
 -------
 
-```go test``` requires IB Gateway be running at 127.0.0.1:4001. Always use a
+```go test``` requires IB Gateway be running at 127.0.0.1:4002. Always use a
 demo or paper trade account, as the tests may modify your account. The tests
 will work with both financial advisor and non-advisor accounts, however using
 a financial advisor account will test a greater number of use cases.

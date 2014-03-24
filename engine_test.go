@@ -45,7 +45,7 @@ var noEngineReuse = flag.Bool("no-engine-reuse", false,
 func NewTestEngine(t *testing.T) *Engine {
 
 	if testEngine == nil {
-		opts := NewEngineOptions{}
+		opts := NewEngineOptions{Gateway: "127.0.0.1:4002"}
 		if os.Getenv("CI") != "" || os.Getenv("IB_ENGINE_DUMP") != "" {
 			opts.DumpConversation = true
 		}
@@ -82,7 +82,7 @@ func (e *Engine) ConditionalStop(t *testing.T) {
 }
 
 func TestConnect(t *testing.T) {
-	opts := NewEngineOptions{}
+	opts := NewEngineOptions{Gateway: "127.0.0.1:4002"}
 	if os.Getenv("CI") != "" || os.Getenv("IB_ENGINE_DUMP") != "" {
 		opts.DumpConversation = true
 	}

@@ -16,9 +16,12 @@ The ``ibcontroller-*.ini`` has been configured to automatically load IB
 Gateway and login with Interactive Brokers' ``fdemo`` account. This is adequate
 for most GoIB tests. Two ports are bound:
 
-* 4001 is the IB API port. This is what the tests will use.
-* 7462 is the IBController telnet control port (bound to 127.0.0.1). Tests do
-  not use this port, but the ``ibgwstop`` command will.
+* 4002 is the IB API port. This is what the tests will use. Note that this is
+  not the default 4001 port. This is an intentional change to reduce the risk of
+  tests executing against an unintended IB account.
+* 7463 is the IBController telnet control port (bound to 127.0.0.1). Tests do
+  not use this port, but the ``ibgwstop`` command will. This is not the standard
+  IBController port (7462).
 
 Run ``ibgwstart`` from the ``testserver`` directory to start the gateway. The
 script will create a clean (ie default) setup for IB Gateway and run it. You
