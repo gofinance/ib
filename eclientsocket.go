@@ -733,13 +733,97 @@ func (c *CancelCalcOptionPrice) write(b *bytes.Buffer) (err error) {
 
 // TODO: Add equivalent of EClientSocket.reqMarketDataType()
 
-// TODO: Add equivalent of EClientSocket.reqPositions()
+// RequestPositions is equivalent of IB API EClientSocket.reqPositions()
+type RequestPositions struct {
+}
 
-// TODO: Add equivalent of EClientSocket.cancelPositions()
+func (r *RequestPositions) code() OutgoingMessageId {
+	return mRequestPositions
+}
 
-// TODO: Add equivalent of EClientSocket.reqAccountSummary()
+func (r *RequestPositions) version() int64 {
+	return 1
+}
 
-// TODO: Add equivalent of EClientSocket.cancelAccountSummary()
+func (r *RequestPositions) write(b *bytes.Buffer) (err error) {
+	return
+}
+
+// CancelPositions is equivalent of IB API EClientSocket.cancelPositions()
+type CancelPositions struct {
+}
+
+func (c *CancelPositions) code() OutgoingMessageId {
+	return mCancelPositions
+}
+
+func (c *CancelPositions) version() int64 {
+	return 1
+}
+
+func (c *CancelPositions) write(b *bytes.Buffer) (err error) {
+	return
+}
+
+// RequestAccountSummary is equivalent of IB API EClientSocket.reqAccountSummary()
+type RequestAccountSummary struct {
+	id    int64
+	Group string
+	Tags  string
+}
+
+// SetId assigns the TWS "reqId", which is used for reply correlation and request cancellation.
+func (r *RequestAccountSummary) SetId(id int64) {
+	r.id = id
+}
+
+func (r *RequestAccountSummary) Id() int64 {
+	return r.id
+}
+
+func (r *RequestAccountSummary) code() OutgoingMessageId {
+	return mRequestAccountSummary
+}
+
+func (r *RequestAccountSummary) version() int64 {
+	return 1
+}
+
+func (r *RequestAccountSummary) write(b *bytes.Buffer) (err error) {
+	if err = writeInt(b, r.id); err != nil {
+		return
+	}
+	if err = writeString(b, r.Group); err != nil {
+		return
+	}
+	return writeString(b, r.Tags)
+}
+
+// CancelAccountSummary is equivalent of IB API EClientSocket.cancelAccountSummary()
+type CancelAccountSummary struct {
+	id int64
+}
+
+// SetId assigns the TWS "reqId", which was nominated at request time.
+func (c *CancelAccountSummary) SetId(id int64) {
+	c.id = id
+}
+
+func (c *CancelAccountSummary) Id() int64 {
+	return c.id
+}
+
+func (c *CancelAccountSummary) code() OutgoingMessageId {
+	return mCancelAccountSummary
+}
+
+func (c *CancelAccountSummary) version() int64 {
+	return 1
+}
+
+func (c *CancelAccountSummary) write(b *bytes.Buffer) (err error) {
+	return writeInt(b, c.id)
+}
 
 // TODO: Add equivalent of EClientSocket.verifyRequest()
 

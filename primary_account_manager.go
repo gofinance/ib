@@ -8,6 +8,7 @@ import (
 // PrimaryAccountManager tracks the primary IB account's values and portfolio.
 // This Manager is suitable for both FA and non-FA accounts, however if used
 // with an FA account it will only return the details of the FA account.
+// FA accounts should instead use AdvisorAccountManager.
 type PrimaryAccountManager struct {
 	AbstractManager
 	id          int64

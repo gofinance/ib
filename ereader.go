@@ -1902,10 +1902,15 @@ func (c *CommissionReport) read(b *bufio.Reader) (err error) {
 }
 
 type Position struct {
-	Account     string
+	Key         PositionKey
 	Contract    Contract
 	Position    float64
 	AverageCost float64
+}
+
+type PositionKey struct {
+	AccountName string
+	ContractId  int64
 }
 
 func (p *Position) code() IncomingMessageId {
@@ -1913,12 +1918,13 @@ func (p *Position) code() IncomingMessageId {
 }
 
 func (p *Position) read(b *bufio.Reader) (err error) {
-	if p.Account, err = readString(b); err != nil {
+	if p.Key.AccountName, err = readString(b); err != nil {
 		return
 	}
 	if p.Contract.ContractId, err = readInt(b); err != nil {
 		return
 	}
+	p.Key.ContractId = p.Contract.ContractId
 	if p.Contract.Symbol, err = readString(b); err != nil {
 		return
 	}
@@ -1969,10 +1975,14 @@ func (p *PositionEnd) read(b *bufio.Reader) (err error) {
 
 type AccountSummary struct {
 	id       int64
-	Account  string
-	Tag      string
+	Key      AccountSummaryKey
 	Value    string
 	Currency string
+}
+
+type AccountSummaryKey struct {
+	AccountName string
+	Key         string // tag
 }
 
 // Id contains the TWS "reqId", which is used for reply correlation.
@@ -1988,10 +1998,10 @@ func (a *AccountSummary) read(b *bufio.Reader) (err error) {
 	if a.id, err = readInt(b); err != nil {
 		return
 	}
-	if a.Account, err = readString(b); err != nil {
+	if a.Key.AccountName, err = readString(b); err != nil {
 		return
 	}
-	if a.Tag, err = readString(b); err != nil {
+	if a.Key.Key, err = readString(b); err != nil {
 		return
 	}
 	if a.Value, err = readString(b); err != nil {
