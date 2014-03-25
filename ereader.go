@@ -429,8 +429,8 @@ type AccountValue struct {
 }
 
 type AccountValueKey struct {
-	Key         string
 	AccountName string
+	Key         string
 }
 
 func (a *AccountValue) code() IncomingMessageId {
@@ -463,8 +463,8 @@ type PortfolioValue struct {
 }
 
 type PortfolioValueKey struct {
-	ContractId  int64
 	AccountName string
+	ContractId  int64
 }
 
 func (p *PortfolioValue) code() IncomingMessageId {
