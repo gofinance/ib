@@ -1,5 +1,9 @@
 package ib
 
+import (
+	"fmt"
+)
+
 // ExecutionManager fetches execution reports from the past 24 hours.
 type ExecutionManager struct {
 	AbstractManager
@@ -47,7 +51,7 @@ func (e *ExecutionManager) receive(r Reply) (UpdateStatus, error) {
 		return UpdateFinish, nil
 		return UpdateFalse, nil
 	}
-	return UpdateFalse, nil
+	return UpdateFalse, fmt.Errorf("Unexpected type %v", r)
 }
 
 func (e *ExecutionManager) preDestroy() {

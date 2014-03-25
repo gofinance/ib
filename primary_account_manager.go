@@ -81,7 +81,7 @@ func (p *PrimaryAccountManager) receive(r Reply) (UpdateStatus, error) {
 		}
 		return UpdateFalse, nil
 	}
-	return UpdateFalse, nil
+	return UpdateFalse, fmt.Errorf("Unexpected type %v", r)
 }
 
 func (p *PrimaryAccountManager) preDestroy() {
