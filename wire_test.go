@@ -3,6 +3,7 @@ package ib
 import (
 	"bufio"
 	"bytes"
+	"math"
 	"strconv"
 	"testing"
 	"time"
@@ -69,6 +70,34 @@ func TestReadInt(t *testing.T) {
 
 	if x != y {
 		t.Fatalf("expected %d but got %d", x, y)
+	}
+}
+
+func TestReadEmptyStringReturnsMaxInt(t *testing.T) {
+	b := makebuf()
+	writeString(b, "")
+	r := bufio.NewReader(bytes.NewReader(b.Bytes()))
+	y, err := readInt(r)
+	if err != nil {
+		t.Fatalf("failed to read: %v", err)
+	}
+
+	if y != math.MaxInt64 {
+		t.Fatalf("expected maximum int64 but got %d", y)
+	}
+}
+
+func TestReadIntList(t *testing.T) {
+	b := makebuf()
+	writeString(b, "1|2|3")
+	r := bufio.NewReader(bytes.NewReader(b.Bytes()))
+	y, err := readIntList(r)
+	if err != nil {
+		t.Fatalf("failed to read: %v", err)
+	}
+
+	if len(y) != 3 {
+		t.Fatalf("expected 3 but got %d", len(y))
 	}
 }
 
