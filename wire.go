@@ -187,10 +187,8 @@ func writeTime(b *bytes.Buffer, t time.Time, f timeFmt) (err error) {
 		return writeString(b, t.UTC().Format("20060102 15:04:05")+" UTC")
 	case timeWriteLocalTime:
 		return writeString(b, t.Format("20060102 15:04:05"))
-	default:
-		return fmt.Errorf("goib: cannot write time format '%v'", f)
 	}
-	panic("unreachable")
+	return fmt.Errorf("goib: cannot write time format '%v'", f)
 }
 
 func detectTime(timeString string) (f timeFmt, err error) {
