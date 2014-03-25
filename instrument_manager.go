@@ -65,12 +65,6 @@ func (i *InstrumentManager) receive(r Reply) (UpdateStatus, error) {
 	return UpdateTrue, nil
 }
 
-func (i *InstrumentManager) Contract() Contract {
-	i.rwm.RLock()
-	defer i.rwm.RUnlock()
-	return i.c
-}
-
 func (i *InstrumentManager) Bid() float64 {
 	i.rwm.RLock()
 	defer i.rwm.RUnlock()

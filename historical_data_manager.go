@@ -50,12 +50,6 @@ func (m *HistoricalDataManager) preDestroy() {
 	m.eng.Unsubscribe(m.rc, m.request.id)
 }
 
-func (m *HistoricalDataManager) Contract() Contract {
-	m.rwm.RLock()
-	defer m.rwm.RUnlock()
-	return m.request.Contract
-}
-
 func (m *HistoricalDataManager) Items() []HistoricalDataItem {
 	m.rwm.RLock()
 	defer m.rwm.RUnlock()

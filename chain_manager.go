@@ -70,12 +70,6 @@ func (c *ChainManager) receive(r Reply) (UpdateStatus, error) {
 	return UpdateFalse, fmt.Errorf("Unexpected type %v", r)
 }
 
-func (c *ChainManager) Contract() Contract {
-	c.rwm.RLock()
-	defer c.rwm.RUnlock()
-	return c.c
-}
-
 func (c *ChainManager) Chains() map[time.Time]*OptionChain {
 	c.rwm.RLock()
 	defer c.rwm.RUnlock()
