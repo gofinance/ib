@@ -126,7 +126,11 @@ func readTime(b *bufio.Reader, f timeFmt) (t time.Time, err error) {
 		}
 
 		// Truncate any portion this parse does not require (ie timezones)
-		timeString = timeString[0:len(format)]
+		fields := strings.Fields(timeString)
+		if len(fields) < 2 {
+			return time.Now(), fmt.Errorf("ibgo: '%s' does not contain expected whitespace for datetime format '%s'", timeString, format)
+		}
+		timeString = fields[0] + " " + fields[1]
 
 		return time.ParseInLocation(format, timeString, time.Local)
 	}
