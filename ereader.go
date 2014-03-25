@@ -429,7 +429,7 @@ type AccountValue struct {
 }
 
 type AccountValueKey struct {
-	AccountName string
+	AccountCode string
 	Key         string
 }
 
@@ -447,7 +447,7 @@ func (a *AccountValue) read(b *bufio.Reader) (err error) {
 	if a.Currency, err = readString(b); err != nil {
 		return
 	}
-	a.Key.AccountName, err = readString(b)
+	a.Key.AccountCode, err = readString(b)
 	return
 }
 
@@ -463,7 +463,7 @@ type PortfolioValue struct {
 }
 
 type PortfolioValueKey struct {
-	AccountName string
+	AccountCode string
 	ContractId  int64
 }
 
@@ -524,7 +524,7 @@ func (p *PortfolioValue) read(b *bufio.Reader) (err error) {
 	if p.RealizedPNL, err = readFloat(b); err != nil {
 		return
 	}
-	if p.Key.AccountName, err = readString(b); err != nil {
+	if p.Key.AccountCode, err = readString(b); err != nil {
 		return
 	}
 	return
@@ -1909,7 +1909,7 @@ type Position struct {
 }
 
 type PositionKey struct {
-	AccountName string
+	AccountCode string
 	ContractId  int64
 }
 
@@ -1918,7 +1918,7 @@ func (p *Position) code() IncomingMessageId {
 }
 
 func (p *Position) read(b *bufio.Reader) (err error) {
-	if p.Key.AccountName, err = readString(b); err != nil {
+	if p.Key.AccountCode, err = readString(b); err != nil {
 		return
 	}
 	if p.Contract.ContractId, err = readInt(b); err != nil {
@@ -1981,7 +1981,7 @@ type AccountSummary struct {
 }
 
 type AccountSummaryKey struct {
-	AccountName string
+	AccountCode string
 	Key         string // tag
 }
 
@@ -1998,7 +1998,7 @@ func (a *AccountSummary) read(b *bufio.Reader) (err error) {
 	if a.id, err = readInt(b); err != nil {
 		return
 	}
-	if a.Key.AccountName, err = readString(b); err != nil {
+	if a.Key.AccountCode, err = readString(b); err != nil {
 		return
 	}
 	if a.Key.Key, err = readString(b); err != nil {
