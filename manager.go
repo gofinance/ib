@@ -101,9 +101,8 @@ func (a *AbstractManager) startMainLoop(preLoop func(), receive func(r Reply) (U
 		close(a.term)
 	}()
 
-	a.eng.SubscribeState(a.engs)
-
-	preLoop()
+	go a.eng.SubscribeState(a.engs)
+	go preLoop()
 
 	for {
 		select {
