@@ -28,12 +28,14 @@ func TestMetadataManagerWithCompleteContractSpec(t *testing.T) {
 	SinkManagerTest(t, &mgr, 15*time.Second, 1)
 
 	if len(m.ContractData()) != 1 {
-		t.Fatalf("Expected 1 contract to be returned")
+		t.Fatalf("Expected 1 contract data to be returned")
 	}
 
 	if m.ContractData()[0].Contract.Industry != "Technology" {
 		t.Fatalf("Expected contract to be 'Technology', not '%v'", m.ContractData()[0].Contract.Industry)
 	}
+
+	m.Contract()
 }
 
 func TestMetadataManagerWithIncompleteContractSpec(t *testing.T) {

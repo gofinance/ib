@@ -30,4 +30,10 @@ func TestInstrumentManager(t *testing.T) {
 	if i.Bid() == 0 {
 		t.Fatal("No bid received")
 	}
+
+	if i.Ask() == 0 {
+		t.Fatal("No bid received")
+	}
+
+	i.Last()
 }
