@@ -1408,7 +1408,7 @@ func (e *ExecutionData) read(b *bufio.Reader) (err error) {
 	if e.Exec.ExecId, err = readString(b); err != nil {
 		return
 	}
-	if e.Exec.Time, err = readString(b); err != nil {
+	if e.Exec.Time, err = readTime(b, timeReadLocalDateTime); err != nil {
 		return
 	}
 	if e.Exec.AccountCode, err = readString(b); err != nil {

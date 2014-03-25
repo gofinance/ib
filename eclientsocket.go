@@ -479,7 +479,53 @@ func (r *RequestAccountUpdates) write(b *bytes.Buffer) (err error) {
 	return writeString(b, r.AccountCode)
 }
 
-// TODO: Add equivalent of EClientSocket.reqExecutions()
+// RequestExecutions is equivalent of IB API EClientSocket.reqExecutions().
+type RequestExecutions struct {
+	id     int64
+	Filter ExecutionFilter
+}
+
+// SetId assigns the TWS "reqId", which is used for reply correlation.
+func (r *RequestExecutions) SetId(id int64) {
+	r.id = id
+}
+
+func (r *RequestExecutions) Id() int64 {
+	return r.id
+}
+
+func (r *RequestExecutions) code() OutgoingMessageId {
+	return mRequestExecutions
+}
+
+func (r *RequestExecutions) version() int64 {
+	return 3
+}
+
+func (r *RequestExecutions) write(b *bytes.Buffer) (err error) {
+	if err = writeInt(b, r.id); err != nil {
+		return
+	}
+	if err = writeInt(b, r.Filter.ClientId); err != nil {
+		return
+	}
+	if err = writeString(b, r.Filter.AccountCode); err != nil {
+		return
+	}
+	if err = writeTime(b, r.Filter.Time, timeWriteLocalTime); err != nil {
+		return
+	}
+	if err = writeString(b, r.Filter.Symbol); err != nil {
+		return
+	}
+	if err = writeString(b, r.Filter.SecType); err != nil {
+		return
+	}
+	if err = writeString(b, r.Filter.Exchange); err != nil {
+		return
+	}
+	return writeString(b, r.Filter.Side)
+}
 
 // TODO: Add equivalent of EClientSocket.cancelOrder()
 

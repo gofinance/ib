@@ -1,12 +1,16 @@
 package ib
 
+import (
+	"time"
+)
+
 // This file ports IB API Execution.java. Please preserve declaration order.
 
 type Execution struct {
 	OrderId      int64
 	ClientId     int64
 	ExecId       string
-	Time         string
+	Time         time.Time
 	AccountCode  string
 	Exchange     string
 	Side         string
