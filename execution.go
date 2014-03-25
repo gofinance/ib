@@ -7,7 +7,7 @@ type Execution struct {
 	ClientId     int64
 	ExecId       string
 	Time         string
-	AcctNumber   string
+	AccountCode  string
 	Exchange     string
 	Side         string
 	Shares       int64
