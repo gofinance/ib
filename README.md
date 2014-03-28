@@ -1,9 +1,9 @@
 GoIB
 ====
 
-[![Build Status](https://drone.io/github.com/benalexau/go.trade/status.png)](https://drone.io/github.com/benalexau/go.trade/latest)
-[![GoDoc](https://godoc.org/github.com/benalexau/go.trade?status.png)](https://godoc.org/github.com/benalexau/go.trade)
-[![Coverage Status](https://coveralls.io/repos/benalexau/go.trade/badge.png?branch=master)](https://coveralls.io/r/benalexau/go.trade?branch=master)
+[![Build Status](https://drone.io/github.com/gofinance/ib/status.png)](https://drone.io/github.com/gofinance/ib/latest)
+[![GoDoc](https://godoc.org/github.com/gofinance/ib?status.png)](https://godoc.org/github.com/gofinance/ib)
+[![Coverage Status](https://coveralls.io/repos/gofinance/ib/badge.png?branch=master)](https://coveralls.io/r/gofinance/ib?branch=master)
 
 This is a pure Go interface to
 [Interactive Brokers](https://www.interactivebrokers.com/)
@@ -13,10 +13,10 @@ This is a pure Go interface to
 * Idiomatic design (Go naming conventions, channels, error handling etc)
 * Choice of low-level types or our high-level [Manager](manager.go) types
 * Extensively tested (test coverage via
-  [Coveralls](https://coveralls.io/r/benalexau/go.trade?branch=master), CI via
-  [Drone](https://drone.io/github.com/benalexau/go.trade/latest), local
+  [Coveralls](https://coveralls.io/r/gofinance/ib?branch=master), CI via
+  [Drone](https://drone.io/github.com/gofinance/ib/latest), local
   [test server](testserver/README.md))
-* Documentation on [GoDoc](https://godoc.org/github.com/benalexau/go.trade)
+* Documentation on [GoDoc](https://godoc.org/github.com/gofinance/ib)
 * Reflects very up-to-date IB API version
 
 We welcome your involvement and contributions! If you like the project, please
