@@ -162,8 +162,8 @@ func (e *Engine) handshake() error {
 	}
 
 	if serverShake.version < minServerVersion {
-		return fmt.Errorf("Server at %s (client ID %d) must be at least version %d (reported %d)",
-			e.gateway, e.client, minServerVersion, serverShake.version)
+		return fmt.Errorf("%s must be at least version %d (reported %d)",
+			e.ConnectionInfo(), minServerVersion, serverShake.version)
 	}
 
 	e.serverVersion = serverShake.version
@@ -241,12 +241,12 @@ func (e *Engine) startMainLoop() {
 			e.state = EngineExitNormal
 			return
 		case err := <-e.rxErr:
-			log.Printf("%d engine: RX error %s", e.client, err)
+			log.Printf("%s engine: RX error %s", e.ConnectionInfo(), err)
 			e.fatalError = err
 			e.state = EngineExitError
 			return
 		case err := <-e.txErr:
-			log.Printf("%d engine: TX error %s", e.client, err)
+			log.Printf("%s engine: TX error %s", e.ConnectionInfo(), err)
 			e.fatalError = err
 			e.state = EngineExitError
 			return
@@ -334,6 +334,11 @@ func (e *Engine) NextRequestId() int64 {
 
 func (e *Engine) ClientId() int64 {
 	return e.client
+}
+
+// ConnectionInfo returns the gateway address and client ID of this connection.
+func (e *Engine) ConnectionInfo() string {
+	return fmt.Sprintf("%s/%d", e.gateway, e.client)
 }
 
 // sendCommand delivers the func to the engine, blocking the calling goroutine
