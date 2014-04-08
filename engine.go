@@ -197,7 +197,7 @@ func (e *Engine) startReceiver() {
 
 func (e *Engine) startTransmitter() {
 	defer func() {
-		close(e.txRequest)
+		// Don't close txRequest, as we are not the sender
 		close(e.txErr)
 	}()
 	for {
@@ -221,7 +221,16 @@ func (e *Engine) startTransmitter() {
 
 func (e *Engine) startMainLoop() {
 	defer func() {
+		// Signal terminating for benefit of other goroutines
+		close(e.terminated)
+
+		// Safe to kill the connection, as we're advising other goroutines we're quitting
 		e.con.Close()
+
+		// Wait for other goroutines to indicate they've finished
+		<-e.txErr
+		<-e.rxErr
+
 	outer:
 		for _, ob := range e.stObservers {
 			for {
@@ -233,7 +242,6 @@ func (e *Engine) startMainLoop() {
 				}
 			}
 		}
-		close(e.terminated)
 	}()
 	for {
 		select {
