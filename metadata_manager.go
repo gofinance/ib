@@ -43,13 +43,13 @@ func NewMetadataManager(e *Engine, c Contract) (*MetadataManager, error) {
 	return m, nil
 }
 
-func (m *MetadataManager) preLoop() {
-	m.request()
+func (m *MetadataManager) preLoop() error {
+	return m.request()
 }
 
-func (m *MetadataManager) request() {
+func (m *MetadataManager) request() error {
 	if len(m.options) == 0 {
-		return
+		return nil
 	}
 
 	opt := m.options[0]
@@ -71,7 +71,7 @@ func (m *MetadataManager) request() {
 	req.SetId(m.id)
 	m.eng.Subscribe(m.rc, m.id)
 
-	m.eng.Send(req)
+	return m.eng.Send(req)
 }
 
 func (m *MetadataManager) preDestroy() {
@@ -83,7 +83,9 @@ func (m *MetadataManager) receive(r Reply) (UpdateStatus, error) {
 	case *ErrorMessage:
 		r := r.(*ErrorMessage)
 		if r.Code == 321 || r.Code == 200 {
-			m.request()
+			if err := m.request(); err != nil {
+				return UpdateFalse, err
+			}
 			return UpdateFalse, nil
 		}
 		if r.SeverityWarning() {

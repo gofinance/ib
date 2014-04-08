@@ -27,12 +27,12 @@ func NewExecutionManager(e *Engine, filter ExecutionFilter) (*ExecutionManager, 
 	return em, nil
 }
 
-func (e *ExecutionManager) preLoop() {
+func (e *ExecutionManager) preLoop() error {
 	e.id = e.eng.NextRequestId()
 	e.eng.Subscribe(e.rc, e.id)
 	req := &RequestExecutions{Filter: e.filter}
 	req.SetId(e.id)
-	e.eng.Send(req)
+	return e.eng.Send(req)
 }
 
 func (e *ExecutionManager) receive(r Reply) (UpdateStatus, error) {

@@ -34,15 +34,17 @@ func NewPrimaryAccountManager(e *Engine) (*PrimaryAccountManager, error) {
 	return p, nil
 }
 
-func (p *PrimaryAccountManager) preLoop() {
+func (p *PrimaryAccountManager) preLoop() error {
 	req := &RequestAccountUpdates{}
 	req.Subscribe = true
 	p.eng.Subscribe(p.rc, p.id)
-	p.eng.Send(req)
+	if err := p.eng.Send(req); err != nil {
+		return err
+	}
 
 	// To address if being run under an FA account, request our accounts
 	// (the 321 warning-level error will be ignored for non-FA accounts)
-	p.eng.Send(&RequestManagedAccounts{})
+	return p.eng.Send(&RequestManagedAccounts{})
 }
 
 func (p *PrimaryAccountManager) receive(r Reply) (UpdateStatus, error) {
@@ -77,7 +79,9 @@ func (p *PrimaryAccountManager) receive(r Reply) (UpdateStatus, error) {
 			req := &RequestAccountUpdates{}
 			req.Subscribe = true
 			req.AccountCode = p.accountCode
-			p.eng.Send(req)
+			if err := p.eng.Send(req); err != nil {
+				return UpdateFalse, err
+			}
 		}
 		return UpdateFalse, nil
 	}

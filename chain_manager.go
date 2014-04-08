@@ -28,14 +28,14 @@ func NewChainManager(e *Engine, c Contract) (*ChainManager, error) {
 	return m, nil
 }
 
-func (c *ChainManager) preLoop() {
+func (c *ChainManager) preLoop() error {
 	c.id = c.eng.NextRequestId()
 	req := &RequestContractData{Contract: c.c}
 	req.Contract.SecurityType = "OPT"
 	req.Contract.LocalSymbol = ""
 	req.SetId(c.id)
 	c.eng.Subscribe(c.rc, c.id)
-	c.eng.Send(req)
+	return c.eng.Send(req)
 }
 
 func (c *ChainManager) preDestroy() {

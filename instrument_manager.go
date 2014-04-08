@@ -24,12 +24,12 @@ func NewInstrumentManager(e *Engine, c Contract) (*InstrumentManager, error) {
 	return m, nil
 }
 
-func (i *InstrumentManager) preLoop() {
+func (i *InstrumentManager) preLoop() error {
 	i.id = i.eng.NextRequestId()
 	req := &RequestMarketData{Contract: i.c}
 	req.SetId(i.id)
 	i.eng.Subscribe(i.rc, i.id)
-	i.eng.Send(req)
+	return i.eng.Send(req)
 }
 
 func (i *InstrumentManager) preDestroy() {

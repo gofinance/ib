@@ -94,7 +94,7 @@ func NewAdvisorAccountManager(e *Engine) (*AdvisorAccountManager, error) {
 	return a, nil
 }
 
-func (a *AdvisorAccountManager) preLoop() {
+func (a *AdvisorAccountManager) preLoop() error {
 	a.id = a.eng.NextRequestId()
 	a.eng.Subscribe(a.rc, a.id)
 
@@ -108,11 +108,13 @@ func (a *AdvisorAccountManager) preLoop() {
 	reqAs.SetId(a.id)
 	reqAs.Group = "All"
 	reqAs.Tags = tags.String()
-	a.eng.Send(reqAs)
+	if err := a.eng.Send(reqAs); err != nil {
+		return err
+	}
 
 	a.eng.Subscribe(a.rc, UnmatchedReplyId)
 	reqPos := &RequestPositions{}
-	a.eng.Send(reqPos)
+	return a.eng.Send(reqPos)
 }
 
 func (a *AdvisorAccountManager) receive(r Reply) (UpdateStatus, error) {

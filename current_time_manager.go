@@ -21,11 +21,11 @@ func NewCurrentTimeManager(e *Engine) (*CurrentTimeManager, error) {
 	return m, nil
 }
 
-func (m *CurrentTimeManager) preLoop() {
+func (m *CurrentTimeManager) preLoop() error {
 	req := &RequestCurrentTime{}
 
 	m.eng.Subscribe(m.rc, m.id)
-	m.eng.Send(req)
+	return m.eng.Send(req)
 }
 
 func (m *CurrentTimeManager) receive(r Reply) (UpdateStatus, error) {

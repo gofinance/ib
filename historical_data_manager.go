@@ -25,9 +25,9 @@ func NewHistoricalDataManager(e *Engine, request RequestHistoricalData) (*Histor
 	return m, nil
 }
 
-func (m *HistoricalDataManager) preLoop() {
+func (m *HistoricalDataManager) preLoop() error {
 	m.eng.Subscribe(m.rc, m.request.id)
-	m.eng.Send(&m.request)
+	return m.eng.Send(&m.request)
 }
 
 func (m *HistoricalDataManager) receive(r Reply) (UpdateStatus, error) {
