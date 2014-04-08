@@ -69,7 +69,7 @@ func NewTestEngine(t *testing.T) *Engine {
 		t.Fatalf("engine %s not ready (did a prior test Stop() rather than ConditionalStop() ?)", testEngine.ConnectionInfo())
 	}
 
-	t.Log("reusing engine %s; state: %v", testEngine.ConnectionInfo(), testEngine.State())
+	t.Logf("reusing engine %s; state: %v", testEngine.ConnectionInfo(), testEngine.State())
 	return testEngine
 }
 
