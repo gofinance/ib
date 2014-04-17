@@ -2,18 +2,16 @@ package ib
 
 import (
 	"fmt"
-	"time"
 )
 
-// PrimaryAccountManager tracks the primary IB account's values and portfolio.
-// This Manager is suitable for both FA and non-FA accounts, however if used
-// with an FA account it will only return the details of the FA account.
-// FA accounts should instead use AdvisorAccountManager.
+// PrimaryAccountManager tracks the primary IB account's values and portfolio,
+// along with all FA sub-accounts. FA accounts may also consider using
+// AdvisorAccountManager, although the latter will not report position P&Ls.
 type PrimaryAccountManager struct {
 	AbstractManager
 	id          int64
-	t           time.Time
-	accountCode string
+	accountCode []string
+	unsubscribe string
 	values      map[AccountValueKey]AccountValue
 	portfolio   map[PortfolioValueKey]PortfolioValue
 }
@@ -55,10 +53,19 @@ func (p *PrimaryAccountManager) receive(r Reply) (UpdateStatus, error) {
 			return UpdateFalse, nil
 		}
 		return UpdateFalse, r.Error()
+	case *AccountDownloadEnd:
+		finished, err := p.nextAccount()
+		if err != nil {
+			return UpdateFalse, err
+		}
+		if finished {
+			return UpdateTrue, nil
+		}
+		return UpdateFalse, nil
+	case *NextValidId:
+		return UpdateFalse, nil
 	case *AccountUpdateTime:
-		t := r.(*AccountUpdateTime)
-		p.t = t.Time
-		return UpdateTrue, nil
+		return UpdateFalse, nil
 	case *AccountValue:
 		t := r.(*AccountValue)
 		p.values[t.Key] = *t
@@ -74,25 +81,56 @@ func (p *PrimaryAccountManager) receive(r Reply) (UpdateStatus, error) {
 		}
 
 		// Refine the request so we don't block if an FA login
-		if p.accountCode == "" {
-			p.accountCode = t.AccountsList[0]
-			req := &RequestAccountUpdates{}
-			req.Subscribe = true
-			req.AccountCode = p.accountCode
-			if err := p.eng.Send(req); err != nil {
-				return UpdateFalse, err
-			}
-		}
+		p.accountCode = t.AccountsList
+		p.nextAccount()
 		return UpdateFalse, nil
 	}
 	return UpdateFalse, fmt.Errorf("Unexpected type %v", r)
+}
+
+// nextAccount requests the next FA account, unsubscribing from any previous
+// request and returning true if no more accounts are remaining.
+func (p *PrimaryAccountManager) nextAccount() (bool, error) {
+	if p.unsubscribe != "" {
+		req := &RequestAccountUpdates{}
+		req.Subscribe = false
+		req.AccountCode = p.unsubscribe
+		if err := p.eng.Send(req); err != nil {
+			return true, err
+		}
+	}
+
+	next := ""
+	replace := make([]string, 0)
+	for _, acct := range p.accountCode {
+		if next == "" {
+			next = acct
+		} else {
+			replace = append(replace, acct)
+		}
+	}
+	p.accountCode = replace
+	p.unsubscribe = next
+
+	if next == "" {
+		return true, nil
+	}
+
+	req := &RequestAccountUpdates{}
+	req.Subscribe = true
+	req.AccountCode = next
+	if err := p.eng.Send(req); err != nil {
+		return true, err
+	}
+
+	return false, nil
 }
 
 func (p *PrimaryAccountManager) preDestroy() {
 	p.eng.Unsubscribe(p.rc, p.id)
 	req := &RequestAccountUpdates{}
 	req.Subscribe = false
-	req.AccountCode = p.accountCode
+	req.AccountCode = p.unsubscribe
 	p.eng.Send(req)
 }
 
@@ -108,11 +146,4 @@ func (p *PrimaryAccountManager) Portfolio() map[PortfolioValueKey]PortfolioValue
 	p.rwm.RLock()
 	defer p.rwm.RUnlock()
 	return p.portfolio
-}
-
-// Time returns the last account update time.
-func (p *PrimaryAccountManager) Time() time.Time {
-	p.rwm.RLock()
-	defer p.rwm.RUnlock()
-	return p.t
 }
