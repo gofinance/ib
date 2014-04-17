@@ -1,7 +1,6 @@
 package ib
 
 import (
-	"fmt"
 	"testing"
 	"time"
 )
@@ -26,7 +25,7 @@ func TestPrimaryAccountManager(t *testing.T) {
 	}
 
 	// demo accounts have no guaranteed portfolio, so this just tests the accessor
-	fmt.Println(pam.Portfolio())
+	pam.Portfolio()
 
 	if b, ok := <-pam.Refresh(); ok {
 		t.Fatal("Expected the refresh channel to be closed, but got %v", b)
