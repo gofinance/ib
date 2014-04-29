@@ -9,7 +9,7 @@ The files in this directory are not part of GoIB, but they will help you test it
   running either Trader Workstation (TWS) or IB Gateway, both of which are
   shipped in the Trader Workstation distribution. The license can be viewed by
   loading TWS and clicking Help > About Trader Workstation.
-* [IBController](http://sourceforge.net/projects/ibcontroller/) provides
+* [IBController](https://github.com/ib-controller/ib-controller) provides
   automated management of IB Gateway. It is GPLv3 licensed.
 
 The ``ibcontroller-*.ini`` has been configured to automatically load IB
