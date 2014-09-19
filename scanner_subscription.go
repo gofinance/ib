@@ -4,6 +4,7 @@ package ib
 
 type ScannerSubscription struct {
 	NumberOfRows             int64
+	Instrument               string
 	LocationCode             string
 	ScanCode                 string
 	AbovePrice               float64

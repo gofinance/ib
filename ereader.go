@@ -3,6 +3,7 @@ package ib
 import (
 	"bufio"
 	"fmt"
+	"math"
 	"time"
 )
 
@@ -629,33 +630,6 @@ func (o *OpenOrder) read(b *bufio.Reader) (err error) {
 	if o.Contract.TradingClass, err = readString(b); err != nil {
 		return
 	}
-	if o.Contract.ContractId, err = readInt(b); err != nil {
-		return
-	}
-	if o.Contract.Symbol, err = readString(b); err != nil {
-		return
-	}
-	if o.Contract.SecurityType, err = readString(b); err != nil {
-		return
-	}
-	if o.Contract.Expiry, err = readString(b); err != nil {
-		return
-	}
-	if o.Contract.Strike, err = readFloat(b); err != nil {
-		return
-	}
-	if o.Contract.Right, err = readString(b); err != nil {
-		return
-	}
-	if o.Contract.Exchange, err = readString(b); err != nil {
-		return
-	}
-	if o.Contract.Currency, err = readString(b); err != nil {
-		return
-	}
-	if o.Contract.LocalSymbol, err = readString(b); err != nil {
-		return
-	}
 	if o.Order.Action, err = readString(b); err != nil {
 		return
 	}
@@ -811,7 +785,7 @@ func (o *OpenOrder) read(b *bufio.Reader) (err error) {
 		if o.Order.DeltaNeutral.ContractId, err = readInt(b); err != nil {
 			return
 		}
-		if o.Order.DeltaNeutral.ClearingSettlingFirm, err = readString(b); err != nil {
+		if o.Order.DeltaNeutral.SettlingFirm, err = readString(b); err != nil {
 			return
 		}
 		if o.Order.DeltaNeutral.ClearingAccount, err = readString(b); err != nil {
@@ -839,7 +813,7 @@ func (o *OpenOrder) read(b *bufio.Reader) (err error) {
 	if o.Order.ReferencePriceType, err = readInt(b); err != nil {
 		return
 	}
-	if o.Order.TrailingStopPrice, err = readFloat(b); err != nil {
+	if o.Order.TrailStopPrice, err = readFloat(b); err != nil {
 		return
 	}
 	if o.Order.TrailingPercent, err = readFloat(b); err != nil {
@@ -917,7 +891,7 @@ func (o *OpenOrder) read(b *bufio.Reader) (err error) {
 	if o.Order.ScalePriceIncrement, err = readFloat(b); err != nil {
 		return
 	}
-	if o.Order.ScalePriceIncrement > 0.0 {
+	if o.Order.ScalePriceIncrement > 0.0 && o.Order.ScalePriceIncrement < math.MaxFloat64 {
 		if o.Order.ScalePriceAdjustValue, err = readFloat(b); err != nil {
 			return
 		}
@@ -965,6 +939,7 @@ func (o *OpenOrder) read(b *bufio.Reader) (err error) {
 		return
 	}
 	if haveUnderComp {
+		o.Contract.UnderComp = new(UnderComp)
 		if o.Contract.UnderComp.ContractId, err = readInt(b); err != nil {
 			return
 		}
