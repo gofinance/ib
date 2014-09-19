@@ -173,6 +173,24 @@ func writeFloat(b *bytes.Buffer, f float64) (err error) {
 	return writeString(b, strconv.FormatFloat(f, 'g', 10, 64))
 }
 
+func writeMaxFloat(b *bytes.Buffer, f float64) (err error) {
+	if f >= math.MaxFloat64 {
+		b.WriteByte('\000')
+	} else {
+		writeFloat(b, f)
+	}
+	return
+}
+
+func writeMaxInt(b *bytes.Buffer, i int64) (err error) {
+	if i == math.MaxInt64 {
+		b.WriteByte('\000')
+	} else {
+		writeInt(b, i)
+	}
+	return
+}
+
 func writeBool(b *bytes.Buffer, bo bool) (err error) {
 	s := "0"
 	if bo {
