@@ -53,6 +53,7 @@ type Engine struct {
 	txErr            chan error
 	observers        map[int64]chan<- Reply
 	unObservers      []chan<- Reply
+	allObservers     []chan<- Reply
 	stObservers      []chan<- EngineState
 	state            EngineState
 	serverTime       time.Time
@@ -282,16 +283,26 @@ func (e *Engine) deliverToObservers(r Reply) {
 		for _, o := range e.unObservers {
 			e.deliverToObserver(o, r)
 		}
+		for _, o := range e.allObservers {
+			e.deliverToObserver(o, r)
+		}
 		return
 	}
 	if mr, ok := r.(MatchedReply); ok {
 		if o, ok := e.observers[mr.Id()]; ok {
 			e.deliverToObserver(o, r)
 		}
+
+		for _, o := range e.allObservers {
+			e.deliverToObserver(o, r)
+		}
 		return
 	}
 	// must be a non-error, unmatched reply
 	for _, o := range e.unObservers {
+		e.deliverToObserver(o, r)
+	}
+	for _, o := range e.allObservers {
 		e.deliverToObserver(o, r)
 	}
 }
@@ -395,6 +406,12 @@ func (e *Engine) Subscribe(o chan<- Reply, id int64) {
 	})
 }
 
+func (e *Engine) SubscribeAll(o chan<- Reply) {
+	e.sendCommand(func() {
+		e.allObservers = append(e.allObservers, o)
+	})
+}
+
 // Unsubscribe blocks until the observer is removed. It also maintains a
 // goroutine to sink the channel until the unsubscribe is finalised, which
 // frees the caller from maintaining a separate goroutine.
@@ -422,6 +439,29 @@ func (e *Engine) Unsubscribe(o chan Reply, id int64) {
 			}
 		}
 		e.unObservers = newUnObs
+	})
+	close(terminate)
+}
+
+func (e *Engine) UnsubscribeAll(o chan Reply) {
+	terminate := make(chan struct{})
+	go func() {
+		for {
+			select {
+			case <-o:
+			case <-terminate:
+				return
+			}
+		}
+	}()
+	e.sendCommand(func() {
+		newUnObs := make([]chan<- Reply, 0)
+		for _, existing := range e.allObservers {
+			if existing != o {
+				newUnObs = append(newUnObs, o)
+			}
+		}
+		e.allObservers = newUnObs
 	})
 	close(terminate)
 }

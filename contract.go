@@ -20,5 +20,5 @@ type Contract struct {
 	SecId                string
 	ComboLegsDescription string
 	ComboLegs            []ComboLeg
-	UnderComp            UnderComp
+	UnderComp            *UnderComp
 }
