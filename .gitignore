@@ -23,3 +23,7 @@ _testmain.go
 go.trade
 *.sublime*
 *.test
+
+.build_id
+.build_gw_id
+.gateway_id
