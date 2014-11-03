@@ -9,6 +9,18 @@ import (
 	"time"
 )
 
+var GwURL = flag.String("gw", "", "Gateway URL")
+
+func getGatewayURL() string {
+	if *GwURL != "" {
+		return *GwURL
+	}
+	if url := os.Getenv("GATEWAY_URL"); url != "" {
+		return url
+	}
+	return "localhost:4002"
+}
+
 func (engine *Engine) expect(t *testing.T, seconds int, ch chan Reply, expected []IncomingMessageId) (Reply, error) {
 	for {
 		select {
@@ -28,7 +40,6 @@ func (engine *Engine) expect(t *testing.T, seconds int, ch chan Reply, expected 
 				v, reflect.ValueOf(v).Type())
 		}
 	}
-
 	return nil, nil
 }
 
@@ -45,7 +56,7 @@ var noEngineReuse = flag.Bool("no-engine-reuse", false,
 func NewTestEngine(t *testing.T) *Engine {
 
 	if testEngine == nil {
-		opts := NewEngineOptions{Gateway: "127.0.0.1:4002"}
+		opts := NewEngineOptions{Gateway: getGatewayURL()}
 		if os.Getenv("CI") != "" || os.Getenv("IB_ENGINE_DUMP") != "" {
 			opts.DumpConversation = true
 		}
@@ -83,7 +94,7 @@ func (e *Engine) ConditionalStop(t *testing.T) {
 }
 
 func TestConnect(t *testing.T) {
-	opts := NewEngineOptions{Gateway: "127.0.0.1:4002"}
+	opts := NewEngineOptions{Gateway: getGatewayURL()}
 	if os.Getenv("CI") != "" || os.Getenv("IB_ENGINE_DUMP") != "" {
 		opts.DumpConversation = true
 	}
