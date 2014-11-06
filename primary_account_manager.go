@@ -25,8 +25,8 @@ func NewPrimaryAccountManager(e *Engine) (*PrimaryAccountManager, error) {
 
 	p := &PrimaryAccountManager{AbstractManager: *am,
 		id:        UnmatchedReplyID,
-		values:    make(map[AccountValueKey]AccountValue),
-		portfolio: make(map[PortfolioValueKey]PortfolioValue),
+		values:    map[AccountValueKey]AccountValue{},
+		portfolio: map[PortfolioValueKey]PortfolioValue{},
 	}
 
 	go p.startMainLoop(p.preLoop, p.receive, p.preDestroy)

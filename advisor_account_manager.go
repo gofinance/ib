@@ -88,8 +88,8 @@ func NewAdvisorAccountManager(e *Engine) (*AdvisorAccountManager, error) {
 
 	a := &AdvisorAccountManager{AbstractManager: *am,
 		id:        UnmatchedReplyID,
-		values:    make(map[AccountSummaryKey]AccountSummary),
-		portfolio: make(map[PositionKey]Position),
+		values:    map[AccountSummaryKey]AccountSummary{},
+		portfolio: map[PositionKey]Position{},
 	}
 
 	go a.startMainLoop(a.preLoop, a.receive, a.preDestroy)

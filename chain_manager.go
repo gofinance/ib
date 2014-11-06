@@ -23,7 +23,7 @@ func NewChainManager(e *Engine, c Contract) (*ChainManager, error) {
 	m := &ChainManager{
 		AbstractManager: *am,
 		c:               c,
-		chains:          make(OptionChains),
+		chains:          OptionChains{},
 	}
 
 	go m.startMainLoop(m.preLoop, m.receive, m.preDestroy)
@@ -61,7 +61,7 @@ func (c *ChainManager) receive(r Reply) (UpdateStatus, error) {
 		if _, ok := c.chains[expiry]; !ok {
 			c.chains[expiry] = &OptionChain{
 				Expiry:  expiry,
-				Strikes: make(map[float64]*OptionStrike),
+				Strikes: map[float64]*OptionStrike{},
 			}
 		}
 		c.chains[expiry].update(r)

@@ -127,7 +127,7 @@ func NewEngine(opt NewEngineOptions) (*Engine, error) {
 		rxErr:            make(chan error),
 		txRequest:        make(chan txrequest),
 		txErr:            make(chan error),
-		observers:        make(map[int64]chan<- Reply),
+		observers:        map[int64]chan<- Reply{},
 		state:            EngineReady,
 		dumpConversation: opt.DumpConversation,
 	}

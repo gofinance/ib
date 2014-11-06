@@ -37,7 +37,7 @@ func NewMetadataManager(e *Engine, c Contract) (*MetadataManager, error) {
 	m := &MetadataManager{
 		AbstractManager: *am,
 		c:               c,
-		metadata:        make([]ContractData, 0),
+		metadata:        []ContractData{},
 		options:         options,
 	}
 
