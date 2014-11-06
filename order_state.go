@@ -2,6 +2,7 @@ package ib
 
 // This file ports IB API OrderState.java. Please preserve declaration order.
 
+// OrderState .
 type OrderState struct {
 	Status             string
 	InitialMargin      string

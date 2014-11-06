@@ -2,9 +2,13 @@ package ib
 
 import "time"
 
+// HistDataBarSize .
 type HistDataBarSize string
+
+// HistDataToShow .
 type HistDataToShow string
 
+// HistBar enum
 const (
 	HistBarSize1Sec  HistDataBarSize = "1 secs"
 	HistBarSize5Sec                  = "5 secs"
@@ -27,6 +31,7 @@ const (
 	HistOptionIV                     = "OPTION_IMPLIED_VOLATILITY"
 )
 
+// HistoricalDataItem .
 type HistoricalDataItem struct {
 	Date     time.Time
 	Open     float64

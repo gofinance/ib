@@ -12,6 +12,7 @@ type ExecutionManager struct {
 	values []ExecutionData
 }
 
+// NewExecutionManager .
 func NewExecutionManager(e *Engine, filter ExecutionFilter) (*ExecutionManager, error) {
 	am, err := NewAbstractManager(e)
 	if err != nil {
@@ -19,7 +20,7 @@ func NewExecutionManager(e *Engine, filter ExecutionFilter) (*ExecutionManager, 
 	}
 
 	em := &ExecutionManager{AbstractManager: *am,
-		id:     UnmatchedReplyId,
+		id:     UnmatchedReplyID,
 		filter: filter,
 	}
 
@@ -28,10 +29,10 @@ func NewExecutionManager(e *Engine, filter ExecutionFilter) (*ExecutionManager, 
 }
 
 func (e *ExecutionManager) preLoop() error {
-	e.id = e.eng.NextRequestId()
+	e.id = e.eng.NextRequestID()
 	e.eng.Subscribe(e.rc, e.id)
 	req := &RequestExecutions{Filter: e.filter}
-	req.SetId(e.id)
+	req.SetID(e.id)
 	return e.eng.Send(req)
 }
 

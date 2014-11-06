@@ -9,6 +9,7 @@ type optionm struct {
 	exchange string
 }
 
+// MetadataManager .
 type MetadataManager struct {
 	AbstractManager
 	id       int64
@@ -17,6 +18,7 @@ type MetadataManager struct {
 	metadata []ContractData
 }
 
+// NewMetadataManager .
 func NewMetadataManager(e *Engine, c Contract) (*MetadataManager, error) {
 	am, err := NewAbstractManager(e)
 	if err != nil {
@@ -64,11 +66,11 @@ func (m *MetadataManager) request() error {
 	}
 
 	m.eng.Unsubscribe(m.rc, m.id) // AbstractMgr goroutine already rx reply
-	m.id = m.eng.NextRequestId()
+	m.id = m.eng.NextRequestID()
 	req := &RequestContractData{
 		Contract: m.c,
 	}
-	req.SetId(m.id)
+	req.SetID(m.id)
 	m.eng.Subscribe(m.rc, m.id)
 
 	return m.eng.Send(req)
@@ -102,12 +104,14 @@ func (m *MetadataManager) receive(r Reply) (UpdateStatus, error) {
 	return UpdateFalse, fmt.Errorf("Unexpected type %v", r)
 }
 
+// Contract .
 func (m *MetadataManager) Contract() Contract {
 	m.rwm.RLock()
 	defer m.rwm.RUnlock()
 	return m.c
 }
 
+// ContractData .
 func (m *MetadataManager) ContractData() []ContractData {
 	m.rwm.RLock()
 	defer m.rwm.RUnlock()

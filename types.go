@@ -4,26 +4,30 @@ import (
 	"bytes"
 )
 
+// Request .
 type Request interface {
 	writable
-	code() OutgoingMessageId
+	code() OutgoingMessageID
 	version() int64
 }
 
+// Reply .
 type Reply interface {
 	readable
-	code() IncomingMessageId
+	code() IncomingMessageID
 }
 
+// MatchedRequest .
 type MatchedRequest interface {
 	Request
 	SetId(id int64)
-	Id() int64
+	ID() int64
 }
 
+// MatchedReply .
 type MatchedReply interface {
 	Reply
-	Id() int64
+	ID() int64
 }
 
 type clientHandshake struct {
@@ -31,15 +35,15 @@ type clientHandshake struct {
 	id      int64
 }
 
-func (c *clientHandshake) write(b *bytes.Buffer) (err error) {
-	if err = writeInt(b, c.version); err != nil {
-		return
+func (c *clientHandshake) write(b *bytes.Buffer) error {
+	if err := writeInt(b, c.version); err != nil {
+		return err
 	}
-	if err = writeInt(b, mStartAPI); err != nil {
-		return
+	if err := writeInt(b, mStartAPI); err != nil {
+		return err
 	}
-	if err = writeInt(b, 1); err != nil {
-		return
+	if err := writeInt(b, 1); err != nil {
+		return err
 	}
 	return writeInt(b, c.id)
 }

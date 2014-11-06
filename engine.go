@@ -1,4 +1,4 @@
-// Package trade offers a pure Go abstraction over Interactive Brokers IB API.
+// Package ib trade offers a pure Go abstraction over Interactive Brokers IB API.
 //
 // Engine is the main type. It provides a mechanism to connect to either IB
 // Gateway or TWS, send Request values and receive Reply values. The Engine
@@ -24,11 +24,13 @@ import (
 	"time"
 )
 
+// consts .
 const (
 	gatewayDefault   = "127.0.0.1:4001"
-	UnmatchedReplyId = int64(-9223372036854775808)
+	UnmatchedReplyID = int64(-9223372036854775808)
 )
 
+// NewEngineOptions .
 type NewEngineOptions struct {
 	Gateway          string
 	Client           int64
@@ -61,7 +63,7 @@ type Engine struct {
 	serverVersion    int64
 	dumpConversation bool
 	lastDumpRead     int64
-	lastDumpId       int64
+	lastDumpID       int64
 	fatalError       error
 }
 
@@ -75,23 +77,23 @@ type txrequest struct {
 	ack chan struct{}
 }
 
-func uniqueId(start int64) chan int64 {
+func uniqueID(start int64) chan int64 {
 	ch := make(chan int64)
 	id := start
 	go func() {
 		for {
-			if id == UnmatchedReplyId {
-				id += 1
+			if id == UnmatchedReplyID {
+				id++
 			}
 			ch <- id
-			id += 1
+			id++
 		}
 	}()
 	return ch
 }
 
 // Next client id. Package scope to ensure new engines have unique client IDs.
-var clientSeq = uniqueId(1)
+var clientSeq = uniqueID(1)
 
 // NewEngine takes a client id and returns a new connection
 // to IB Gateway or IB Trader Workstation.
@@ -111,7 +113,7 @@ func NewEngine(opt NewEngineOptions) (*Engine, error) {
 	}
 
 	e := Engine{
-		id:               uniqueId(100),
+		id:               uniqueID(100),
 		exit:             make(chan bool),
 		terminated:       make(chan struct{}),
 		ch:               make(chan command),
@@ -289,7 +291,7 @@ func (e *Engine) deliverToObservers(r Reply) {
 		return
 	}
 	if mr, ok := r.(MatchedReply); ok {
-		if o, ok := e.observers[mr.Id()]; ok {
+		if o, ok := e.observers[mr.ID()]; ok {
 			e.deliverToObserver(o, r)
 		}
 
@@ -346,12 +348,13 @@ func (e *Engine) transmit(r Request) (err error) {
 	return
 }
 
-// NextRequestId returns a unique request id (which is never UnmatchedReplyId).
-func (e *Engine) NextRequestId() int64 {
+// NextRequestID returns a unique request id (which is never UnmatchedReplyId).
+func (e *Engine) NextRequestID() int64 {
 	return <-e.id
 }
 
-func (e *Engine) ClientId() int64 {
+// ClientID .
+func (e *Engine) ClientID() int64 {
 	return e.client
 }
 
@@ -397,7 +400,7 @@ func (e *Engine) sendCommand(c func()) {
 // This call will block until the subscriber is registered or engine terminates.
 func (e *Engine) Subscribe(o chan<- Reply, id int64) {
 	e.sendCommand(func() {
-		if id != UnmatchedReplyId {
+		if id != UnmatchedReplyID {
 			e.observers[id] = o
 			return
 		}
@@ -406,6 +409,7 @@ func (e *Engine) Subscribe(o chan<- Reply, id int64) {
 	})
 }
 
+// SubscribeAll .
 func (e *Engine) SubscribeAll(o chan<- Reply) {
 	e.sendCommand(func() {
 		e.allObservers = append(e.allObservers, o)
@@ -427,12 +431,12 @@ func (e *Engine) Unsubscribe(o chan Reply, id int64) {
 		}
 	}()
 	e.sendCommand(func() {
-		if id != UnmatchedReplyId {
+		if id != UnmatchedReplyID {
 			delete(e.observers, id)
 			return
 		}
 
-		newUnObs := make([]chan<- Reply, 0)
+		newUnObs := []chan<- Reply{}
 		for _, existing := range e.unObservers {
 			if existing != o {
 				newUnObs = append(newUnObs, o)
@@ -443,6 +447,7 @@ func (e *Engine) Unsubscribe(o chan Reply, id int64) {
 	close(terminate)
 }
 
+// UnsubscribeAll .
 func (e *Engine) UnsubscribeAll(o chan Reply) {
 	terminate := make(chan struct{})
 	go func() {
@@ -455,7 +460,7 @@ func (e *Engine) UnsubscribeAll(o chan Reply) {
 		}
 	}()
 	e.sendCommand(func() {
-		newUnObs := make([]chan<- Reply, 0)
+		newUnObs := []chan<- Reply{}
 		for _, existing := range e.allObservers {
 			if existing != o {
 				newUnObs = append(newUnObs, o)
@@ -550,8 +555,8 @@ func (v *header) read(b *bufio.Reader) (err error) {
 // failure (eg connectivity loss) will cause the engine to exit with an error.
 func (e *Engine) Send(r Request) (err error) {
 	if mr, ok := r.(MatchedRequest); ok {
-		if mr.Id() == UnmatchedReplyId {
-			return fmt.Errorf("%d is a reserved ID (try using NextRequestId)", UnmatchedReplyId)
+		if mr.ID() == UnmatchedReplyID {
+			return fmt.Errorf("%d is a reserved ID (try using NextRequestID)", UnmatchedReplyID)
 		}
 	}
 	t := txrequest{r, make(chan struct{})}
@@ -632,8 +637,8 @@ func (e *Engine) receive() (r Reply, err error) {
 		dump = dump || r.code() == mErrorMessage
 
 		if mr, ok := r.(MatchedReply); ok {
-			dump = dump || mr.Id() != e.lastDumpId
-			e.lastDumpId = mr.Id()
+			dump = dump || mr.ID() != e.lastDumpID
+			e.lastDumpID = mr.ID()
 		}
 
 		if dump {
@@ -649,8 +654,10 @@ func (e *Engine) receive() (r Reply, err error) {
 	return
 }
 
+// EngineState .
 type EngineState int
 
+// Engine State enum
 const (
 	EngineReady EngineState = 1 << iota
 	EngineExitError

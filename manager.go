@@ -7,8 +7,10 @@ import (
 	"time"
 )
 
+// UpdateStatus .
 type UpdateStatus int
 
+// Status enum
 const (
 	UpdateFalse UpdateStatus = 1 << iota
 	UpdateTrue
@@ -78,6 +80,7 @@ type AbstractManager struct {
 	rc     chan Reply
 }
 
+// NewAbstractManager .
 func NewAbstractManager(e *Engine) (*AbstractManager, error) {
 	if e == nil {
 		return nil, errors.New("Engine required")
@@ -167,14 +170,17 @@ func (a *AbstractManager) consume(r Reply, receive func(r Reply) (UpdateStatus, 
 	return false
 }
 
+// FatalError .
 func (a *AbstractManager) FatalError() error {
 	return a.err
 }
 
+// Refresh .
 func (a *AbstractManager) Refresh() <-chan bool {
 	return a.update
 }
 
+// Close .
 func (a *AbstractManager) Close() {
 	select {
 	case <-a.term:

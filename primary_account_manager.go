@@ -16,6 +16,7 @@ type PrimaryAccountManager struct {
 	portfolio   map[PortfolioValueKey]PortfolioValue
 }
 
+// NewPrimaryAccountManager .
 func NewPrimaryAccountManager(e *Engine) (*PrimaryAccountManager, error) {
 	am, err := NewAbstractManager(e)
 	if err != nil {
@@ -23,7 +24,7 @@ func NewPrimaryAccountManager(e *Engine) (*PrimaryAccountManager, error) {
 	}
 
 	p := &PrimaryAccountManager{AbstractManager: *am,
-		id:        UnmatchedReplyId,
+		id:        UnmatchedReplyID,
 		values:    make(map[AccountValueKey]AccountValue),
 		portfolio: make(map[PortfolioValueKey]PortfolioValue),
 	}
@@ -62,7 +63,7 @@ func (p *PrimaryAccountManager) receive(r Reply) (UpdateStatus, error) {
 			return UpdateTrue, nil
 		}
 		return UpdateFalse, nil
-	case *NextValidId:
+	case *NextValidID:
 		return UpdateFalse, nil
 	case *AccountUpdateTime:
 		return UpdateFalse, nil
@@ -101,7 +102,7 @@ func (p *PrimaryAccountManager) nextAccount() (bool, error) {
 	}
 
 	next := ""
-	replace := make([]string, 0)
+	replace := []string{}
 	for _, acct := range p.accountCode {
 		if next == "" {
 			next = acct

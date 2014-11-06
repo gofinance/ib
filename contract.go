@@ -2,8 +2,9 @@ package ib
 
 // This file ports IB API Contract.java. Please preserve declaration order.
 
+// Contract .
 type Contract struct {
-	ContractId           int64
+	ContractID           int64
 	Symbol               string
 	SecurityType         string
 	Expiry               string
@@ -16,8 +17,8 @@ type Contract struct {
 	TradingClass         string
 	PrimaryExchange      string
 	IncludeExpired       bool
-	SecIdType            string
-	SecId                string
+	SecIDType            string
+	SecID                string
 	ComboLegsDescription string
 	ComboLegs            []ComboLeg
 	UnderComp            *UnderComp

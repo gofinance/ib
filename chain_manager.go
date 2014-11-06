@@ -5,6 +5,7 @@ import (
 	"time"
 )
 
+// ChainManager .
 type ChainManager struct {
 	AbstractManager
 	id     int64
@@ -12,6 +13,7 @@ type ChainManager struct {
 	chains OptionChains
 }
 
+// NewChainManager .
 func NewChainManager(e *Engine, c Contract) (*ChainManager, error) {
 	am, err := NewAbstractManager(e)
 	if err != nil {
@@ -29,11 +31,11 @@ func NewChainManager(e *Engine, c Contract) (*ChainManager, error) {
 }
 
 func (c *ChainManager) preLoop() error {
-	c.id = c.eng.NextRequestId()
+	c.id = c.eng.NextRequestID()
 	req := &RequestContractData{Contract: c.c}
 	req.Contract.SecurityType = "OPT"
 	req.Contract.LocalSymbol = ""
-	req.SetId(c.id)
+	req.SetID(c.id)
 	c.eng.Subscribe(c.rc, c.id)
 	return c.eng.Send(req)
 }
@@ -70,6 +72,7 @@ func (c *ChainManager) receive(r Reply) (UpdateStatus, error) {
 	return UpdateFalse, fmt.Errorf("Unexpected type %v", r)
 }
 
+// Chains .
 func (c *ChainManager) Chains() map[time.Time]*OptionChain {
 	c.rwm.RLock()
 	defer c.rwm.RUnlock()

@@ -1,7 +1,8 @@
 package ib
 
+// ScannerDetail .
 type ScannerDetail struct {
-	ContractId int64
+	ContractID int64
 	Rank       int64
 	Contract   ContractDetails
 	Distance   string

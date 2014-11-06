@@ -24,7 +24,7 @@ func getGatewayURL() string {
 	return "localhost:4002"
 }
 
-func (e *Engine) expect(t *testing.T, seconds int, ch chan Reply, expected []IncomingMessageId) (Reply, error) {
+func (e *Engine) expect(t *testing.T, seconds int, ch chan Reply, expected []IncomingMessageID) (Reply, error) {
 	for {
 		select {
 		case <-time.After(time.Duration(seconds) * time.Second):
