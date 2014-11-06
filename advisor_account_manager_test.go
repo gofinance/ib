@@ -17,17 +17,16 @@ func TestAdvisorAccountManager(t *testing.T) {
 
 	defer aam.Close()
 
-	var m Manager = aam
-	SinkManagerTest(t, &m, 15*time.Second, 1)
+	SinkManagerTest(t, aam, 15*time.Second, 1)
 
 	if len(aam.Values()) < 3 {
-		t.Fatal("Insufficient account values %v", aam.Values())
+		t.Fatalf("Insufficient account values %v", aam.Values())
 	}
 
 	// demo accounts have no portfolio, so this just tests the accessor
 	aam.Portfolio()
 
 	if b, ok := <-aam.Refresh(); ok {
-		t.Fatal("Expected the refresh channel to be closed, but got %v", b)
+		t.Fatalf("Expected the refresh channel to be closed, but got %t", b)
 	}
 }

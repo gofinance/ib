@@ -49,7 +49,6 @@ func (e *ExecutionManager) receive(r Reply) (UpdateStatus, error) {
 		return UpdateFalse, nil
 	case *ExecutionDataEnd:
 		return UpdateFinish, nil
-		return UpdateFalse, nil
 	}
 	return UpdateFalse, fmt.Errorf("Unexpected type %v", r)
 }

@@ -9,11 +9,14 @@ import (
 	"time"
 )
 
-var GwURL = flag.String("gw", "", "Gateway URL")
+var (
+	gwURL         = flag.String("gw", "", "Gateway URL")
+	noEngineReuse = flag.Bool("no-engine-reuse", false, "Don't keep reusing the engine; each test case gets its own engine.")
+)
 
 func getGatewayURL() string {
-	if *GwURL != "" {
-		return *GwURL
+	if *gwURL != "" {
+		return *gwURL
 	}
 	if url := os.Getenv("GATEWAY_URL"); url != "" {
 		return url
@@ -21,7 +24,7 @@ func getGatewayURL() string {
 	return "localhost:4002"
 }
 
-func (engine *Engine) expect(t *testing.T, seconds int, ch chan Reply, expected []IncomingMessageId) (Reply, error) {
+func (e *Engine) expect(t *testing.T, seconds int, ch chan Reply, expected []IncomingMessageId) (Reply, error) {
 	for {
 		select {
 		case <-time.After(time.Duration(seconds) * time.Second):
@@ -40,21 +43,17 @@ func (engine *Engine) expect(t *testing.T, seconds int, ch chan Reply, expected 
 				v, reflect.ValueOf(v).Type())
 		}
 	}
-	return nil, nil
 }
 
 // private variable for mantaining engine reuse in test
 // use TestEngine instead of this
 var testEngine *Engine
-var noEngineReuse = flag.Bool("no-engine-reuse", false,
-	"Don't keep reusing the engine; each test case gets its own engine.")
 
 // Engine for test reuse.
 //
 // Unless the test runner is passed the -no-engine-reuse flag, this will keep
 // reusing the same engine.
 func NewTestEngine(t *testing.T) *Engine {
-
 	if testEngine == nil {
 		opts := NewEngineOptions{Gateway: getGatewayURL()}
 		if os.Getenv("CI") != "" || os.Getenv("IB_ENGINE_DUMP") != "" {
@@ -69,11 +68,10 @@ func NewTestEngine(t *testing.T) *Engine {
 		if *noEngineReuse {
 			t.Log("created new engine, no reuse")
 			return engine
-		} else {
-			t.Log("created engine for reuse")
-			testEngine = engine
-			return engine
 		}
+		t.Log("created engine for reuse")
+		testEngine = engine
+		return engine
 	}
 
 	if testEngine.State() != EngineReady {
@@ -84,12 +82,12 @@ func NewTestEngine(t *testing.T) *Engine {
 	return testEngine
 }
 
-// Will actually do a stop only if the flag -no-engine-reuse is active
+// ConditionalStop will actually do a stop only if the flag -no-engine-reuse is active
 func (e *Engine) ConditionalStop(t *testing.T) {
 	if *noEngineReuse {
 		t.Log("no engine reuse, stopping engine")
 		e.Stop()
-		t.Log("engine state: %v", e.State())
+		t.Logf("engine state: %d", e.State())
 	}
 }
 
@@ -114,7 +112,7 @@ func TestConnect(t *testing.T) {
 		t.Fatalf("server time not provided")
 	}
 
-	var states chan EngineState = make(chan EngineState)
+	var states = make(chan EngineState)
 	engine.SubscribeState(states)
 
 	// stop the engine in 100 ms

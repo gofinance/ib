@@ -31,8 +31,7 @@ func TestHistoricalDataManager(t *testing.T) {
 
 	defer hdm.Close()
 
-	var m Manager = hdm
-	SinkManagerTest(t, &m, 15*time.Second, 1)
+	SinkManagerTest(t, hdm, 15*time.Second, 1)
 
 	items := hdm.Items()
 
@@ -45,6 +44,6 @@ func TestHistoricalDataManager(t *testing.T) {
 	}
 
 	if b, ok := <-hdm.Refresh(); ok {
-		t.Fatal("Expected the refresh channel to be closed, but got %v", b)
+		t.Fatalf("Expected the refresh channel to be closed, but got %t", b)
 	}
 }

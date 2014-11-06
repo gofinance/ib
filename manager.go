@@ -188,23 +188,22 @@ func (a *AbstractManager) Close() {
 // a target update count or timeout. This function is useful for clients who only
 // require the final result of a Manager (and have no interest in each update).
 // The Manager is guaranteed to be closed before it returns.
-func SinkManager(m *Manager, timeout time.Duration, updateStop int) (updates int, err error) {
+func SinkManager(m Manager, timeout time.Duration, updateStop int) (updates int, err error) {
 	for {
 		sentClose := false
 		select {
 		case <-time.After(timeout):
-			(*m).Close()
+			m.Close()
 			return updates, fmt.Errorf("SinkManager: no new update in %v", timeout)
-		case _, ok := <-(*m).Refresh():
+		case _, ok := <-m.Refresh():
 			if !ok {
-				return updates, (*m).FatalError()
+				return updates, m.FatalError()
 			}
 			updates++
 			if updates >= updateStop && !sentClose {
 				sentClose = true
-				go (*m).Close()
+				go m.Close()
 			}
 		}
 	}
-	panic("unreachable")
 }

@@ -24,8 +24,7 @@ func TestChainManager(t *testing.T) {
 
 	defer m.Close()
 
-	var mgr Manager = m
-	SinkManagerTest(t, &mgr, 15*time.Second, 1)
+	SinkManagerTest(t, m, 15*time.Second, 1)
 
 	if len(m.Chains()) < 2 {
 		t.Fatalf("expected a chain to be returned (length was %d)", len(m.Chains()))

@@ -24,8 +24,7 @@ func TestInstrumentManager(t *testing.T) {
 
 	defer i.Close()
 
-	var mgr Manager = i
-	SinkManagerTest(t, &mgr, 15*time.Second, 2)
+	SinkManagerTest(t, i, 15*time.Second, 2)
 
 	if i.Bid() == 0 {
 		t.Fatal("No bid received")

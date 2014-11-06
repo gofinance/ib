@@ -20,13 +20,12 @@ func TestExecutionManager(t *testing.T) {
 
 	defer em.Close()
 
-	var m Manager = em
-	SinkManagerTest(t, &m, 15*time.Second, 1)
+	SinkManagerTest(t, em, 15*time.Second, 1)
 
 	// demo accounts have no executions, so this just tests the accessor
 	fmt.Printf("%v\n", em.Values())
 
 	if b, ok := <-em.Refresh(); ok {
-		t.Fatal("Expected the refresh channel to be closed, but got %v", b)
+		t.Fatalf("Expected the refresh channel to be closed, but got %t", b)
 	}
 }

@@ -17,8 +17,7 @@ func TestCurrentTimeManager(t *testing.T) {
 
 	defer ctm.Close()
 
-	var m Manager = ctm
-	SinkManagerTest(t, &m, 15*time.Second, 1)
+	SinkManagerTest(t, ctm, 15*time.Second, 1)
 
 	ctmTime := ctm.Time()
 	t.Logf("got time: %s\n", ctmTime.String())
@@ -28,11 +27,11 @@ func TestCurrentTimeManager(t *testing.T) {
 	}
 
 	if ctmTime.Before(engine.serverTime) {
-		t.Fatal("Expected time to be later than serverTime of %s, got: %s", engine.serverTime.String(), ctmTime.String())
+		t.Fatalf("Expected time to be later than serverTime of %s, got: %s", engine.serverTime, ctmTime)
 	}
 
 	if b, ok := <-ctm.Refresh(); ok {
-		t.Fatal("Expected the refresh channel to be closed, but got %v", b)
+		t.Fatalf("Expected the refresh channel to be closed, but got %t", b)
 	}
 
 }
