@@ -111,41 +111,20 @@ type CancelScannerSubscription struct {
 }
 
 // SetID assigns the TWS "tickerId", which was nominated at market data request time.
-func (c *CancelScannerSubscription) SetID(id int64) {
-	c.id = id
-}
+func (c *CancelScannerSubscription) SetID(id int64) { c.id = id }
 
 // ID .
-func (c *CancelScannerSubscription) ID() int64 {
-	return c.id
-}
-
-func (c *CancelScannerSubscription) code() OutgoingMessageID {
-	return mCancelScannerSubscription
-}
-
-func (c *CancelScannerSubscription) version() int64 {
-	return 1
-}
-
-func (c *CancelScannerSubscription) write(b *bytes.Buffer) error {
-	return writeInt(b, c.id)
-}
+func (c *CancelScannerSubscription) ID() int64                   { return c.id }
+func (c *CancelScannerSubscription) code() OutgoingMessageID     { return mCancelScannerSubscription }
+func (c *CancelScannerSubscription) version() int64              { return 1 }
+func (c *CancelScannerSubscription) write(b *bytes.Buffer) error { return writeInt(b, c.id) }
 
 // RequestScannerParameters is equivalent of IB API EClientSocket.reqScannerParameters().
 type RequestScannerParameters struct{}
 
-func (r *RequestScannerParameters) code() OutgoingMessageID {
-	return mRequestScannerParameters
-}
-
-func (r *RequestScannerParameters) version() int64 {
-	return 1
-}
-
-func (r *RequestScannerParameters) write(b *bytes.Buffer) error {
-	return nil
-}
+func (r *RequestScannerParameters) code() OutgoingMessageID     { return mRequestScannerParameters }
+func (r *RequestScannerParameters) version() int64              { return 1 }
+func (r *RequestScannerParameters) write(b *bytes.Buffer) error { return nil }
 
 // RequestScannerSubscription is equivalent of IB API EClientSocket.reqScannerSubscription().
 type RequestScannerSubscription struct {
@@ -155,23 +134,12 @@ type RequestScannerSubscription struct {
 }
 
 // SetID assigns the TWS "tickerId", used for reply correlation and request cancellation.
-func (r *RequestScannerSubscription) SetID(id int64) {
-	r.id = id
-}
+func (r *RequestScannerSubscription) SetID(id int64) { r.id = id }
 
 // ID .
-func (r *RequestScannerSubscription) ID() int64 {
-	return r.id
-}
-
-func (r *RequestScannerSubscription) code() OutgoingMessageID {
-	return mRequestScannerSubscription
-}
-
-func (r *RequestScannerSubscription) version() int64 {
-	return 4
-}
-
+func (r *RequestScannerSubscription) ID() int64               { return r.id }
+func (r *RequestScannerSubscription) code() OutgoingMessageID { return mRequestScannerSubscription }
+func (r *RequestScannerSubscription) version() int64          { return 4 }
 func (r *RequestScannerSubscription) write(b *bytes.Buffer) error {
 	if err := writeInt(b, r.id); err != nil {
 		return err
@@ -263,23 +231,12 @@ type RequestMarketData struct {
 }
 
 // SetID assigns the TWS "tickerId", used for reply correlation and request cancellation.
-func (r *RequestMarketData) SetID(id int64) {
-	r.id = id
-}
+func (r *RequestMarketData) SetID(id int64) { r.id = id }
 
 // ID .
-func (r *RequestMarketData) ID() int64 {
-	return r.id
-}
-
-func (r *RequestMarketData) code() OutgoingMessageID {
-	return mRequestMarketData
-}
-
-func (r *RequestMarketData) version() int64 {
-	return 11
-}
-
+func (r *RequestMarketData) ID() int64               { return r.id }
+func (r *RequestMarketData) code() OutgoingMessageID { return mRequestMarketData }
+func (r *RequestMarketData) version() int64          { return 11 }
 func (r *RequestMarketData) write(b *bytes.Buffer) error {
 	if err := writeInt(b, r.id); err != nil {
 		return err
@@ -374,26 +331,13 @@ type CancelHistoricalData struct {
 }
 
 // SetID assigns the TWS "tickerId", which was nominated at market data request time.
-func (c *CancelHistoricalData) SetID(id int64) {
-	c.id = id
-}
+func (c *CancelHistoricalData) SetID(id int64) { c.id = id }
 
 // ID .
-func (c *CancelHistoricalData) ID() int64 {
-	return c.id
-}
-
-func (c *CancelHistoricalData) code() OutgoingMessageID {
-	return mCancelHistoricalData
-}
-
-func (c *CancelHistoricalData) version() int64 {
-	return 1
-}
-
-func (c *CancelHistoricalData) write(b *bytes.Buffer) error {
-	return writeInt(b, c.id)
-}
+func (c *CancelHistoricalData) ID() int64                   { return c.id }
+func (c *CancelHistoricalData) code() OutgoingMessageID     { return mCancelHistoricalData }
+func (c *CancelHistoricalData) version() int64              { return 1 }
+func (c *CancelHistoricalData) write(b *bytes.Buffer) error { return writeInt(b, c.id) }
 
 // CancelRealTimeBars is equivalent of IB API EClientSocket.cancelRealTimeBars().
 type CancelRealTimeBars struct {
@@ -401,26 +345,13 @@ type CancelRealTimeBars struct {
 }
 
 // SetID assigns the TWS "tickerId", which was nominated at market data request time.
-func (c *CancelRealTimeBars) SetID(id int64) {
-	c.id = id
-}
+func (c *CancelRealTimeBars) SetID(id int64) { c.id = id }
 
 // ID .
-func (c *CancelRealTimeBars) ID() int64 {
-	return c.id
-}
-
-func (c *CancelRealTimeBars) code() OutgoingMessageID {
-	return mCancelRealTimeBars
-}
-
-func (c *CancelRealTimeBars) version() int64 {
-	return 1
-}
-
-func (c *CancelRealTimeBars) write(b *bytes.Buffer) error {
-	return writeInt(b, c.id)
-}
+func (c *CancelRealTimeBars) ID() int64                   { return c.id }
+func (c *CancelRealTimeBars) code() OutgoingMessageID     { return mCancelRealTimeBars }
+func (c *CancelRealTimeBars) version() int64              { return 1 }
+func (c *CancelRealTimeBars) write(b *bytes.Buffer) error { return writeInt(b, c.id) }
 
 // RequestHistoricalData is equivalent of IB API EClientSocket.requestHistoricalData().
 type RequestHistoricalData struct {
@@ -436,23 +367,12 @@ type RequestHistoricalData struct {
 }
 
 // SetID assigns the TWS "reqId", which is used for reply correlation.
-func (r *RequestHistoricalData) SetID(id int64) {
-	r.id = id
-}
+func (r *RequestHistoricalData) SetID(id int64) { r.id = id }
 
 // ID .
-func (r *RequestHistoricalData) ID() int64 {
-	return r.id
-}
-
-func (r *RequestHistoricalData) code() OutgoingMessageID {
-	return mRequestHistoricalData
-}
-
-func (r *RequestHistoricalData) version() int64 {
-	return 6
-}
-
+func (r *RequestHistoricalData) ID() int64               { return r.id }
+func (r *RequestHistoricalData) code() OutgoingMessageID { return mRequestHistoricalData }
+func (r *RequestHistoricalData) version() int64          { return 6 }
 func (r *RequestHistoricalData) write(b *bytes.Buffer) error {
 	if err := writeInt(b, r.id); err != nil {
 		return err
@@ -538,23 +458,12 @@ type RequestRealTimeBars struct {
 }
 
 // SetID assigns the TWS "reqId", which is used for reply correlation.
-func (r *RequestRealTimeBars) SetID(id int64) {
-	r.id = id
-}
+func (r *RequestRealTimeBars) SetID(id int64) { r.id = id }
 
 // ID .
-func (r *RequestRealTimeBars) ID() int64 {
-	return r.id
-}
-
-func (r *RequestRealTimeBars) code() OutgoingMessageID {
-	return mRequestRealTimeBars
-}
-
-func (r *RequestRealTimeBars) version() int64 {
-	return 3
-}
-
+func (r *RequestRealTimeBars) ID() int64               { return r.id }
+func (r *RequestRealTimeBars) code() OutgoingMessageID { return mRequestRealTimeBars }
+func (r *RequestRealTimeBars) version() int64          { return 3 }
 func (r *RequestRealTimeBars) write(b *bytes.Buffer) error {
 	if err := writeInt(b, r.id); err != nil {
 		return err
@@ -622,23 +531,12 @@ type RequestContractData struct {
 }
 
 // SetID assigns the TWS "reqId", which is used for reply correlation.
-func (r *RequestContractData) SetID(id int64) {
-	r.id = id
-}
+func (r *RequestContractData) SetID(id int64) { r.id = id }
 
 // ID .
-func (r *RequestContractData) ID() int64 {
-	return r.id
-}
-
-func (r *RequestContractData) code() OutgoingMessageID {
-	return mRequestContractData
-}
-
-func (r *RequestContractData) version() int64 {
-	return 7
-}
-
+func (r *RequestContractData) ID() int64               { return r.id }
+func (r *RequestContractData) code() OutgoingMessageID { return mRequestContractData }
+func (r *RequestContractData) version() int64          { return 7 }
 func (r *RequestContractData) write(b *bytes.Buffer) error {
 	if err := writeInt(b, r.id); err != nil {
 		return err
@@ -694,23 +592,12 @@ type RequestMarketDepth struct {
 }
 
 // SetID assigns the TWS "tickerId", used for reply correlation and request cancellation.
-func (r *RequestMarketDepth) SetID(id int64) {
-	r.id = id
-}
+func (r *RequestMarketDepth) SetID(id int64) { r.id = id }
 
 // ID .
-func (r *RequestMarketDepth) ID() int64 {
-	return r.id
-}
-
-func (r *RequestMarketDepth) code() OutgoingMessageID {
-	return mRequestMarketDepth
-}
-
-func (r *RequestMarketDepth) version() int64 {
-	return 5
-}
-
+func (r *RequestMarketDepth) ID() int64               { return r.id }
+func (r *RequestMarketDepth) code() OutgoingMessageID { return mRequestMarketDepth }
+func (r *RequestMarketDepth) version() int64          { return 5 }
 func (r *RequestMarketDepth) write(b *bytes.Buffer) error {
 	if err := writeInt(b, r.id); err != nil {
 		return err
@@ -768,26 +655,13 @@ type CancelMarketData struct {
 }
 
 // SetID assigns the TWS "tickerId", which was nominated at market data request time.
-func (c *CancelMarketData) SetID(id int64) {
-	c.id = id
-}
+func (c *CancelMarketData) SetID(id int64) { c.id = id }
 
 // ID .
-func (c *CancelMarketData) ID() int64 {
-	return c.id
-}
-
-func (c *CancelMarketData) code() OutgoingMessageID {
-	return mCancelMarketData
-}
-
-func (c *CancelMarketData) version() int64 {
-	return 1
-}
-
-func (c *CancelMarketData) write(b *bytes.Buffer) error {
-	return writeInt(b, c.id)
-}
+func (c *CancelMarketData) ID() int64                   { return c.id }
+func (c *CancelMarketData) code() OutgoingMessageID     { return mCancelMarketData }
+func (c *CancelMarketData) version() int64              { return 1 }
+func (c *CancelMarketData) write(b *bytes.Buffer) error { return writeInt(b, c.id) }
 
 // CancelMarketDepth is equivalent of IB API EClientSocket.cancelMktDepth().
 type CancelMarketDepth struct {
@@ -795,26 +669,13 @@ type CancelMarketDepth struct {
 }
 
 // SetID assigns the TWS "tickerId", which was nominated at market depth request time.
-func (c *CancelMarketDepth) SetID(id int64) {
-	c.id = id
-}
+func (c *CancelMarketDepth) SetID(id int64) { c.id = id }
 
 // ID .
-func (c *CancelMarketDepth) ID() int64 {
-	return c.id
-}
-
-func (c *CancelMarketDepth) code() OutgoingMessageID {
-	return mCancelMarketDepth
-}
-
-func (c *CancelMarketDepth) version() int64 {
-	return 1
-}
-
-func (c *CancelMarketDepth) write(b *bytes.Buffer) error {
-	return writeInt(b, c.id)
-}
+func (c *CancelMarketDepth) ID() int64                   { return c.id }
+func (c *CancelMarketDepth) code() OutgoingMessageID     { return mCancelMarketDepth }
+func (c *CancelMarketDepth) version() int64              { return 1 }
+func (c *CancelMarketDepth) write(b *bytes.Buffer) error { return writeInt(b, c.id) }
 
 // ExerciseOptions is equivalent of IB API EClientSocket.exerciseOptions().
 type ExerciseOptions struct {
@@ -827,23 +688,12 @@ type ExerciseOptions struct {
 }
 
 // SetID assigns the TWS "tickerId", used for reply correlation and request cancellation.
-func (r *ExerciseOptions) SetID(id int64) {
-	r.id = id
-}
+func (r *ExerciseOptions) SetID(id int64) { r.id = id }
 
 // ID .
-func (r *ExerciseOptions) ID() int64 {
-	return r.id
-}
-
-func (r *ExerciseOptions) code() OutgoingMessageID {
-	return mExerciseOptions
-}
-
-func (r *ExerciseOptions) version() int64 {
-	return 2
-}
-
+func (r *ExerciseOptions) ID() int64               { return r.id }
+func (r *ExerciseOptions) code() OutgoingMessageID { return mExerciseOptions }
+func (r *ExerciseOptions) version() int64          { return 2 }
 func (r *ExerciseOptions) write(b *bytes.Buffer) error {
 	if err := writeInt(b, r.id); err != nil {
 		return err
@@ -901,23 +751,12 @@ type PlaceOrder struct {
 }
 
 // SetID assigns the TWS "reqId", which is used for reply correlation and request cancellation.
-func (r *PlaceOrder) SetID(id int64) {
-	r.id = id
-}
+func (r *PlaceOrder) SetID(id int64) { r.id = id }
 
 // ID .
-func (r *PlaceOrder) ID() int64 {
-	return r.id
-}
-
-func (r *PlaceOrder) code() OutgoingMessageID {
-	return mPlaceOrder
-}
-
-func (r *PlaceOrder) version() int64 {
-	return 42
-}
-
+func (r *PlaceOrder) ID() int64               { return r.id }
+func (r *PlaceOrder) code() OutgoingMessageID { return mPlaceOrder }
+func (r *PlaceOrder) version() int64          { return 42 }
 func (r *PlaceOrder) write(b *bytes.Buffer) error {
 	if err := writeInt(b, r.id); err != nil {
 		return err
@@ -1357,14 +1196,8 @@ type RequestAccountUpdates struct {
 	AccountCode string
 }
 
-func (r *RequestAccountUpdates) code() OutgoingMessageID {
-	return mRequestAccountData
-}
-
-func (r *RequestAccountUpdates) version() int64 {
-	return 2
-}
-
+func (r *RequestAccountUpdates) code() OutgoingMessageID { return mRequestAccountData }
+func (r *RequestAccountUpdates) version() int64          { return 2 }
 func (r *RequestAccountUpdates) write(b *bytes.Buffer) error {
 	if err := writeBool(b, r.Subscribe); err != nil {
 		return err
@@ -1379,23 +1212,12 @@ type RequestExecutions struct {
 }
 
 // SetID assigns the TWS "reqId", which is used for reply correlation.
-func (r *RequestExecutions) SetID(id int64) {
-	r.id = id
-}
+func (r *RequestExecutions) SetID(id int64) { r.id = id }
 
 // ID .
-func (r *RequestExecutions) ID() int64 {
-	return r.id
-}
-
-func (r *RequestExecutions) code() OutgoingMessageID {
-	return mRequestExecutions
-}
-
-func (r *RequestExecutions) version() int64 {
-	return 3
-}
-
+func (r *RequestExecutions) ID() int64               { return r.id }
+func (r *RequestExecutions) code() OutgoingMessageID { return mRequestExecutions }
+func (r *RequestExecutions) version() int64          { return 3 }
 func (r *RequestExecutions) write(b *bytes.Buffer) error {
 	if err := writeInt(b, r.id); err != nil {
 		return err
@@ -1427,73 +1249,36 @@ type CancelOrder struct {
 }
 
 // SetID assigns the TWS "orderId"
-func (c *CancelOrder) SetID(id int64) {
-	c.id = id
-}
+func (c *CancelOrder) SetID(id int64) { c.id = id }
 
 // ID .
-func (c *CancelOrder) ID() int64 {
-	return c.id
-}
-
-func (c *CancelOrder) code() OutgoingMessageID {
-	return mCancelOrder
-}
-
-func (c *CancelOrder) version() int64 {
-	return 1
-}
-
-func (c *CancelOrder) write(b *bytes.Buffer) error {
-	return writeInt(b, c.id)
-}
+func (c *CancelOrder) ID() int64                   { return c.id }
+func (c *CancelOrder) code() OutgoingMessageID     { return mCancelOrder }
+func (c *CancelOrder) version() int64              { return 1 }
+func (c *CancelOrder) write(b *bytes.Buffer) error { return writeInt(b, c.id) }
 
 // RequestOpenOrders is equivalent of IB API EClientSocket.reqOpenOrders().
 type RequestOpenOrders struct{}
 
-func (r *RequestOpenOrders) code() OutgoingMessageID {
-	return mRequestOpenOrders
-}
-
-func (r *RequestOpenOrders) version() int64 {
-	return 1
-}
-
-func (r *RequestOpenOrders) write(b *bytes.Buffer) error {
-	return nil
-}
+func (r *RequestOpenOrders) code() OutgoingMessageID     { return mRequestOpenOrders }
+func (r *RequestOpenOrders) version() int64              { return 1 }
+func (r *RequestOpenOrders) write(b *bytes.Buffer) error { return nil }
 
 // RequestIDs is equivalent of IB API EClientSocket.reqIds().
 type RequestIDs struct{}
 
-func (r *RequestIDs) code() OutgoingMessageID {
-	return mRequestIDs
-}
-
-func (r *RequestIDs) version() int64 {
-	return 1
-}
-
-func (r *RequestIDs) write(b *bytes.Buffer) error {
-	return writeInt(b, 1)
-}
+func (r *RequestIDs) code() OutgoingMessageID     { return mRequestIDs }
+func (r *RequestIDs) version() int64              { return 1 }
+func (r *RequestIDs) write(b *bytes.Buffer) error { return writeInt(b, 1) }
 
 // RequestNewsBulletins is equivalent of IB API EClientSocket.reqNewsBulletins().
 type RequestNewsBulletins struct {
 	AllMsgs bool
 }
 
-func (r *RequestNewsBulletins) code() OutgoingMessageID {
-	return mRequestNewsBulletins
-}
-
-func (r *RequestNewsBulletins) version() int64 {
-	return 1
-}
-
-func (r *RequestNewsBulletins) write(b *bytes.Buffer) error {
-	return writeBool(b, r.AllMsgs)
-}
+func (r *RequestNewsBulletins) code() OutgoingMessageID     { return mRequestNewsBulletins }
+func (r *RequestNewsBulletins) version() int64              { return 1 }
+func (r *RequestNewsBulletins) write(b *bytes.Buffer) error { return writeBool(b, r.AllMsgs) }
 
 // CancelNewsBulletins is equivalent of IB API EClientSocket.cancelNewsBulletins().
 type CancelNewsBulletins struct{}
@@ -1615,26 +1400,13 @@ type CancelFundamentalData struct {
 }
 
 // SetID assigns the TWS "orderId"
-func (c *CancelFundamentalData) SetID(id int64) {
-	c.id = id
-}
+func (c *CancelFundamentalData) SetID(id int64) { c.id = id }
 
 // ID .
-func (c *CancelFundamentalData) ID() int64 {
-	return c.id
-}
-
-func (c *CancelFundamentalData) code() OutgoingMessageID {
-	return mCancelFundamentalData
-}
-
-func (c *CancelFundamentalData) version() int64 {
-	return 1
-}
-
-func (c *CancelFundamentalData) write(b *bytes.Buffer) error {
-	return writeInt(b, c.id)
-}
+func (c *CancelFundamentalData) ID() int64                   { return c.id }
+func (c *CancelFundamentalData) code() OutgoingMessageID     { return mCancelFundamentalData }
+func (c *CancelFundamentalData) version() int64              { return 1 }
+func (c *CancelFundamentalData) write(b *bytes.Buffer) error { return writeInt(b, c.id) }
 
 // RequestCalcImpliedVol is equivalent of IB API EClientSocket.calculateImpliedVolatility().
 type RequestCalcImpliedVol struct {
@@ -1645,23 +1417,12 @@ type RequestCalcImpliedVol struct {
 }
 
 // SetID assigns the TWS "reqId", which is used for reply correlation and request cancellation.
-func (r *RequestCalcImpliedVol) SetID(id int64) {
-	r.id = id
-}
+func (r *RequestCalcImpliedVol) SetID(id int64) { r.id = id }
 
 // ID .
-func (r *RequestCalcImpliedVol) ID() int64 {
-	return r.id
-}
-
-func (r *RequestCalcImpliedVol) code() OutgoingMessageID {
-	return mRequestCalcImpliedVol
-}
-
-func (r *RequestCalcImpliedVol) version() int64 {
-	return 2
-}
-
+func (r *RequestCalcImpliedVol) ID() int64               { return r.id }
+func (r *RequestCalcImpliedVol) code() OutgoingMessageID { return mRequestCalcImpliedVol }
+func (r *RequestCalcImpliedVol) version() int64          { return 2 }
 func (r *RequestCalcImpliedVol) write(b *bytes.Buffer) error {
 	if err := writeInt(b, r.id); err != nil {
 		return err
@@ -1714,26 +1475,13 @@ type CancelCalcImpliedVol struct {
 }
 
 // SetID assigns the TWS "reqId", which was nominated at request time.
-func (c *CancelCalcImpliedVol) SetID(id int64) {
-	c.id = id
-}
+func (c *CancelCalcImpliedVol) SetID(id int64) { c.id = id }
 
 // ID .
-func (c *CancelCalcImpliedVol) ID() int64 {
-	return c.id
-}
-
-func (c *CancelCalcImpliedVol) code() OutgoingMessageID {
-	return mCancelCalcImpliedVol
-}
-
-func (c *CancelCalcImpliedVol) version() int64 {
-	return 1
-}
-
-func (c *CancelCalcImpliedVol) write(b *bytes.Buffer) error {
-	return writeInt(b, c.id)
-}
+func (c *CancelCalcImpliedVol) ID() int64                   { return c.id }
+func (c *CancelCalcImpliedVol) code() OutgoingMessageID     { return mCancelCalcImpliedVol }
+func (c *CancelCalcImpliedVol) version() int64              { return 1 }
+func (c *CancelCalcImpliedVol) write(b *bytes.Buffer) error { return writeInt(b, c.id) }
 
 // RequestCalcOptionPrice is equivalent of IB API EClientSocket.calculateOptionPrice().
 type RequestCalcOptionPrice struct {
@@ -1744,23 +1492,12 @@ type RequestCalcOptionPrice struct {
 }
 
 // SetID assigns the TWS "reqId", which is used for reply correlation and request cancellation.
-func (r *RequestCalcOptionPrice) SetID(id int64) {
-	r.id = id
-}
+func (r *RequestCalcOptionPrice) SetID(id int64) { r.id = id }
 
 // ID .
-func (r *RequestCalcOptionPrice) ID() int64 {
-	return r.id
-}
-
-func (r *RequestCalcOptionPrice) code() OutgoingMessageID {
-	return mRequestCalcOptionPrice
-}
-
-func (r *RequestCalcOptionPrice) version() int64 {
-	return 2
-}
-
+func (r *RequestCalcOptionPrice) ID() int64               { return r.id }
+func (r *RequestCalcOptionPrice) code() OutgoingMessageID { return mRequestCalcOptionPrice }
+func (r *RequestCalcOptionPrice) version() int64          { return 2 }
 func (r *RequestCalcOptionPrice) write(b *bytes.Buffer) error {
 	if err := writeInt(b, r.id); err != nil {
 		return err

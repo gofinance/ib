@@ -151,7 +151,7 @@ func code2Msg(code int64) (r Reply, err error) {
 	default:
 		err = fmt.Errorf("Unsupported incoming message type %d", code)
 	}
-	return
+	return r, err
 }
 
 // TickPrice holds bid, ask, last, etc. price information
@@ -164,29 +164,23 @@ type TickPrice struct {
 }
 
 // ID contains the TWS "tickerId", which was nominated at market data request time.
-func (t *TickPrice) ID() int64 {
-	return t.id
-}
-
-func (t *TickPrice) code() IncomingMessageID {
-	return mTickPrice
-}
-
+func (t *TickPrice) ID() int64               { return t.id }
+func (t *TickPrice) code() IncomingMessageID { return mTickPrice }
 func (t *TickPrice) read(b *bufio.Reader) (err error) {
 	if t.id, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	if t.Type, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	if t.Price, err = readFloat(b); err != nil {
-		return
+		return err
 	}
 	if t.Size, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	t.CanAutoExecute, err = readBool(b)
-	return
+	return err
 }
 
 // TickSize .
@@ -197,23 +191,17 @@ type TickSize struct {
 }
 
 // ID contains the TWS "tickerId", which was nominated at market data request time.
-func (t *TickSize) ID() int64 {
-	return t.id
-}
-
-func (t *TickSize) code() IncomingMessageID {
-	return mTickSize
-}
-
+func (t *TickSize) ID() int64               { return t.id }
+func (t *TickSize) code() IncomingMessageID { return mTickSize }
 func (t *TickSize) read(b *bufio.Reader) (err error) {
 	if t.id, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	if t.Type, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	t.Size, err = readInt(b)
-	return
+	return err
 }
 
 // TickOptionComputation .
@@ -231,14 +219,8 @@ type TickOptionComputation struct {
 }
 
 // ID contains the TWS "tickerId", which was nominated at market data request time.
-func (t *TickOptionComputation) ID() int64 {
-	return t.id
-}
-
-func (t *TickOptionComputation) code() IncomingMessageID {
-	return mTickOptionComputation
-}
-
+func (t *TickOptionComputation) ID() int64               { return t.id }
+func (t *TickOptionComputation) code() IncomingMessageID { return mTickOptionComputation }
 func (t *TickOptionComputation) read(b *bufio.Reader) error {
 	var err error
 
@@ -283,23 +265,17 @@ type TickGeneric struct {
 }
 
 // ID contains the TWS "tickerId", which was nominated at market data request time.
-func (t *TickGeneric) ID() int64 {
-	return t.id
-}
-
-func (t *TickGeneric) code() IncomingMessageID {
-	return mTickGeneric
-}
-
+func (t *TickGeneric) ID() int64               { return t.id }
+func (t *TickGeneric) code() IncomingMessageID { return mTickGeneric }
 func (t *TickGeneric) read(b *bufio.Reader) (err error) {
 	if t.id, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	if t.Type, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	t.Value, err = readFloat(b)
-	return
+	return err
 }
 
 // TickString .
@@ -310,23 +286,17 @@ type TickString struct {
 }
 
 // ID contains the TWS "tickerId", which was nominated at market data request time.
-func (t *TickString) ID() int64 {
-	return t.id
-}
-
-func (t *TickString) code() IncomingMessageID {
-	return mTickString
-}
-
+func (t *TickString) ID() int64               { return t.id }
+func (t *TickString) code() IncomingMessageID { return mTickString }
 func (t *TickString) read(b *bufio.Reader) (err error) {
 	if t.id, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	if t.Type, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	t.Value, err = readString(b)
-	return
+	return err
 }
 
 // TickEFP .
@@ -343,14 +313,8 @@ type TickEFP struct {
 }
 
 // ID contains the TWS "tickerId", which was nominated at market data request time.
-func (t *TickEFP) ID() int64 {
-	return t.id
-}
-
-func (t *TickEFP) code() IncomingMessageID {
-	return mTickEFP
-}
-
+func (t *TickEFP) ID() int64               { return t.id }
+func (t *TickEFP) code() IncomingMessageID { return mTickEFP }
 func (t *TickEFP) read(b *bufio.Reader) error {
 	var err error
 
@@ -399,44 +363,38 @@ type OrderStatus struct {
 }
 
 // ID contains the TWS order "id", which was nominated when the order was placed.
-func (o *OrderStatus) ID() int64 {
-	return o.id
-}
-
-func (o *OrderStatus) code() IncomingMessageID {
-	return mOrderStatus
-}
-
+func (o *OrderStatus) ID() int64               { return o.id }
+func (o *OrderStatus) code() IncomingMessageID { return mOrderStatus }
 func (o *OrderStatus) read(b *bufio.Reader) (err error) {
 	if o.id, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	if o.Status, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if o.Filled, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	if o.Remaining, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	if o.AverageFillPrice, err = readFloat(b); err != nil {
-		return
+		return err
 	}
 	if o.PermID, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	if o.ParentID, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	if o.LastFillPrice, err = readFloat(b); err != nil {
-		return
+		return err
 	}
 	if o.ClientID, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	o.WhyHeld, err = readString(b)
-	return
+	return err
 }
 
 // AccountValue .
@@ -452,10 +410,7 @@ type AccountValueKey struct {
 	Key         string
 }
 
-func (a *AccountValue) code() IncomingMessageID {
-	return mAccountValue
-}
-
+func (a *AccountValue) code() IncomingMessageID { return mAccountValue }
 func (a *AccountValue) read(b *bufio.Reader) error {
 	var err error
 
@@ -492,67 +447,64 @@ type PortfolioValueKey struct {
 	ContractID  int64
 }
 
-func (p *PortfolioValue) code() IncomingMessageID {
-	return mPortfolioValue
-}
-
+func (p *PortfolioValue) code() IncomingMessageID { return mPortfolioValue }
 func (p *PortfolioValue) read(b *bufio.Reader) (err error) {
 	if p.Contract.ContractID, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	p.Key.ContractID = p.Contract.ContractID
 	if p.Contract.Symbol, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if p.Contract.SecurityType, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if p.Contract.Expiry, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if p.Contract.Strike, err = readFloat(b); err != nil {
-		return
+		return err
 	}
 	if p.Contract.Right, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if p.Contract.Multiplier, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if p.Contract.PrimaryExchange, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if p.Contract.Currency, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if p.Contract.LocalSymbol, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if p.Contract.TradingClass, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if p.Position, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	if p.MarketPrice, err = readFloat(b); err != nil {
-		return
+		return err
 	}
 	if p.MarketValue, err = readFloat(b); err != nil {
-		return
+		return err
 	}
 	if p.AverageCost, err = readFloat(b); err != nil {
-		return
+		return err
 	}
 	if p.UnrealizedPNL, err = readFloat(b); err != nil {
-		return
+		return err
 	}
 	if p.RealizedPNL, err = readFloat(b); err != nil {
-		return
+		return err
 	}
 	if p.Key.AccountCode, err = readString(b); err != nil {
-		return
+		return err
 	}
-	return
+	return err
 }
 
 // AccountUpdateTime .
@@ -560,13 +512,10 @@ type AccountUpdateTime struct {
 	Time time.Time
 }
 
-func (a *AccountUpdateTime) code() IncomingMessageID {
-	return mAccountUpdateTime
-}
-
+func (a *AccountUpdateTime) code() IncomingMessageID { return mAccountUpdateTime }
 func (a *AccountUpdateTime) read(b *bufio.Reader) (err error) {
 	a.Time, err = readTime(b, timeReadLocalTime)
-	return
+	return err
 }
 
 // ErrorMessage .
@@ -577,33 +526,22 @@ type ErrorMessage struct {
 }
 
 // ID .
-func (e *ErrorMessage) ID() int64 {
-	return e.id
-}
-
-func (e *ErrorMessage) code() IncomingMessageID {
-	return mErrorMessage
-}
-
+func (e *ErrorMessage) ID() int64               { return e.id }
+func (e *ErrorMessage) code() IncomingMessageID { return mErrorMessage }
 func (e *ErrorMessage) read(b *bufio.Reader) (err error) {
 	if e.id, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	if e.Code, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	e.Message, err = readString(b)
-	return
+	return err
 }
 
 // SeverityWarning returns true if this error is of "warning" level.
-func (e *ErrorMessage) SeverityWarning() bool {
-	return e.Code >= 2100 || e.Code <= 2110
-}
-
-func (e *ErrorMessage) Error() error {
-	return fmt.Errorf("%s (%d/%d)", e.Message, e.id, e.Code)
-}
+func (e *ErrorMessage) SeverityWarning() bool { return e.Code >= 2100 || e.Code <= 2110 }
+func (e *ErrorMessage) Error() error          { return fmt.Errorf("%s (%d/%d)", e.Message, e.id, e.Code) }
 
 // OpenOrder .
 type OpenOrder struct {
@@ -613,418 +551,412 @@ type OpenOrder struct {
 }
 
 // ID contains the TWS "orderId", which was nominated when the order was placed.
-func (o *OpenOrder) ID() int64 {
-	return o.Order.OrderID
-}
-
-func (o *OpenOrder) code() IncomingMessageID {
-	return mOpenOrder
-}
-
+func (o *OpenOrder) ID() int64               { return o.Order.OrderID }
+func (o *OpenOrder) code() IncomingMessageID { return mOpenOrder }
 func (o *OpenOrder) read(b *bufio.Reader) (err error) {
 	if o.Order.OrderID, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	if o.Contract.ContractID, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	if o.Contract.Symbol, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if o.Contract.SecurityType, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if o.Contract.Expiry, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if o.Contract.Strike, err = readFloat(b); err != nil {
-		return
+		return err
 	}
 	if o.Contract.Right, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if o.Contract.Multiplier, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if o.Contract.Exchange, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if o.Contract.Currency, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if o.Contract.LocalSymbol, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if o.Contract.TradingClass, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if o.Order.Action, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if o.Order.TotalQty, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	if o.Order.OrderType, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if o.Order.LimitPrice, err = readFloat(b); err != nil {
-		return
+		return err
 	}
 	if o.Order.AuxPrice, err = readFloat(b); err != nil {
-		return
+		return err
 	}
 	if o.Order.TIF, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if o.Order.OCAGroup, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if o.Order.Account, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if o.Order.OpenClose, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if o.Order.Origin, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	if o.Order.OrderRef, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if o.Order.ClientID, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	if o.Order.PermID, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	if o.Order.OutsideRTH, err = readBool(b); err != nil {
-		return
+		return err
 	}
 	if o.Order.Hidden, err = readBool(b); err != nil {
-		return
+		return err
 	}
 	if o.Order.DiscretionaryAmount, err = readFloat(b); err != nil {
-		return
+		return err
 	}
 	if o.Order.GoodAfterTime, err = readString(b); err != nil {
-		return
+		return err
 	}
 	// skip deprecated sharesAllocation field
 	if _, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if o.Order.FAGroup, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if o.Order.FAMethod, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if o.Order.FAPercentage, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if o.Order.FAProfile, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if o.Order.GoodTillDate, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if o.Order.Rule80A, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if o.Order.PercentOffset, err = readFloat(b); err != nil {
-		return
+		return err
 	}
 	if o.Order.SettlingFirm, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if o.Order.ShortSaleSlot, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	if o.Order.DesignatedLocation, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if o.Order.ExemptCode, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	if o.Order.AuctionStrategy, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	if o.Order.StartingPrice, err = readFloat(b); err != nil {
-		return
+		return err
 	}
 	if o.Order.StockRefPrice, err = readFloat(b); err != nil {
-		return
+		return err
 	}
 	if o.Order.Delta, err = readFloat(b); err != nil {
-		return
+		return err
 	}
 	if o.Order.StockRangeLower, err = readFloat(b); err != nil {
-		return
+		return err
 	}
 	if o.Order.StockRangeUpper, err = readFloat(b); err != nil {
-		return
+		return err
 	}
 	if o.Order.DisplaySize, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	if o.Order.BlockOrder, err = readBool(b); err != nil {
-		return
+		return err
 	}
 	if o.Order.SweepToFill, err = readBool(b); err != nil {
-		return
+		return err
 	}
 	if o.Order.AllOrNone, err = readBool(b); err != nil {
-		return
+		return err
 	}
 	if o.Order.MinQty, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	if o.Order.OCAType, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	if o.Order.ETradeOnly, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	if o.Order.FirmQuoteOnly, err = readBool(b); err != nil {
-		return
+		return err
 	}
 	if o.Order.NBBOPriceCap, err = readFloat(b); err != nil {
-		return
+		return err
 	}
 	if o.Order.ParentID, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	if o.Order.TriggerMethod, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	if o.Order.Volatility, err = readFloat(b); err != nil {
-		return
+		return err
 	}
 	if o.Order.VolatilityType, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	if o.Order.DeltaNeutralOrderType, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if o.Order.DeltaNeutralAuxPrice, err = readFloat(b); err != nil {
-		return
+		return err
 	}
 	if o.Order.DeltaNeutralOrderType != "" {
 		if o.Order.DeltaNeutral.ContractID, err = readInt(b); err != nil {
-			return
+			return err
 		}
 		if o.Order.DeltaNeutral.SettlingFirm, err = readString(b); err != nil {
-			return
+			return err
 		}
 		if o.Order.DeltaNeutral.ClearingAccount, err = readString(b); err != nil {
-			return
+			return err
 		}
 		if o.Order.DeltaNeutral.ClearingIntent, err = readString(b); err != nil {
-			return
+			return err
 		}
 		if o.Order.DeltaNeutral.OpenClose, err = readString(b); err != nil {
-			return
+			return err
 		}
 		if o.Order.DeltaNeutral.ShortSale, err = readBool(b); err != nil {
-			return
+			return err
 		}
 		if o.Order.DeltaNeutral.ShortSaleSlot, err = readInt(b); err != nil {
-			return
+			return err
 		}
 		if o.Order.DeltaNeutral.DesignatedLocation, err = readString(b); err != nil {
-			return
+			return err
 		}
 	}
 	if o.Order.ContinuousUpdate, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	if o.Order.ReferencePriceType, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	if o.Order.TrailStopPrice, err = readFloat(b); err != nil {
-		return
+		return err
 	}
 	if o.Order.TrailingPercent, err = readFloat(b); err != nil {
-		return
+		return err
 	}
 	if o.Order.BasisPoints, err = readFloat(b); err != nil {
-		return
+		return err
 	}
 	if o.Order.BasisPointsType, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	if o.Contract.ComboLegsDescription, err = readString(b); err != nil {
-		return
+		return err
 	}
 	var comboLegsCount int64
 	if comboLegsCount, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	o.Contract.ComboLegs = make([]ComboLeg, comboLegsCount)
 	for _, cl := range o.Contract.ComboLegs {
 		if cl.ContractID, err = readInt(b); err != nil {
-			return
+			return err
 		}
 		if cl.Ratio, err = readInt(b); err != nil {
-			return
+			return err
 		}
 		if cl.Action, err = readString(b); err != nil {
-			return
+			return err
 		}
 		if cl.Exchange, err = readString(b); err != nil {
-			return
+			return err
 		}
 		if cl.OpenClose, err = readInt(b); err != nil {
-			return
+			return err
 		}
 		if cl.ShortSaleSlot, err = readInt(b); err != nil {
-			return
+			return err
 		}
 		if cl.DesignatedLocation, err = readString(b); err != nil {
-			return
+			return err
 		}
 		if cl.ExemptCode, err = readInt(b); err != nil {
-			return
+			return err
 		}
 	}
 	var orderComboLegsCount int64
 	if orderComboLegsCount, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	o.Order.OrderComboLegs = make([]OrderComboLeg, orderComboLegsCount)
 	for _, ocl := range o.Order.OrderComboLegs {
 		if ocl.Price, err = readFloat(b); err != nil {
-			return
+			return err
 		}
 	}
 	var smartSize int64
 	if smartSize, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	o.Order.SmartComboRoutingParams = make([]TagValue, smartSize)
 	for _, sc := range o.Order.SmartComboRoutingParams {
 		if sc.Tag, err = readString(b); err != nil {
-			return
+			return err
 		}
 		if sc.Value, err = readString(b); err != nil {
-			return
+			return err
 		}
 	}
 	if o.Order.ScaleInitLevelSize, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	if o.Order.ScaleSubsLevelSize, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	if o.Order.ScalePriceIncrement, err = readFloat(b); err != nil {
-		return
+		return err
 	}
 	if o.Order.ScalePriceIncrement > 0.0 && o.Order.ScalePriceIncrement < math.MaxFloat64 {
 		if o.Order.ScalePriceAdjustValue, err = readFloat(b); err != nil {
-			return
+			return err
 		}
 		if o.Order.ScalePriceAdjustInterval, err = readInt(b); err != nil {
-			return
+			return err
 		}
 		if o.Order.ScaleProfitOffset, err = readFloat(b); err != nil {
-			return
+			return err
 		}
 		if o.Order.ScaleAutoReset, err = readBool(b); err != nil {
-			return
+			return err
 		}
 		if o.Order.ScaleInitPosition, err = readInt(b); err != nil {
-			return
+			return err
 		}
 		if o.Order.ScaleInitFillQty, err = readInt(b); err != nil {
-			return
+			return err
 		}
 		if o.Order.ScaleRandomPercent, err = readBool(b); err != nil {
-			return
+			return err
 		}
 	}
 	if o.Order.HedgeType, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if o.Order.HedgeType != "" {
 		if o.Order.HedgeParam, err = readString(b); err != nil {
-			return
+			return err
 		}
 	}
 	if o.Order.OptOutSmartRouting, err = readBool(b); err != nil {
-		return
+		return err
 	}
 	if o.Order.ClearingAccount, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if o.Order.ClearingIntent, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if o.Order.NotHeld, err = readBool(b); err != nil {
-		return
+		return err
 	}
 	var haveUnderComp bool
 	if haveUnderComp, err = readBool(b); err != nil {
-		return
+		return err
 	}
 	if haveUnderComp {
 		o.Contract.UnderComp = new(UnderComp)
 		if o.Contract.UnderComp.ContractID, err = readInt(b); err != nil {
-			return
+			return err
 		}
 		if o.Contract.UnderComp.Delta, err = readFloat(b); err != nil {
-			return
+			return err
 		}
 		if o.Contract.UnderComp.Price, err = readFloat(b); err != nil {
-			return
+			return err
 		}
 	}
 	if o.Order.AlgoStrategy, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if o.Order.AlgoStrategy != "" {
 		var algoParamsCount int64
 		if algoParamsCount, err = readInt(b); err != nil {
-			return
+			return err
 		}
 		o.Order.AlgoParams.Params = make([]*TagValue, algoParamsCount)
 		for _, p := range o.Order.AlgoParams.Params {
 			if p.Tag, err = readString(b); err != nil {
-				return
+				return err
 			}
 			if p.Value, err = readString(b); err != nil {
-				return
+				return err
 			}
 		}
 	}
 	if o.Order.WhatIf, err = readBool(b); err != nil {
-		return
+		return err
 	}
 	if o.OrderState.Status, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if o.OrderState.InitialMargin, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if o.OrderState.MaintenanceMargin, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if o.OrderState.EquityWithLoan, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if o.OrderState.Commission, err = readFloat(b); err != nil {
-		return
+		return err
 	}
 	if o.OrderState.MinCommission, err = readFloat(b); err != nil {
-		return
+		return err
 	}
 	if o.OrderState.MaxCommission, err = readFloat(b); err != nil {
-		return
+		return err
 	}
 	if o.OrderState.CommissionCurrency, err = readString(b); err != nil {
-		return
+		return err
 	}
 	o.OrderState.WarningText, err = readString(b)
-	return
+	return err
 }
 
 // NextValidID .
@@ -1032,13 +964,10 @@ type NextValidID struct {
 	OrderID int64
 }
 
-func (n *NextValidID) code() IncomingMessageID {
-	return mNextValidID
-}
-
+func (n *NextValidID) code() IncomingMessageID { return mNextValidID }
 func (n *NextValidID) read(b *bufio.Reader) (err error) {
 	n.OrderID, err = readInt(b)
-	return
+	return err
 }
 
 // ScannerData .
@@ -1048,74 +977,68 @@ type ScannerData struct {
 }
 
 // ID contains the TWS "reqId", which is used for reply correlation.
-func (s *ScannerData) ID() int64 {
-	return s.id
-}
-
-func (s *ScannerData) code() IncomingMessageID {
-	return mScannerData
-}
-
+func (s *ScannerData) ID() int64               { return s.id }
+func (s *ScannerData) code() IncomingMessageID { return mScannerData }
 func (s *ScannerData) read(b *bufio.Reader) (err error) {
 	if s.id, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	var size int64
 	if size, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	s.Detail = make([]ScannerDetail, size)
 	for _, sd := range s.Detail {
 		if sd.Rank, err = readInt(b); err != nil {
-			return
+			return err
 		}
 		if sd.ContractID, err = readInt(b); err != nil {
-			return
+			return err
 		}
 		if sd.Contract.Summary.Symbol, err = readString(b); err != nil {
-			return
+			return err
 		}
 		if sd.Contract.Summary.SecurityType, err = readString(b); err != nil {
-			return
+			return err
 		}
 		if sd.Contract.Summary.Expiry, err = readString(b); err != nil {
-			return
+			return err
 		}
 		if sd.Contract.Summary.Strike, err = readFloat(b); err != nil {
-			return
+			return err
 		}
 		if sd.Contract.Summary.Right, err = readString(b); err != nil {
-			return
+			return err
 		}
 		if sd.Contract.Summary.Exchange, err = readString(b); err != nil {
-			return
+			return err
 		}
 		if sd.Contract.Summary.Currency, err = readString(b); err != nil {
-			return
+			return err
 		}
 		if sd.Contract.Summary.LocalSymbol, err = readString(b); err != nil {
-			return
+			return err
 		}
 		if sd.Contract.MarketName, err = readString(b); err != nil {
-			return
+			return err
 		}
 		if sd.Contract.Summary.TradingClass, err = readString(b); err != nil {
-			return
+			return err
 		}
 		if sd.Distance, err = readString(b); err != nil {
-			return
+			return err
 		}
 		if sd.Benchmark, err = readString(b); err != nil {
-			return
+			return err
 		}
 		if sd.Projection, err = readString(b); err != nil {
-			return
+			return err
 		}
 		if sd.Legs, err = readString(b); err != nil {
-			return
+			return err
 		}
 	}
-	return
+	return err
 }
 
 // ContractData .
@@ -1125,116 +1048,110 @@ type ContractData struct {
 }
 
 // ID contains the TWS "reqId", which is used for reply correlation.
-func (c *ContractData) ID() int64 {
-	return c.id
-}
-
-func (c *ContractData) code() IncomingMessageID {
-	return mContractData
-}
-
+func (c *ContractData) ID() int64               { return c.id }
+func (c *ContractData) code() IncomingMessageID { return mContractData }
 func (c *ContractData) read(b *bufio.Reader) (err error) {
 	if c.id, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	if c.Contract.Summary.Symbol, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if c.Contract.Summary.SecurityType, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if c.Contract.Summary.Expiry, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if c.Contract.Summary.Strike, err = readFloat(b); err != nil {
-		return
+		return err
 	}
 	if c.Contract.Summary.Right, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if c.Contract.Summary.Exchange, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if c.Contract.Summary.Currency, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if c.Contract.Summary.LocalSymbol, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if c.Contract.MarketName, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if c.Contract.Summary.TradingClass, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if c.Contract.Summary.ContractID, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	if c.Contract.MinTick, err = readFloat(b); err != nil {
-		return
+		return err
 	}
 	if c.Contract.Summary.Multiplier, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if c.Contract.OrderTypes, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if c.Contract.ValidExchanges, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if c.Contract.PriceMagnifier, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	if c.Contract.UnderContractID, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	if c.Contract.LongName, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if c.Contract.Summary.PrimaryExchange, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if c.Contract.ContractMonth, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if c.Contract.Industry, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if c.Contract.Category, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if c.Contract.Subcategory, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if c.Contract.TimezoneID, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if c.Contract.TradingHours, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if c.Contract.LiquidHours, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if c.Contract.EVRule, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if c.Contract.EVMultiplier, err = readFloat(b); err != nil {
-		return
+		return err
 	}
 	var secIDListCount int64
 	if secIDListCount, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	c.Contract.SecIDList = make([]TagValue, secIDListCount)
 	for _, si := range c.Contract.SecIDList {
 		if si.Tag, err = readString(b); err != nil {
-			return
+			return err
 		}
 		if si.Value, err = readString(b); err != nil {
-			return
+			return err
 		}
 	}
-	return
+	return err
 }
 
 // BondContractData .
@@ -1244,116 +1161,110 @@ type BondContractData struct {
 }
 
 // ID contains the TWS "reqId", which is used for reply correlation.
-func (bcd *BondContractData) ID() int64 {
-	return bcd.id
-}
-
-func (bcd *BondContractData) code() IncomingMessageID {
-	return mBondContractData
-}
-
+func (bcd *BondContractData) ID() int64               { return bcd.id }
+func (bcd *BondContractData) code() IncomingMessageID { return mBondContractData }
 func (bcd *BondContractData) read(b *bufio.Reader) (err error) {
 	if bcd.id, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	if bcd.Contract.Summary.Symbol, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if bcd.Contract.Summary.SecurityType, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if bcd.Contract.Cusip, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if bcd.Contract.Coupon, err = readFloat(b); err != nil {
-		return
+		return err
 	}
 	if bcd.Contract.Maturity, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if bcd.Contract.IssueDate, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if bcd.Contract.Ratings, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if bcd.Contract.BondType, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if bcd.Contract.CouponType, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if bcd.Contract.Convertible, err = readBool(b); err != nil {
-		return
+		return err
 	}
 	if bcd.Contract.Callable, err = readBool(b); err != nil {
-		return
+		return err
 	}
 	if bcd.Contract.Putable, err = readBool(b); err != nil {
-		return
+		return err
 	}
 	if bcd.Contract.DescAppend, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if bcd.Contract.Summary.Exchange, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if bcd.Contract.Summary.Currency, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if bcd.Contract.MarketName, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if bcd.Contract.TradingClass, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if bcd.Contract.Summary.ContractID, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	if bcd.Contract.MinTick, err = readFloat(b); err != nil {
-		return
+		return err
 	}
 	if bcd.Contract.OrderTypes, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if bcd.Contract.ValidExchanges, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if bcd.Contract.NextOptionDate, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if bcd.Contract.NextOptionType, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if bcd.Contract.NextOptionPartial, err = readBool(b); err != nil {
-		return
+		return err
 	}
 	if bcd.Contract.Notes, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if bcd.Contract.LongName, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if bcd.Contract.EVRule, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if bcd.Contract.EVMultiplier, err = readFloat(b); err != nil {
-		return
+		return err
 	}
 	var secIDListCount int64
 	if secIDListCount, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	bcd.Contract.SecIDList = make([]TagValue, secIDListCount)
 	for _, si := range bcd.Contract.SecIDList {
 		if si.Tag, err = readString(b); err != nil {
-			return
+			return err
 		}
 		if si.Value, err = readString(b); err != nil {
-			return
+			return err
 		}
 	}
-	return
+	return err
 
 }
 
@@ -1365,98 +1276,92 @@ type ExecutionData struct {
 }
 
 // ID contains the TWS "reqId", which is used for reply correlation.
-func (e *ExecutionData) ID() int64 {
-	return e.id
-}
-
-func (e *ExecutionData) code() IncomingMessageID {
-	return mExecutionData
-}
-
+func (e *ExecutionData) ID() int64               { return e.id }
+func (e *ExecutionData) code() IncomingMessageID { return mExecutionData }
 func (e *ExecutionData) read(b *bufio.Reader) (err error) {
 	if e.id, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	if e.Exec.OrderID, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	if e.Contract.ContractID, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	if e.Contract.Symbol, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if e.Contract.SecurityType, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if e.Contract.Expiry, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if e.Contract.Strike, err = readFloat(b); err != nil {
-		return
+		return err
 	}
 	if e.Contract.Right, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if e.Contract.Multiplier, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if e.Contract.Exchange, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if e.Contract.Currency, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if e.Contract.LocalSymbol, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if e.Contract.TradingClass, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if e.Exec.ExecID, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if e.Exec.Time, err = readTime(b, timeReadLocalDateTime); err != nil {
-		return
+		return err
 	}
 	if e.Exec.AccountCode, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if e.Exec.Exchange, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if e.Exec.Side, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if e.Exec.Shares, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	if e.Exec.Price, err = readFloat(b); err != nil {
-		return
+		return err
 	}
 	if e.Exec.PermID, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	if e.Exec.ClientID, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	if e.Exec.Liquidation, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	if e.Exec.CumQty, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	if e.Exec.AveragePrice, err = readFloat(b); err != nil {
-		return
+		return err
 	}
 	if e.Exec.OrderRef, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if e.Exec.EVRule, err = readString(b); err != nil {
-		return
+		return err
 	}
 	e.Exec.EVMultiplier, err = readFloat(b)
-	return
+	return err
 }
 
 // MarketDepth .
@@ -1470,32 +1375,26 @@ type MarketDepth struct {
 }
 
 // ID contains the TWS "tickerId", which was nominated at market data request time.
-func (m *MarketDepth) ID() int64 {
-	return m.id
-}
-
-func (m *MarketDepth) code() IncomingMessageID {
-	return mMarketDepth
-}
-
+func (m *MarketDepth) ID() int64               { return m.id }
+func (m *MarketDepth) code() IncomingMessageID { return mMarketDepth }
 func (m *MarketDepth) read(b *bufio.Reader) (err error) {
 	if m.id, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	if m.Position, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	if m.Operation, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	if m.Side, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	if m.Price, err = readFloat(b); err != nil {
-		return
+		return err
 	}
 	m.Size, err = readInt(b)
-	return
+	return err
 }
 
 // MarketDepthL2 .
@@ -1510,35 +1409,29 @@ type MarketDepthL2 struct {
 }
 
 // ID contains the TWS "tickerId", which was nominated at market data request time.
-func (m *MarketDepthL2) ID() int64 {
-	return m.id
-}
-
-func (m *MarketDepthL2) code() IncomingMessageID {
-	return mMarketDepthL2
-}
-
+func (m *MarketDepthL2) ID() int64               { return m.id }
+func (m *MarketDepthL2) code() IncomingMessageID { return mMarketDepthL2 }
 func (m *MarketDepthL2) read(b *bufio.Reader) (err error) {
 	if m.id, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	if m.Position, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	if m.MarketMaker, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if m.Operation, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	if m.Side, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	if m.Price, err = readFloat(b); err != nil {
-		return
+		return err
 	}
 	m.Size, err = readInt(b)
-	return
+	return err
 }
 
 // NewsBulletins .
@@ -1549,22 +1442,19 @@ type NewsBulletins struct {
 	Exchange  string
 }
 
-func (n *NewsBulletins) code() IncomingMessageID {
-	return mNewsBulletins
-}
-
+func (n *NewsBulletins) code() IncomingMessageID { return mNewsBulletins }
 func (n *NewsBulletins) read(b *bufio.Reader) (err error) {
 	if n.NewsMsgID, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	if n.Type, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	if n.Message, err = readString(b); err != nil {
-		return
+		return err
 	}
 	n.Exchange, err = readString(b)
-	return
+	return err
 }
 
 // ManagedAccounts .
@@ -1572,13 +1462,10 @@ type ManagedAccounts struct {
 	AccountsList []string
 }
 
-func (m *ManagedAccounts) code() IncomingMessageID {
-	return mManagedAccounts
-}
-
+func (m *ManagedAccounts) code() IncomingMessageID { return mManagedAccounts }
 func (m *ManagedAccounts) read(b *bufio.Reader) (err error) {
 	m.AccountsList, err = readStringList(b, ",")
-	return
+	return err
 }
 
 // ReceiveFA .
@@ -1587,16 +1474,13 @@ type ReceiveFA struct {
 	XML  string
 }
 
-func (r *ReceiveFA) code() IncomingMessageID {
-	return mReceiveFA
-}
-
+func (r *ReceiveFA) code() IncomingMessageID { return mReceiveFA }
 func (r *ReceiveFA) read(b *bufio.Reader) (err error) {
 	if r.Type, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	r.XML, err = readString(b)
-	return
+	return err
 }
 
 // HistoricalData .
@@ -1608,62 +1492,56 @@ type HistoricalData struct {
 }
 
 // ID contains the TWS "reqId", which is used for reply correlation.
-func (h *HistoricalData) ID() int64 {
-	return h.id
-}
-
-func (h *HistoricalData) code() IncomingMessageID {
-	return mHistoricalData
-}
-
+func (h *HistoricalData) ID() int64               { return h.id }
+func (h *HistoricalData) code() IncomingMessageID { return mHistoricalData }
 func (h *HistoricalData) read(b *bufio.Reader) (err error) {
 	if h.id, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	if h.StartDate, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if h.EndDate, err = readString(b); err != nil {
-		return
+		return err
 	}
 	var itemCount int64
 	if itemCount, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	h.Data = make([]HistoricalDataItem, itemCount)
 	for i := range h.Data {
 		if h.Data[i].Date, err = readTime(b, timeReadAutoDetect); err != nil {
-			return
+			return err
 		}
 		if h.Data[i].Open, err = readFloat(b); err != nil {
-			return
+			return err
 		}
 		if h.Data[i].High, err = readFloat(b); err != nil {
-			return
+			return err
 		}
 		if h.Data[i].Low, err = readFloat(b); err != nil {
-			return
+			return err
 		}
 		if h.Data[i].Close, err = readFloat(b); err != nil {
-			return
+			return err
 		}
 		if h.Data[i].Volume, err = readInt(b); err != nil {
-			return
+			return err
 		}
 		if h.Data[i].WAP, err = readFloat(b); err != nil {
-			return
+			return err
 		}
 		var hasGaps string
 		if hasGaps, err = readString(b); err != nil {
-			return
+			return err
 		}
 		h.Data[i].HasGaps = hasGaps == "true"
 		h.Data[i].BarCount, err = readInt(b)
 		if err != nil {
-			return
+			return err
 		}
 	}
-	return
+	return err
 }
 
 // ScannerParameters .
@@ -1671,13 +1549,10 @@ type ScannerParameters struct {
 	XML string
 }
 
-func (s *ScannerParameters) code() IncomingMessageID {
-	return mScannerParameters
-}
-
+func (s *ScannerParameters) code() IncomingMessageID { return mScannerParameters }
 func (s *ScannerParameters) read(b *bufio.Reader) (err error) {
 	s.XML, err = readString(b)
-	return
+	return err
 }
 
 // CurrentTime .
@@ -1685,13 +1560,10 @@ type CurrentTime struct {
 	Time time.Time
 }
 
-func (c *CurrentTime) code() IncomingMessageID {
-	return mCurrentTime
-}
-
+func (c *CurrentTime) code() IncomingMessageID { return mCurrentTime }
 func (c *CurrentTime) read(b *bufio.Reader) (err error) {
 	c.Time, err = readTime(b, timeReadEpoch)
-	return
+	return err
 }
 
 // RealtimeBars .
@@ -1708,41 +1580,35 @@ type RealtimeBars struct {
 }
 
 // ID contains the TWS "reqId", which is used for reply correlation.
-func (r *RealtimeBars) ID() int64 {
-	return r.id
-}
-
-func (r *RealtimeBars) code() IncomingMessageID {
-	return mRealtimeBars
-}
-
+func (r *RealtimeBars) ID() int64               { return r.id }
+func (r *RealtimeBars) code() IncomingMessageID { return mRealtimeBars }
 func (r *RealtimeBars) read(b *bufio.Reader) (err error) {
 	if r.id, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	if r.Time, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	if r.Open, err = readFloat(b); err != nil {
-		return
+		return err
 	}
 	if r.High, err = readFloat(b); err != nil {
-		return
+		return err
 	}
 	if r.Low, err = readFloat(b); err != nil {
-		return
+		return err
 	}
 	if r.Close, err = readFloat(b); err != nil {
-		return
+		return err
 	}
 	if r.Volume, err = readFloat(b); err != nil {
-		return
+		return err
 	}
 	if r.WAP, err = readFloat(b); err != nil {
-		return
+		return err
 	}
 	r.Count, err = readInt(b)
-	return
+	return err
 }
 
 // FundamentalData .
@@ -1752,14 +1618,8 @@ type FundamentalData struct {
 }
 
 // ID contains the TWS "reqId", which is used for reply correlation.
-func (f *FundamentalData) ID() int64 {
-	return f.id
-}
-
-func (f *FundamentalData) code() IncomingMessageID {
-	return mFundamentalData
-}
-
+func (f *FundamentalData) ID() int64               { return f.id }
+func (f *FundamentalData) code() IncomingMessageID { return mFundamentalData }
 func (f *FundamentalData) read(b *bufio.Reader) (err error) {
 	if f.id, err = readInt(b); err != nil {
 		return err
@@ -1816,16 +1676,16 @@ func (d *DeltaNeutralValidation) ID() int64               { return d.id }
 func (d *DeltaNeutralValidation) code() IncomingMessageID { return mDeltaNeutralValidation }
 func (d *DeltaNeutralValidation) read(b *bufio.Reader) (err error) {
 	if d.id, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	if d.UnderComp.ContractID, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	if d.UnderComp.Delta, err = readFloat(b); err != nil {
-		return
+		return err
 	}
 	d.UnderComp.Price, err = readFloat(b)
-	return
+	return err
 }
 
 // TickSnapshotEnd .
@@ -1849,10 +1709,10 @@ func (m *MarketDataType) ID() int64               { return m.id }
 func (m *MarketDataType) code() IncomingMessageID { return mMarketDataType }
 func (m *MarketDataType) read(b *bufio.Reader) (err error) {
 	if m.id, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	m.Type, err = readInt(b)
-	return
+	return err
 }
 
 // Position .
@@ -1869,53 +1729,50 @@ type PositionKey struct {
 	ContractID  int64
 }
 
-func (p *Position) code() IncomingMessageID {
-	return mPosition
-}
-
+func (p *Position) code() IncomingMessageID { return mPosition }
 func (p *Position) read(b *bufio.Reader) (err error) {
 	if p.Key.AccountCode, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if p.Contract.ContractID, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	p.Key.ContractID = p.Contract.ContractID
 	if p.Contract.Symbol, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if p.Contract.SecurityType, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if p.Contract.Expiry, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if p.Contract.Strike, err = readFloat(b); err != nil {
-		return
+		return err
 	}
 	if p.Contract.Right, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if p.Contract.Multiplier, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if p.Contract.Exchange, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if p.Contract.Currency, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if p.Contract.LocalSymbol, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if p.Contract.TradingClass, err = readString(b); err != nil {
-		return
+		return err
 	}
 	if p.Position, err = readFloat(b); err != nil {
-		return
+		return err
 	}
 	p.AverageCost, err = readFloat(b)
-	return
+	return err
 }
 
 // PositionEnd .
@@ -2010,14 +1867,8 @@ type DisplayGroupList struct {
 }
 
 // ID contains tha TWS "reqId", which is used for reply correlation.
-func (d *DisplayGroupList) ID() int64 {
-	return d.id
-}
-
-func (d *DisplayGroupList) code() IncomingMessageID {
-	return mDisplayGroupList
-}
-
+func (d *DisplayGroupList) ID() int64               { return d.id }
+func (d *DisplayGroupList) code() IncomingMessageID { return mDisplayGroupList }
 func (d *DisplayGroupList) read(b *bufio.Reader) (err error) {
 	if d.id, err = readInt(b); err != nil {
 		return err
@@ -2033,18 +1884,12 @@ type DisplayGroupUpdated struct {
 }
 
 // ID contains tha TWS "reqId", which is used for reply correlation.
-func (d *DisplayGroupUpdated) ID() int64 {
-	return d.id
-}
-
-func (d *DisplayGroupUpdated) code() IncomingMessageID {
-	return mDisplayGroupUpdated
-}
-
+func (d *DisplayGroupUpdated) ID() int64               { return d.id }
+func (d *DisplayGroupUpdated) code() IncomingMessageID { return mDisplayGroupUpdated }
 func (d *DisplayGroupUpdated) read(b *bufio.Reader) (err error) {
 	if d.id, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	d.ContractInfo, err = readString(b)
-	return
+	return err
 }
