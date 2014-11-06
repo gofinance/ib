@@ -200,7 +200,7 @@ func SinkManager(m Manager, timeout time.Duration, updateStop int) (updates int,
 		select {
 		case <-time.After(timeout):
 			m.Close()
-			return updates, fmt.Errorf("SinkManager: no new update in %v", timeout)
+			return updates, fmt.Errorf("SinkManager: no new update in %s", timeout)
 		case _, ok := <-m.Refresh():
 			if !ok {
 				return updates, m.FatalError()
