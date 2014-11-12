@@ -24,8 +24,7 @@ func TestMetadataManagerWithCompleteContractSpec(t *testing.T) {
 
 	defer m.Close()
 
-	var mgr Manager = m
-	SinkManagerTest(t, &mgr, 15*time.Second, 1)
+	SinkManagerTest(t, m, 15*time.Second, 1)
 
 	if len(m.ContractData()) != 1 {
 		t.Fatalf("Expected 1 contract data to be returned")
@@ -55,8 +54,7 @@ func TestMetadataManagerWithIncompleteContractSpec(t *testing.T) {
 
 	defer m.Close()
 
-	var mgr Manager = m
-	SinkManagerTest(t, &mgr, 15*time.Second, 1)
+	SinkManagerTest(t, m, 15*time.Second, 1)
 
 	if len(m.ContractData()) != 1 {
 		t.Fatalf("Expected 1 contract to be returned")

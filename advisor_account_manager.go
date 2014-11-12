@@ -4,6 +4,7 @@ import (
 	"bytes"
 )
 
+// AccountSummary Enum
 const (
 	AccountSummaryTagAccountType                 = "AccountType"
 	AccountSummaryTagNetLiquidation              = "NetLiquidation"
@@ -36,7 +37,7 @@ const (
 	AccountSummaryTagLeverage                    = "Leverage"
 )
 
-var allTags [29]string = [29]string{
+var allTags = [...]string{
 	AccountSummaryTagAccountType,
 	AccountSummaryTagNetLiquidation,
 	AccountSummaryTagTotalCashValue,
@@ -78,6 +79,7 @@ type AdvisorAccountManager struct {
 	portfolio map[PositionKey]Position
 }
 
+// NewAdvisorAccountManager creates a new AdvisorAccountManager
 func NewAdvisorAccountManager(e *Engine) (*AdvisorAccountManager, error) {
 	am, err := NewAbstractManager(e)
 	if err != nil {
@@ -85,9 +87,9 @@ func NewAdvisorAccountManager(e *Engine) (*AdvisorAccountManager, error) {
 	}
 
 	a := &AdvisorAccountManager{AbstractManager: *am,
-		id:        UnmatchedReplyId,
-		values:    make(map[AccountSummaryKey]AccountSummary),
-		portfolio: make(map[PositionKey]Position),
+		id:        UnmatchedReplyID,
+		values:    map[AccountSummaryKey]AccountSummary{},
+		portfolio: map[PositionKey]Position{},
 	}
 
 	go a.startMainLoop(a.preLoop, a.receive, a.preDestroy)
@@ -95,7 +97,7 @@ func NewAdvisorAccountManager(e *Engine) (*AdvisorAccountManager, error) {
 }
 
 func (a *AdvisorAccountManager) preLoop() error {
-	a.id = a.eng.NextRequestId()
+	a.id = a.eng.NextRequestID()
 	a.eng.Subscribe(a.rc, a.id)
 
 	var tags bytes.Buffer
@@ -105,14 +107,14 @@ func (a *AdvisorAccountManager) preLoop() error {
 	}
 
 	reqAs := &RequestAccountSummary{}
-	reqAs.SetId(a.id)
+	reqAs.SetID(a.id)
 	reqAs.Group = "All"
 	reqAs.Tags = tags.String()
 	if err := a.eng.Send(reqAs); err != nil {
 		return err
 	}
 
-	a.eng.Subscribe(a.rc, UnmatchedReplyId)
+	a.eng.Subscribe(a.rc, UnmatchedReplyID)
 	reqPos := &RequestPositions{}
 	return a.eng.Send(reqPos)
 }
@@ -146,10 +148,10 @@ func (a *AdvisorAccountManager) receive(r Reply) (UpdateStatus, error) {
 
 func (a *AdvisorAccountManager) preDestroy() {
 	a.eng.Unsubscribe(a.rc, a.id)
-	a.eng.Unsubscribe(a.rc, UnmatchedReplyId)
+	a.eng.Unsubscribe(a.rc, UnmatchedReplyID)
 
 	canAs := &CancelAccountSummary{}
-	canAs.SetId(a.id)
+	canAs.SetID(a.id)
 	a.eng.Send(canAs)
 
 	canPos := &CancelPositions{}

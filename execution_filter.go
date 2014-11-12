@@ -6,8 +6,9 @@ import (
 
 // This file ports IB API ExecutionFilter.java. Please preserve declaration order.
 
+// ExecutionFilter .
 type ExecutionFilter struct {
-	ClientId    int64
+	ClientID    int64
 	AccountCode string
 	Time        time.Time
 	Symbol      string

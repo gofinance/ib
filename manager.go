@@ -7,8 +7,10 @@ import (
 	"time"
 )
 
+// UpdateStatus .
 type UpdateStatus int
 
+// Status enum
 const (
 	UpdateFalse UpdateStatus = 1 << iota
 	UpdateTrue
@@ -78,6 +80,7 @@ type AbstractManager struct {
 	rc     chan Reply
 }
 
+// NewAbstractManager .
 func NewAbstractManager(e *Engine) (*AbstractManager, error) {
 	if e == nil {
 		return nil, errors.New("Engine required")
@@ -167,14 +170,17 @@ func (a *AbstractManager) consume(r Reply, receive func(r Reply) (UpdateStatus, 
 	return false
 }
 
+// FatalError .
 func (a *AbstractManager) FatalError() error {
 	return a.err
 }
 
+// Refresh .
 func (a *AbstractManager) Refresh() <-chan bool {
 	return a.update
 }
 
+// Close .
 func (a *AbstractManager) Close() {
 	select {
 	case <-a.term:
@@ -188,23 +194,22 @@ func (a *AbstractManager) Close() {
 // a target update count or timeout. This function is useful for clients who only
 // require the final result of a Manager (and have no interest in each update).
 // The Manager is guaranteed to be closed before it returns.
-func SinkManager(m *Manager, timeout time.Duration, updateStop int) (updates int, err error) {
+func SinkManager(m Manager, timeout time.Duration, updateStop int) (updates int, err error) {
 	for {
 		sentClose := false
 		select {
 		case <-time.After(timeout):
-			(*m).Close()
+			m.Close()
 			return updates, fmt.Errorf("SinkManager: no new update in %v", timeout)
-		case _, ok := <-(*m).Refresh():
+		case _, ok := <-m.Refresh():
 			if !ok {
-				return updates, (*m).FatalError()
+				return updates, m.FatalError()
 			}
 			updates++
 			if updates >= updateStop && !sentClose {
 				sentClose = true
-				go (*m).Close()
+				go m.Close()
 			}
 		}
 	}
-	panic("unreachable")
 }

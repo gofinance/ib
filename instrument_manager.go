@@ -1,5 +1,6 @@
 package ib
 
+// InstrumentManager .
 type InstrumentManager struct {
 	AbstractManager
 	id   int64
@@ -9,6 +10,7 @@ type InstrumentManager struct {
 	ask  float64
 }
 
+// NewInstrumentManager .
 func NewInstrumentManager(e *Engine, c Contract) (*InstrumentManager, error) {
 	am, err := NewAbstractManager(e)
 	if err != nil {
@@ -25,9 +27,9 @@ func NewInstrumentManager(e *Engine, c Contract) (*InstrumentManager, error) {
 }
 
 func (i *InstrumentManager) preLoop() error {
-	i.id = i.eng.NextRequestId()
+	i.id = i.eng.NextRequestID()
 	req := &RequestMarketData{Contract: i.c}
-	req.SetId(i.id)
+	req.SetID(i.id)
 	i.eng.Subscribe(i.rc, i.id)
 	return i.eng.Send(req)
 }
@@ -35,7 +37,7 @@ func (i *InstrumentManager) preLoop() error {
 func (i *InstrumentManager) preDestroy() {
 	i.eng.Unsubscribe(i.rc, i.id)
 	req := &CancelMarketData{}
-	req.SetId(i.id)
+	req.SetID(i.id)
 	i.eng.Send(req)
 }
 
@@ -65,18 +67,21 @@ func (i *InstrumentManager) receive(r Reply) (UpdateStatus, error) {
 	return UpdateTrue, nil
 }
 
+// Bid .
 func (i *InstrumentManager) Bid() float64 {
 	i.rwm.RLock()
 	defer i.rwm.RUnlock()
 	return i.bid
 }
 
+// Ask .
 func (i *InstrumentManager) Ask() float64 {
 	i.rwm.RLock()
 	defer i.rwm.RUnlock()
 	return i.ask
 }
 
+// Last .
 func (i *InstrumentManager) Last() float64 {
 	i.rwm.RLock()
 	defer i.rwm.RUnlock()

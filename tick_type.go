@@ -2,8 +2,10 @@ package ib
 
 // This file ports IB API TickType.java. Please preserve declaration order.
 
+// TickType .
 type TickType int
 
+// TickType enum
 const (
 	TickBidSize               TickType = 0
 	TickBid                            = 1

@@ -2,20 +2,21 @@ package ib
 
 import "fmt"
 
+// HistoricalDataManager .
 type HistoricalDataManager struct {
 	AbstractManager
 	request  RequestHistoricalData
 	histData []HistoricalDataItem
 }
 
-// Create a new HistoricalDataManager for the given data request.
+// NewHistoricalDataManager Create a new HistoricalDataManager for the given data request.
 func NewHistoricalDataManager(e *Engine, request RequestHistoricalData) (*HistoricalDataManager, error) {
 	am, err := NewAbstractManager(e)
 	if err != nil {
 		return nil, err
 	}
 
-	request.id = e.NextRequestId()
+	request.id = e.NextRequestID()
 	m := &HistoricalDataManager{
 		AbstractManager: *am,
 		request:         request,
@@ -50,6 +51,7 @@ func (m *HistoricalDataManager) preDestroy() {
 	m.eng.Unsubscribe(m.rc, m.request.id)
 }
 
+// Items .
 func (m *HistoricalDataManager) Items() []HistoricalDataItem {
 	m.rwm.RLock()
 	defer m.rwm.RUnlock()

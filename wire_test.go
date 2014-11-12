@@ -53,7 +53,7 @@ func TestReadString(t *testing.T) {
 	}
 
 	if x != y {
-		t.Fatalf("expected %d but got %d", x, y)
+		t.Fatalf("expected %s but got %s", x, y)
 	}
 }
 

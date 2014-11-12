@@ -6,10 +6,11 @@ import (
 
 // This file ports IB API Order.java. Please preserve declaration order.
 
+// Order .
 type Order struct {
-	OrderId                       int64
-	ClientId                      int64
-	PermId                        int64
+	OrderID                       int64
+	ClientID                      int64
+	PermID                        int64
 	Action                        string
 	TotalQty                      int64
 	OrderType                     string
@@ -22,7 +23,7 @@ type Order struct {
 	OCAType                       int64
 	OrderRef                      string
 	Transmit                      bool
-	ParentId                      int64
+	ParentID                      int64
 	BlockOrder                    bool
 	SweepToFill                   bool
 	DisplaySize                   int64
@@ -93,8 +94,9 @@ type Order struct {
 	OrderMiscOptions              []TagValue
 }
 
+// DeltaNeutralData .
 type DeltaNeutralData struct {
-	ContractId         int64
+	ContractID         int64
 	SettlingFirm       string
 	ClearingAccount    string
 	ClearingIntent     string
@@ -104,10 +106,12 @@ type DeltaNeutralData struct {
 	DesignatedLocation string
 }
 
+// AlgoParams .
 type AlgoParams struct {
 	Params []*TagValue
 }
 
+// NewOrder .
 func NewOrder() (Order, error) {
 	return Order{
 		LimitPrice:            math.MaxFloat64,
@@ -134,7 +138,7 @@ func NewOrder() (Order, error) {
 		DeltaNeutralOrderType: "",
 		DeltaNeutralAuxPrice:  math.MaxFloat64,
 		DeltaNeutral: DeltaNeutralData{
-			ContractId:         0,
+			ContractID:         0,
 			SettlingFirm:       "",
 			ClearingAccount:    "",
 			ClearingIntent:     "",

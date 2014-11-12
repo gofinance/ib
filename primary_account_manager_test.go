@@ -17,18 +17,17 @@ func TestPrimaryAccountManager(t *testing.T) {
 
 	defer pam.Close()
 
-	var m Manager = pam
-	SinkManagerTest(t, &m, 15*time.Second, 1)
+	SinkManagerTest(t, pam, 15*time.Second, 1)
 
 	if len(pam.Values()) < 3 {
-		t.Fatal("Insufficient account values %v", pam.Values())
+		t.Fatalf("Insufficient account values %v", pam.Values())
 	}
 
 	// demo accounts have no guaranteed portfolio, so this just tests the accessor
 	pam.Portfolio()
 
 	if b, ok := <-pam.Refresh(); ok {
-		t.Fatal("Expected the refresh channel to be closed, but got %v", b)
+		t.Fatalf("Expected the refresh channel to be closed, but got %t", b)
 	}
 
 }

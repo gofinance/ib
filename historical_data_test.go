@@ -25,21 +25,21 @@ func TestHistoricalData(t *testing.T) {
 		UseRTH:      true,
 	}
 
-	id := engine.NextRequestId()
-	req.SetId(id)
+	id := engine.NextRequestID()
+	req.SetID(id)
 	ch := make(chan Reply)
 	engine.Subscribe(ch, id)
 	defer engine.Unsubscribe(ch, id)
 	defer engine.Send(&CancelHistoricalData{id})
 
 	if err := engine.Send(req); err != nil {
-		t.Fatalf("client %d: cannot send a historical data request: %s", engine.ClientId(), err)
+		t.Fatalf("client %d: cannot send a historical data request: %s", engine.ClientID(), err)
 	}
 
-	rep, err := engine.expect(t, 30, ch, []IncomingMessageId{mHistoricalData})
+	rep, err := engine.expect(t, 30, ch, []IncomingMessageID{mHistoricalData})
 	logreply(t, rep, err)
 	if err != nil {
-		t.Fatalf("client %d: cannot receive historical data: %s", engine.ClientId(), err)
+		t.Fatalf("client %d: cannot receive historical data: %s", engine.ClientID(), err)
 	}
 
 	checkHistDataReply(t, rep)
@@ -78,8 +78,8 @@ func TestHistBarSizes(t *testing.T) {
 			UseRTH:      true,
 		}
 
-		id := engine.NextRequestId()
-		req.SetId(id)
+		id := engine.NextRequestID()
+		req.SetID(id)
 		t.Logf("barSize: %s duration: %s id: %d", barSize, duration, id)
 
 		engine.Subscribe(ch, id)
@@ -87,10 +87,10 @@ func TestHistBarSizes(t *testing.T) {
 		defer engine.Send(&CancelHistoricalData{id})
 
 		if err := engine.Send(req); err != nil {
-			t.Fatalf("client %d: cannot send a historical data request: %s", engine.ClientId(), err)
+			t.Fatalf("client %d: cannot send a historical data request: %s", engine.ClientID(), err)
 		}
 
-		rep, err := engine.expect(t, 30, ch, []IncomingMessageId{mHistoricalData})
+		rep, err := engine.expect(t, 30, ch, []IncomingMessageID{mHistoricalData})
 		if err != nil {
 			t.Fatalf("error in reply, error: %v", err)
 		}

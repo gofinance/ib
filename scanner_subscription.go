@@ -2,6 +2,7 @@ package ib
 
 // This file ports IB API ScannerSubscription.java. Please preserve declaration order.
 
+// ScannerSubscription .
 type ScannerSubscription struct {
 	NumberOfRows             int64
 	Instrument               string

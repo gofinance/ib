@@ -4,8 +4,10 @@ import (
 	"time"
 )
 
+// OptionChains .
 type OptionChains map[time.Time]*OptionChain
 
+// OptionChain .
 type OptionChain struct {
 	Expiry  time.Time
 	Strikes map[float64]*OptionStrike
@@ -26,6 +28,7 @@ func (o *OptionChain) update(c *ContractData) {
 	}
 }
 
+// OptionStrike .
 type OptionStrike struct {
 	expiry time.Time
 	Price  float64

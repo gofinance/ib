@@ -2,20 +2,21 @@ package ib
 
 import "time"
 
-// Provides a Manager to access the IB current time on the server side
+// CurrentTimeManager provides a Manager to access the IB current time on the server side
 type CurrentTimeManager struct {
 	AbstractManager
 	id int64
 	t  time.Time
 }
 
+// NewCurrentTimeManager .
 func NewCurrentTimeManager(e *Engine) (*CurrentTimeManager, error) {
 	am, err := NewAbstractManager(e)
 	if err != nil {
 		return nil, err
 	}
 
-	m := &CurrentTimeManager{AbstractManager: *am, id: UnmatchedReplyId}
+	m := &CurrentTimeManager{AbstractManager: *am, id: UnmatchedReplyID}
 
 	go m.startMainLoop(m.preLoop, m.receive, m.preDestroy)
 	return m, nil
@@ -48,7 +49,7 @@ func (m *CurrentTimeManager) preDestroy() {
 	m.eng.Unsubscribe(m.rc, m.id)
 }
 
-// Returns the current server time.
+// Time returns the current server time.
 func (m *CurrentTimeManager) Time() time.Time {
 	m.rwm.RLock()
 	defer m.rwm.RUnlock()
