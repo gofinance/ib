@@ -20,7 +20,7 @@ type Reply interface {
 // MatchedRequest .
 type MatchedRequest interface {
 	Request
-	SetId(id int64)
+	SetID(id int64)
 	ID() int64
 }
 
