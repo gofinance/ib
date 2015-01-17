@@ -105,6 +105,15 @@ func (s *serverHandshake) read(b *bufio.Reader) error {
 	return err
 }
 
+// StartAPI is equivalent of IB API EClientSocket.startAPI().
+type StartAPI struct {
+	Client int64
+}
+
+func (s *StartAPI) code() OutgoingMessageID           { return mStartAPI }
+func (s *StartAPI) version() int64                    { return 1 }
+func (s *StartAPI) write(b *bytes.Buffer) (err error) { return writeInt(b, s.Client) }
+
 // CancelScannerSubscription is equivalent of IB API EClientSocket.cancelScannerSubscription().
 type CancelScannerSubscription struct {
 	id int64

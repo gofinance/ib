@@ -32,18 +32,8 @@ type MatchedReply interface {
 
 type clientHandshake struct {
 	version int64
-	id      int64
 }
 
 func (c *clientHandshake) write(b *bytes.Buffer) error {
-	if err := writeInt(b, c.version); err != nil {
-		return err
-	}
-	if err := writeInt(b, mStartAPI); err != nil {
-		return err
-	}
-	if err := writeInt(b, 1); err != nil {
-		return err
-	}
-	return writeInt(b, c.id)
+	return writeInt(b, c.version)
 }
