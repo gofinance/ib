@@ -348,7 +348,7 @@ func (e *Engine) transmit(r Request) (err error) {
 	return
 }
 
-// NextRequestID returns a unique request id (which is never UnmatchedReplyId).
+// NextRequestID returns a unique request id (which is never UnmatchedReplyID).
 func (e *Engine) NextRequestID() int64 {
 	return <-e.id
 }
@@ -387,14 +387,14 @@ func (e *Engine) sendCommand(c func()) {
 }
 
 // Subscribe will notify subscribers of future events with given id.
-// Many request types implement MatchedRequest and therefore provide a SetId().
+// Many request types implement MatchedRequest and therefore provide a SetID().
 // To receive the corresponding MatchedReply events, firstly subscribe with the
-// same id as will be assigned with SetId(). Any incoming events that do not
+// same id as will be assigned with SetID(). Any incoming events that do not
 // implement MatchedReply will be delivered to those observers subscribed to
-// the UnmatchedReplyId constant. Note that the engine will raise an error if
-// an attempt is made to send a MatchedRequest with UnmatchedReplyId as its id,
+// the UnmatchedReplyID constant. Note that the engine will raise an error if
+// an attempt is made to send a MatchedRequest with UnmatchedReplyID as its id,
 // given the high unlikelihood of that id being required in normal situations
-// and that NextRequestId() guarantees to never return UnmatchedReplyId.
+// and that NextRequestID() guarantees to never return UnmatchedReplyID.
 // Each ErrorMessage event is delivered once only to each known observer.
 // The engine never closes the channel (allowing reuse across IDs and engines).
 // This call will block until the subscriber is registered or engine terminates.
@@ -550,7 +550,7 @@ func (v *header) read(b *bufio.Reader) (err error) {
 }
 
 // Send a message to the engine, blocking until sent or the engine exits.
-// This method will return an error if the UnmatchedReplyId is used or the
+// This method will return an error if the UnmatchedReplyID is used or the
 // engine exits. A nil error indicates successful transmission. Any transmission
 // failure (eg connectivity loss) will cause the engine to exit with an error.
 func (e *Engine) Send(r Request) (err error) {
