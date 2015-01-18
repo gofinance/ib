@@ -142,12 +142,15 @@ func NewEngine(opt NewEngineOptions) (*Engine, error) {
 	go e.startTransmitter()
 	go e.startMainLoop()
 
+	// send the StartAPI request
+	e.Send(&StartAPI{Client: e.client})
+
 	return &e, nil
 }
 
 func (e *Engine) handshake() error {
-	// write client version and id
-	clientShake := &clientHandshake{clientVersion, e.client}
+	// write client version
+	clientShake := &clientHandshake{clientVersion}
 	e.output.Reset()
 	if err := clientShake.write(e.output); err != nil {
 		return err
