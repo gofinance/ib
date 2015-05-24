@@ -3,6 +3,7 @@ package ib
 import (
 	"bufio"
 	"bytes"
+	"fmt"
 	"math"
 	"time"
 )
@@ -26,8 +27,51 @@ func (s FaMsgType) String() string {
 		return "PROFILES"
 	case FaMsgTypeAliases:
 		return "ALIASES"
+	default:
+		panic("unreachable")
 	}
-	panic("unreachable")
+}
+
+// writeMap is a small helper to batch write calls with various helper/types.
+// NOTE: to be used with caution.
+// Supported helpers:
+// - writeBool
+// - writeInt
+// - writeMaxInt
+// - writeFloat
+// - writeMaxFloat
+// - writeString
+// - writeTime (with `extra` field.)
+type writeMap struct {
+	fct   interface{}
+	val   interface{}
+	extra interface{}
+}
+
+type writeMapSlice []writeMap
+
+// Dump sends the current writemap to the given writer.
+// TODO: refactor helpers to use io.Writer instead of bytes.Buffer.
+func (m writeMapSlice) Dump(w *bytes.Buffer) error {
+	for _, elem := range m {
+		var err = fmt.Errorf("Unkown function type: %T", elem.fct)
+		switch fct := elem.fct.(type) {
+		case func(*bytes.Buffer, time.Time, timeFmt) error:
+			err = fct(w, elem.val.(time.Time), elem.extra.(timeFmt))
+		case func(*bytes.Buffer, bool) error:
+			err = fct(w, elem.val.(bool))
+		case func(*bytes.Buffer, int64) error:
+			err = fct(w, elem.val.(int64))
+		case func(*bytes.Buffer, string) error:
+			err = fct(w, elem.val.(string))
+		case func(*bytes.Buffer, float64) error:
+			err = fct(w, elem.val.(float64))
+		}
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // OutgoingMessageID .
@@ -150,70 +194,30 @@ func (r *RequestScannerSubscription) ID() int64               { return r.id }
 func (r *RequestScannerSubscription) code() OutgoingMessageID { return mRequestScannerSubscription }
 func (r *RequestScannerSubscription) version() int64          { return 4 }
 func (r *RequestScannerSubscription) write(b *bytes.Buffer) error {
-	if err := writeInt(b, r.id); err != nil {
-		return err
-	}
-	if err := writeMaxInt(b, r.Subscription.NumberOfRows); err != nil {
-		return err
-	}
-	if err := writeString(b, r.Subscription.Instrument); err != nil {
-		return err
-	}
-	if err := writeString(b, r.Subscription.LocationCode); err != nil {
-		return err
-	}
-	if err := writeString(b, r.Subscription.ScanCode); err != nil {
-		return err
-	}
-	if err := writeMaxFloat(b, r.Subscription.AbovePrice); err != nil {
-		return err
-	}
-	if err := writeMaxFloat(b, r.Subscription.BelowPrice); err != nil {
-		return err
-	}
-	if err := writeMaxInt(b, r.Subscription.AboveVolume); err != nil {
-		return err
-	}
-	if err := writeMaxFloat(b, r.Subscription.MarketCapAbove); err != nil {
-		return err
-	}
-	if err := writeMaxFloat(b, r.Subscription.MarketCapBelow); err != nil {
-		return err
-	}
-	if err := writeString(b, r.Subscription.MoodyRatingAbove); err != nil {
-		return err
-	}
-	if err := writeString(b, r.Subscription.MoodyRatingBelow); err != nil {
-		return err
-	}
-	if err := writeString(b, r.Subscription.SPRatingAbove); err != nil {
-		return err
-	}
-	if err := writeString(b, r.Subscription.SPRatingBelow); err != nil {
-		return err
-	}
-	if err := writeString(b, r.Subscription.MaturityDateAbove); err != nil {
-		return err
-	}
-	if err := writeString(b, r.Subscription.MaturityDateBelow); err != nil {
-		return err
-	}
-	if err := writeMaxFloat(b, r.Subscription.CouponRateAbove); err != nil {
-		return err
-	}
-	if err := writeMaxFloat(b, r.Subscription.CouponRateBelow); err != nil {
-		return err
-	}
-	if err := writeString(b, r.Subscription.ExcludeConvertible); err != nil {
-		return err
-	}
-	if err := writeMaxInt(b, r.Subscription.AverageOptionVolumeAbove); err != nil {
-		return err
-	}
-	if err := writeString(b, r.Subscription.ScannerSettingPairs); err != nil {
-		return err
-	}
-	if err := writeString(b, r.Subscription.StockTypeFilter); err != nil {
+	if err := (writeMapSlice{
+		{fct: writeInt, val: r.id},
+		{fct: writeMaxInt, val: r.Subscription.NumberOfRows},
+		{fct: writeString, val: r.Subscription.Instrument},
+		{fct: writeString, val: r.Subscription.LocationCode},
+		{fct: writeString, val: r.Subscription.ScanCode},
+		{fct: writeMaxFloat, val: r.Subscription.AbovePrice},
+		{fct: writeMaxFloat, val: r.Subscription.BelowPrice},
+		{fct: writeMaxInt, val: r.Subscription.AboveVolume},
+		{fct: writeMaxFloat, val: r.Subscription.MarketCapAbove},
+		{fct: writeMaxFloat, val: r.Subscription.MarketCapBelow},
+		{fct: writeString, val: r.Subscription.MoodyRatingAbove},
+		{fct: writeString, val: r.Subscription.MoodyRatingBelow},
+		{fct: writeString, val: r.Subscription.SPRatingAbove},
+		{fct: writeString, val: r.Subscription.SPRatingBelow},
+		{fct: writeString, val: r.Subscription.MaturityDateAbove},
+		{fct: writeString, val: r.Subscription.MaturityDateBelow},
+		{fct: writeMaxFloat, val: r.Subscription.CouponRateAbove},
+		{fct: writeMaxFloat, val: r.Subscription.CouponRateBelow},
+		{fct: writeString, val: r.Subscription.ExcludeConvertible},
+		{fct: writeMaxInt, val: r.Subscription.AverageOptionVolumeAbove},
+		{fct: writeString, val: r.Subscription.ScannerSettingPairs},
+		{fct: writeString, val: r.Subscription.StockTypeFilter},
+	}).Dump(b); err != nil {
 		return err
 	}
 
@@ -247,57 +251,31 @@ func (r *RequestMarketData) ID() int64               { return r.id }
 func (r *RequestMarketData) code() OutgoingMessageID { return mRequestMarketData }
 func (r *RequestMarketData) version() int64          { return 11 }
 func (r *RequestMarketData) write(b *bytes.Buffer) error {
-	if err := writeInt(b, r.id); err != nil {
-		return err
-	}
-	if err := writeInt(b, r.Contract.ContractID); err != nil {
-		return err
-	}
-	if err := writeString(b, r.Contract.Symbol); err != nil {
-		return err
-	}
-	if err := writeString(b, r.Contract.SecurityType); err != nil {
-		return err
-	}
-	if err := writeString(b, r.Contract.Expiry); err != nil {
-		return err
-	}
-	if err := writeFloat(b, r.Contract.Strike); err != nil {
-		return err
-	}
-	if err := writeString(b, r.Contract.Right); err != nil {
-		return err
-	}
-	if err := writeString(b, r.Contract.Multiplier); err != nil {
-		return err
-	}
-	if err := writeString(b, r.Contract.Exchange); err != nil {
-		return err
-	}
-	if err := writeString(b, r.Contract.PrimaryExchange); err != nil {
-		return err
-	}
-	if err := writeString(b, r.Contract.Currency); err != nil {
-		return err
-	}
-	if err := writeString(b, r.Contract.LocalSymbol); err != nil {
-		return err
-	}
-	if err := writeString(b, r.Contract.TradingClass); err != nil {
+	if err := (writeMapSlice{
+		{fct: writeInt, val: r.id},
+		{fct: writeInt, val: r.Contract.ContractID},
+		{fct: writeString, val: r.Contract.Symbol},
+		{fct: writeString, val: r.Contract.SecurityType},
+		{fct: writeString, val: r.Contract.Expiry},
+		{fct: writeFloat, val: r.Contract.Strike},
+		{fct: writeString, val: r.Contract.Right},
+		{fct: writeString, val: r.Contract.Multiplier},
+		{fct: writeString, val: r.Contract.Exchange},
+		{fct: writeString, val: r.Contract.PrimaryExchange},
+		{fct: writeString, val: r.Contract.Currency},
+		{fct: writeString, val: r.Contract.LocalSymbol},
+		{fct: writeString, val: r.Contract.TradingClass},
+	}).Dump(b); err != nil {
 		return err
 	}
 	if r.Contract.SecurityType == bagSecType {
 		for _, cl := range r.ComboLegs {
-			if err := writeInt(b, cl.ContractID); err != nil {
-				return err
-			}
-			if err := writeInt(b, cl.Ratio); err != nil {
-				return err
-			}
-			if err := writeString(b, cl.Action); err != nil {
-				return err
-			}
-			if err := writeString(b, cl.Exchange); err != nil {
+			if err := (writeMapSlice{
+				{fct: writeInt, val: cl.ContractID},
+				{fct: writeInt, val: cl.Ratio},
+				{fct: writeString, val: cl.Action},
+				{fct: writeString, val: cl.Exchange},
+			}).Dump(b); err != nil {
 				return err
 			}
 		}
@@ -307,13 +285,11 @@ func (r *RequestMarketData) write(b *bytes.Buffer) error {
 		}
 	}
 	if r.Comp != nil {
-		if err := writeInt(b, r.Comp.ContractID); err != nil {
-			return err
-		}
-		if err := writeFloat(b, r.Comp.Delta); err != nil {
-			return err
-		}
-		if err := writeFloat(b, r.Comp.Price); err != nil {
+		if err := (writeMapSlice{
+			{fct: writeInt, val: r.Comp.ContractID},
+			{fct: writeFloat, val: r.Comp.Delta},
+			{fct: writeFloat, val: r.Comp.Price},
+		}).Dump(b); err != nil {
 			return err
 		}
 	}
@@ -383,61 +359,27 @@ func (r *RequestHistoricalData) ID() int64               { return r.id }
 func (r *RequestHistoricalData) code() OutgoingMessageID { return mRequestHistoricalData }
 func (r *RequestHistoricalData) version() int64          { return 6 }
 func (r *RequestHistoricalData) write(b *bytes.Buffer) error {
-	if err := writeInt(b, r.id); err != nil {
-		return err
-	}
-	if err := writeInt(b, r.Contract.ContractID); err != nil {
-		return err
-	}
-	if err := writeString(b, r.Contract.Symbol); err != nil {
-		return err
-	}
-	if err := writeString(b, r.Contract.SecurityType); err != nil {
-		return err
-	}
-	if err := writeString(b, r.Contract.Expiry); err != nil {
-		return err
-	}
-	if err := writeFloat(b, r.Contract.Strike); err != nil {
-		return err
-	}
-	if err := writeString(b, r.Contract.Right); err != nil {
-		return err
-	}
-	if err := writeString(b, r.Contract.Multiplier); err != nil {
-		return err
-	}
-	if err := writeString(b, r.Contract.Exchange); err != nil {
-		return err
-	}
-	if err := writeString(b, r.Contract.PrimaryExchange); err != nil {
-		return err
-	}
-	if err := writeString(b, r.Contract.Currency); err != nil {
-		return err
-	}
-	if err := writeString(b, r.Contract.LocalSymbol); err != nil {
-		return err
-	}
-	if err := writeString(b, r.Contract.TradingClass); err != nil {
-		return err
-	}
-	if err := writeBool(b, r.IncludeExpired); err != nil {
-		return err
-	}
-	if err := writeTime(b, r.EndDateTime, timeWriteUTC); err != nil {
-		return err
-	}
-	if err := writeString(b, string(r.BarSize)); err != nil {
-		return err
-	}
-	if err := writeString(b, r.Duration); err != nil {
-		return err
-	}
-	if err := writeBool(b, r.UseRTH); err != nil {
-		return err
-	}
-	if err := writeString(b, string(r.WhatToShow)); err != nil {
+	if err := (writeMapSlice{
+		{fct: writeInt, val: r.id},
+		{fct: writeInt, val: r.Contract.ContractID},
+		{fct: writeString, val: r.Contract.Symbol},
+		{fct: writeString, val: r.Contract.SecurityType},
+		{fct: writeString, val: r.Contract.Expiry},
+		{fct: writeFloat, val: r.Contract.Strike},
+		{fct: writeString, val: r.Contract.Right},
+		{fct: writeString, val: r.Contract.Multiplier},
+		{fct: writeString, val: r.Contract.Exchange},
+		{fct: writeString, val: r.Contract.PrimaryExchange},
+		{fct: writeString, val: r.Contract.Currency},
+		{fct: writeString, val: r.Contract.LocalSymbol},
+		{fct: writeString, val: r.Contract.TradingClass},
+		{fct: writeBool, val: r.IncludeExpired},
+		{fct: writeTime, val: r.EndDateTime, extra: timeWriteUTC},
+		{fct: writeString, val: string(r.BarSize)},
+		{fct: writeString, val: r.Duration},
+		{fct: writeBool, val: r.UseRTH},
+		{fct: writeString, val: string(r.WhatToShow)},
+	}).Dump(b); err != nil {
 		return err
 	}
 	// for formatDate==2, requesting daily bars returns the date in YYYYMMDD format
@@ -474,52 +416,24 @@ func (r *RequestRealTimeBars) ID() int64               { return r.id }
 func (r *RequestRealTimeBars) code() OutgoingMessageID { return mRequestRealTimeBars }
 func (r *RequestRealTimeBars) version() int64          { return 3 }
 func (r *RequestRealTimeBars) write(b *bytes.Buffer) error {
-	if err := writeInt(b, r.id); err != nil {
-		return err
-	}
-	if err := writeInt(b, r.Contract.ContractID); err != nil {
-		return err
-	}
-	if err := writeString(b, r.Contract.Symbol); err != nil {
-		return err
-	}
-	if err := writeString(b, r.Contract.SecurityType); err != nil {
-		return err
-	}
-	if err := writeString(b, r.Contract.Expiry); err != nil {
-		return err
-	}
-	if err := writeFloat(b, r.Contract.Strike); err != nil {
-		return err
-	}
-	if err := writeString(b, r.Contract.Right); err != nil {
-		return err
-	}
-	if err := writeString(b, r.Contract.Multiplier); err != nil {
-		return err
-	}
-	if err := writeString(b, r.Contract.Exchange); err != nil {
-		return err
-	}
-	if err := writeString(b, r.Contract.PrimaryExchange); err != nil {
-		return err
-	}
-	if err := writeString(b, r.Contract.Currency); err != nil {
-		return err
-	}
-	if err := writeString(b, r.Contract.LocalSymbol); err != nil {
-		return err
-	}
-	if err := writeString(b, r.Contract.TradingClass); err != nil {
-		return err
-	}
-	if err := writeInt(b, r.BarSize); err != nil {
-		return err
-	}
-	if err := writeString(b, string(r.WhatToShow)); err != nil {
-		return err
-	}
-	if err := writeBool(b, r.UseRTH); err != nil {
+	if err := (writeMapSlice{
+		{fct: writeInt, val: r.id},
+		{fct: writeInt, val: r.Contract.ContractID},
+		{fct: writeString, val: r.Contract.Symbol},
+		{fct: writeString, val: r.Contract.SecurityType},
+		{fct: writeString, val: r.Contract.Expiry},
+		{fct: writeFloat, val: r.Contract.Strike},
+		{fct: writeString, val: r.Contract.Right},
+		{fct: writeString, val: r.Contract.Multiplier},
+		{fct: writeString, val: r.Contract.Exchange},
+		{fct: writeString, val: r.Contract.PrimaryExchange},
+		{fct: writeString, val: r.Contract.Currency},
+		{fct: writeString, val: r.Contract.LocalSymbol},
+		{fct: writeString, val: r.Contract.TradingClass},
+		{fct: writeString, val: string(r.BarSize)},
+		{fct: writeString, val: string(r.WhatToShow)},
+		{fct: writeBool, val: r.UseRTH},
+	}).Dump(b); err != nil {
 		return err
 	}
 	var barOption bytes.Buffer

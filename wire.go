@@ -160,38 +160,40 @@ func readTime(b *bufio.Reader, f timeFmt) (t time.Time, err error) {
 
 }
 
-func writeString(b *bytes.Buffer, s string) (err error) {
-	_, err = b.WriteString(s + "\000")
-	return
+func writeString(b *bytes.Buffer, s string) error {
+	_, err := b.WriteString(s + "\000")
+	return err
 }
 
-func writeInt(b *bytes.Buffer, i int64) (err error) {
+func writeInt(b *bytes.Buffer, i int64) error {
 	return writeString(b, strconv.FormatInt(i, 10))
 }
 
-func writeFloat(b *bytes.Buffer, f float64) (err error) {
+func writeFloat(b *bytes.Buffer, f float64) error {
 	return writeString(b, strconv.FormatFloat(f, 'g', 10, 64))
 }
 
-func writeMaxFloat(b *bytes.Buffer, f float64) (err error) {
+// TODO: this never errors. Is it expected?
+func writeMaxFloat(b *bytes.Buffer, f float64) error {
 	if f >= math.MaxFloat64 {
 		b.WriteByte('\000')
 	} else {
 		writeFloat(b, f)
 	}
-	return
+	return nil
 }
 
-func writeMaxInt(b *bytes.Buffer, i int64) (err error) {
+// TODO: this never errors. Is it expected?
+func writeMaxInt(b *bytes.Buffer, i int64) error {
 	if i == math.MaxInt64 {
 		b.WriteByte('\000')
 	} else {
 		writeInt(b, i)
 	}
-	return
+	return nil
 }
 
-func writeBool(b *bytes.Buffer, bo bool) (err error) {
+func writeBool(b *bytes.Buffer, bo bool) error {
 	s := "0"
 	if bo {
 		s = "1"
@@ -199,7 +201,7 @@ func writeBool(b *bytes.Buffer, bo bool) (err error) {
 	return writeString(b, s)
 }
 
-func writeTime(b *bytes.Buffer, t time.Time, f timeFmt) (err error) {
+func writeTime(b *bytes.Buffer, t time.Time, f timeFmt) error {
 	switch f {
 	case timeWriteUTC:
 		return writeString(b, t.UTC().Format("20060102 15:04:05")+" UTC")
