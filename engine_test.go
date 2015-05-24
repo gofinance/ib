@@ -55,7 +55,7 @@ var testEngine *Engine
 // reusing the same engine.
 func NewTestEngine(t *testing.T) *Engine {
 	if testEngine == nil {
-		opts := NewEngineOptions{Gateway: getGatewayURL()}
+		opts := EngineOptions{Gateway: getGatewayURL()}
 		if os.Getenv("CI") != "" || os.Getenv("IB_ENGINE_DUMP") != "" {
 			opts.DumpConversation = true
 		}
@@ -92,7 +92,7 @@ func (e *Engine) ConditionalStop(t *testing.T) {
 }
 
 func TestConnect(t *testing.T) {
-	opts := NewEngineOptions{Gateway: getGatewayURL()}
+	opts := EngineOptions{Gateway: getGatewayURL()}
 	if os.Getenv("CI") != "" || os.Getenv("IB_ENGINE_DUMP") != "" {
 		opts.DumpConversation = true
 	}
