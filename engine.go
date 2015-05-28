@@ -30,8 +30,8 @@ const (
 	UnmatchedReplyID = int64(-9223372036854775808)
 )
 
-// NewEngineOptions .
-type NewEngineOptions struct {
+// EngineOptions .
+type EngineOptions struct {
 	Gateway          string
 	Client           int64
 	DumpConversation bool
@@ -97,12 +97,12 @@ var clientSeq = uniqueID(1)
 
 // NewEngine takes a client id and returns a new connection
 // to IB Gateway or IB Trader Workstation.
-func NewEngine(opt NewEngineOptions) (*Engine, error) {
+func NewEngine(opt EngineOptions) (*Engine, error) {
 	gateway := opt.Gateway
 	if gateway == "" {
 		gateway = gatewayDefault
 	}
-	con, err := net.Dial("tcp", gateway)
+	conn, err := net.Dial("tcp", gateway)
 	if err != nil {
 		return nil, err
 	}
@@ -119,8 +119,8 @@ func NewEngine(opt NewEngineOptions) (*Engine, error) {
 		ch:               make(chan command),
 		gateway:          gateway,
 		client:           client,
-		con:              con,
-		reader:           bufio.NewReader(con),
+		con:              conn,
+		reader:           bufio.NewReader(conn),
 		input:            bytes.NewBuffer(make([]byte, 0, 4096)),
 		output:           bytes.NewBuffer(make([]byte, 0, 4096)),
 		rxReply:          make(chan Reply),
@@ -132,8 +132,7 @@ func NewEngine(opt NewEngineOptions) (*Engine, error) {
 		dumpConversation: opt.DumpConversation,
 	}
 
-	err = e.handshake()
-	if err != nil {
+	if err := e.handshake(); err != nil {
 		return nil, err
 	}
 
@@ -168,8 +167,7 @@ func (e *Engine) handshake() error {
 	}
 
 	if serverShake.version < minServerVersion {
-		return fmt.Errorf("%s must be at least version %d (reported %d)",
-			e.ConnectionInfo(), minServerVersion, serverShake.version)
+		return fmt.Errorf("%s must be at least version %d (reported %d)", e.ConnectionInfo(), minServerVersion, serverShake.version)
 	}
 
 	e.serverVersion = serverShake.version
@@ -211,8 +209,7 @@ func (e *Engine) startTransmitter() {
 		case <-e.terminated:
 			return
 		case t := <-e.txRequest:
-			err := e.transmit(t.req)
-			if err != nil {
+			if err := e.transmit(t.req); err != nil {
 				select {
 				case <-e.terminated:
 					return
@@ -243,7 +240,7 @@ func (e *Engine) startMainLoop() {
 				select {
 				case ob <- e.state:
 					continue outer
-				case <-time.After(time.Duration(5) * time.Second):
+				case <-time.After(5 * time.Second):
 					log.Printf("Waited 5 seconds for state channel %v\n", ob)
 				}
 			}
@@ -537,26 +534,28 @@ type header struct {
 	version int64
 }
 
-func (v *header) write(b *bytes.Buffer) (err error) {
-	if err = writeInt(b, v.code); err != nil {
-		return
+func (v *header) write(b *bytes.Buffer) error {
+	if err := writeInt(b, v.code); err != nil {
+		return err
 	}
 	return writeInt(b, v.version)
 }
 
-func (v *header) read(b *bufio.Reader) (err error) {
+func (v *header) read(b *bufio.Reader) error {
+	var err error
+
 	if v.code, err = readInt(b); err != nil {
-		return
+		return err
 	}
 	v.version, err = readInt(b)
-	return
+	return err
 }
 
 // Send a message to the engine, blocking until sent or the engine exits.
 // This method will return an error if the UnmatchedReplyID is used or the
 // engine exits. A nil error indicates successful transmission. Any transmission
 // failure (eg connectivity loss) will cause the engine to exit with an error.
-func (e *Engine) Send(r Request) (err error) {
+func (e *Engine) Send(r Request) error {
 	if mr, ok := r.(MatchedRequest); ok {
 		if mr.ID() == UnmatchedReplyID {
 			return fmt.Errorf("%d is a reserved ID (try using NextRequestID)", UnmatchedReplyID)
@@ -567,22 +566,20 @@ func (e *Engine) Send(r Request) (err error) {
 	// send tx request
 	select {
 	case <-e.terminated:
-		err = e.FatalError()
-		if err == nil {
-			err = fmt.Errorf("Engine has already exited normally")
+		if err := e.FatalError(); err != nil {
+			return err
 		}
-		return err
+		return fmt.Errorf("Engine has already exited normally")
 	case e.txRequest <- t:
 	}
 
 	// await ack or error
 	select {
 	case <-e.terminated:
-		err = e.FatalError()
-		if err == nil {
-			err = fmt.Errorf("Engine has already exited normally")
+		if err := e.FatalError(); err != nil {
+			return err
 		}
-		return err
+		return fmt.Errorf("Engine has already exited normally")
 	case <-t.ack:
 		return nil
 	}
@@ -594,8 +591,7 @@ type packetError struct {
 }
 
 func (e *packetError) Error() string {
-	return fmt.Sprintf("don't understand packet '%v' of type '%v'",
-		e.value, e.kind)
+	return fmt.Sprintf("don't understand packet '%v' of type '%v'", e.value, e.kind)
 }
 
 func failPacket(v interface{}) error {
@@ -605,32 +601,32 @@ func failPacket(v interface{}) error {
 	}
 }
 
-func (e *Engine) receive() (r Reply, err error) {
+func (e *Engine) receive() (Reply, error) {
 	e.input.Reset()
 	hdr := &header{}
 
 	// decode header
-	if err = hdr.read(e.reader); err != nil {
+	if err := hdr.read(e.reader); err != nil {
 		if e.dumpConversation {
 			fmt.Printf("%d< %v\n", e.client, err)
 		}
-		return
+		return nil, err
 	}
 
 	// decode message
-	r, err = code2Msg(hdr.code)
+	r, err := code2Msg(hdr.code)
 	if err != nil {
 		if e.dumpConversation {
 			fmt.Printf("%d< %v %s\n", e.client, hdr, err)
 		}
-		return
+		return nil, err
 	}
 
-	if err = r.read(e.reader); err != nil {
+	if err := r.read(e.reader); err != nil {
 		if e.dumpConversation {
 			fmt.Printf("%d< %v %s\n", e.client, hdr, err)
 		}
-		return
+		return nil, err
 	}
 
 	if e.dumpConversation {
@@ -654,7 +650,7 @@ func (e *Engine) receive() (r Reply, err error) {
 		}
 	}
 
-	return
+	return r, nil
 }
 
 // EngineState .
@@ -675,6 +671,7 @@ func (s EngineState) String() string {
 		return "EngineExitError"
 	case EngineExitNormal:
 		return "EngineExitNormal"
+	default:
+		panic("unreachable")
 	}
-	panic("unreachable")
 }

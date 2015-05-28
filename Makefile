@@ -1,7 +1,9 @@
-NAME		=	ib
-GATEWAY_IMAGE	=	$(NAME)_gateway_test
-GATEWAY_CONT	=	$(GATEWAY_IMAGE)_c
-TEST_CONT	=	$(NAME)_test_c
+NAME            =       ib
+GATEWAY_IMAGE   =       $(NAME)_gateway_test
+GATEWAY_CONT    =       $(GATEWAY_IMAGE)_c
+TEST_CONT       =       $(NAME)_test_c
+IB_LOGIN       ?=       fdemo
+IB_PASSWORD    ?=       demouser
 
 all		:	test
 
@@ -12,7 +14,7 @@ all		:	test
 .gateway_id	:	.build_gw_id
 		-@docker rm -f $(GATEWAY_CONT) > /dev/null 2> /dev/null || true
 		-@docker rm -f $(GATEWAY_CONT)_tmp > /dev/null 2> /dev/null || true
-		docker run --name $(GATEWAY_CONT) -d $(GATEWAY_IMAGE)
+		docker run --name $(GATEWAY_CONT) -e IB_LOGIN=$(IB_LOGIN) -e IB_PASSWORD=$(IB_PASSWORD) -d $(GATEWAY_IMAGE)
 		@echo Wait for Gateway to be started
 		@sleep 1
 		@docker run --link $(GATEWAY_CONT):gw --rm --name $(GATEWAY_CONT)_tmp -t ubuntu:14.04 \

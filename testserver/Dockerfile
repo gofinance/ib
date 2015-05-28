@@ -8,6 +8,9 @@ ENV		JAVA_HOME /usr/lib/jvm/java-7-openjdk-amd64
 EXPOSE		4002
 EXPOSE		4003
 
+ENV		IB_LOGIN	fdemo
+ENV		IB_PASSWORD	demouser
+
 ADD		.	  /src
 
 CMD		cd /src && ./ibgwdocker

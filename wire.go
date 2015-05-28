@@ -46,54 +46,54 @@ func readStringList(b *bufio.Reader, sep string) (r []string, err error) {
 	return strings.Split(s, sep), nil
 }
 
-func readInt(b *bufio.Reader) (i int64, err error) {
-	var str string
-	if str, err = readString(b); err != nil {
-		return
+func readInt(b *bufio.Reader) (int64, error) {
+	str, err := readString(b)
+	if err != nil {
+		return -1, err
 	}
 	if str == "" {
 		return math.MaxInt64, nil
 	}
-	i, err = strconv.ParseInt(str, 10, 64)
-	return
+	i, err := strconv.ParseInt(str, 10, 64)
+	return i, err
 }
 
 // readIntList reads an IB pipe-separated string of integers into a Go slice.
-func readIntList(b *bufio.Reader) (r []int, err error) {
+func readIntList(b *bufio.Reader) ([]int, error) {
 	s, err := readString(b)
 	if err != nil {
-		return
+		return nil, err
 	}
 	split := strings.Split(s, "|")
-	r = make([]int, len(split))
+	r := make([]int, len(split))
 	for i, val := range split {
 		r[i], err = strconv.Atoi(val)
 		if err != nil {
-			return
+			return nil, err
 		}
 	}
-	return
+	return r, nil
 }
 
-func readFloat(b *bufio.Reader) (f float64, err error) {
-	var str string
-	if str, err = readString(b); err != nil {
-		return
+func readFloat(b *bufio.Reader) (float64, error) {
+	str, err := readString(b)
+	if err != nil {
+		return -1., err
 	}
 	if str == "" {
 		return math.MaxFloat64, nil
 	}
-	f, err = strconv.ParseFloat(str, 64)
-	return
+	f, err := strconv.ParseFloat(str, 64)
+	return f, err
 }
 
 // readBool is equivalent of IB API EReader.readBoolFromInt.
-func readBool(b *bufio.Reader) (bo bool, err error) {
-	var i int64
-	if i, err = readInt(b); err != nil {
-		return
+func readBool(b *bufio.Reader) (bool, error) {
+	i, err := readInt(b)
+	if err != nil {
+		return false, err
 	}
-	return (i > 0), err
+	return (i > 0), nil
 }
 
 // readTime reads a string and then parses it according to the given time format.
@@ -160,38 +160,40 @@ func readTime(b *bufio.Reader, f timeFmt) (t time.Time, err error) {
 
 }
 
-func writeString(b *bytes.Buffer, s string) (err error) {
-	_, err = b.WriteString(s + "\000")
-	return
+func writeString(b *bytes.Buffer, s string) error {
+	_, err := b.WriteString(s + "\000")
+	return err
 }
 
-func writeInt(b *bytes.Buffer, i int64) (err error) {
+func writeInt(b *bytes.Buffer, i int64) error {
 	return writeString(b, strconv.FormatInt(i, 10))
 }
 
-func writeFloat(b *bytes.Buffer, f float64) (err error) {
+func writeFloat(b *bytes.Buffer, f float64) error {
 	return writeString(b, strconv.FormatFloat(f, 'g', 10, 64))
 }
 
-func writeMaxFloat(b *bytes.Buffer, f float64) (err error) {
+// TODO: this never errors. Is it expected?
+func writeMaxFloat(b *bytes.Buffer, f float64) error {
 	if f >= math.MaxFloat64 {
 		b.WriteByte('\000')
 	} else {
 		writeFloat(b, f)
 	}
-	return
+	return nil
 }
 
-func writeMaxInt(b *bytes.Buffer, i int64) (err error) {
+// TODO: this never errors. Is it expected?
+func writeMaxInt(b *bytes.Buffer, i int64) error {
 	if i == math.MaxInt64 {
 		b.WriteByte('\000')
 	} else {
 		writeInt(b, i)
 	}
-	return
+	return nil
 }
 
-func writeBool(b *bytes.Buffer, bo bool) (err error) {
+func writeBool(b *bytes.Buffer, bo bool) error {
 	s := "0"
 	if bo {
 		s = "1"
@@ -199,7 +201,7 @@ func writeBool(b *bytes.Buffer, bo bool) (err error) {
 	return writeString(b, s)
 }
 
-func writeTime(b *bytes.Buffer, t time.Time, f timeFmt) (err error) {
+func writeTime(b *bytes.Buffer, t time.Time, f timeFmt) error {
 	switch f {
 	case timeWriteUTC:
 		return writeString(b, t.UTC().Format("20060102 15:04:05")+" UTC")
@@ -209,7 +211,7 @@ func writeTime(b *bytes.Buffer, t time.Time, f timeFmt) (err error) {
 	return fmt.Errorf("goib: cannot write time format '%v'", f)
 }
 
-func detectTime(timeString string) (f timeFmt, err error) {
+func detectTime(timeString string) (timeFmt, error) {
 	if len(timeString) == len("14:52") && strings.Contains(timeString, ":") {
 		return timeReadLocalTime, nil
 	}
@@ -232,9 +234,9 @@ func detectTime(timeString string) (f timeFmt, err error) {
 		return timeReadLocalDate, nil
 	}
 
-	if _, err = strconv.ParseInt(timeString, 10, 64); err == nil {
+	if _, err := strconv.ParseInt(timeString, 10, 64); err == nil {
 		return timeReadEpoch, nil
 	}
 
-	return f, fmt.Errorf("ibgo: '%s' has unknown time format", timeString)
+	return -1, fmt.Errorf("ibgo: '%s' has unknown time format", timeString)
 }

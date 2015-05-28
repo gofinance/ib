@@ -1,5 +1,7 @@
 #!/bin/bash
 
+sed -i.bak s/{{IBLOGIN}}/$IB_LOGIN/g ibcontroller-2.12.0.ini
+sed -i.bak s/{{IBPASSWORD}}/$IB_PASSWORD/g ibcontroller-2.12.0.ini
 rm -rf tws
 mkdir tws
 cd tws
