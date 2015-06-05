@@ -1,10 +1,14 @@
 #!/bin/bash
 
+${IB_LOGIN:=fdemo}
+${IB_PASSWORD:=demouser}
+sed s/{{IBLOGIN}}/$IB_LOGIN/g ibcontroller-2.12.0.ini | sed s/{{IBPASSWORD}}/$IB_PASSWORD/g > ibcontroller.ini
+
 rm -rf tws
 mkdir tws
 pushd tws
 jar -xf ../unixmacosx-943.2a.jar
 pushd IBJts
-java -cp ../../ibcontroller-2.12.0.jar:jts.jar:total.2013.jar -Xmx512M -XX:MaxPermSize=128M ibcontroller.IBGatewayController ../../ibcontroller-2.12.0.ini &
+java -cp ../../ibcontroller-2.12.0.jar:jts.jar:total.2013.jar -Xmx512M -XX:MaxPermSize=128M ibcontroller.IBGatewayController ../../ibcontroller.ini &
 popd
 popd
