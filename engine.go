@@ -97,7 +97,7 @@ var clientSeq = uniqueID(1)
 
 // NewEngine takes a client id and returns a new connection
 // to IB Gateway or IB Trader Workstation.
-func NewEngine(opt EngineOptions) (*Engine, error) {
+func NewEngine(opt EngineOptions) (re *Engine, rerr error) {
 	gateway := opt.Gateway
 	if gateway == "" {
 		gateway = gatewayDefault
@@ -106,6 +106,11 @@ func NewEngine(opt EngineOptions) (*Engine, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer func() {
+		if rerr != nil {
+			_ = conn.Close()
+		}
+	}()
 
 	client := opt.Client
 	if client == 0 {
@@ -273,10 +278,11 @@ func (e *Engine) startMainLoop() {
 func (e *Engine) deliverToObservers(r Reply) {
 	if r.code() == mErrorMessage {
 		var done []chan<- Reply
+		outer:
 		for _, o := range e.observers {
 			for _, prevDone := range done {
 				if o == prevDone {
-					continue
+					continue outer
 				}
 			}
 			done = append(done, o)
