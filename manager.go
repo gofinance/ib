@@ -96,7 +96,15 @@ func NewAbstractManager(e *Engine) (*AbstractManager, error) {
 	}, nil
 }
 
-func (a *AbstractManager) startMainLoop(preLoop func() error, receive func(r Reply) (UpdateStatus, error), preDestroy func()) {
+func (a *AbstractManager) RecvChan() chan Reply {
+	return a.rc
+}
+
+func (a *AbstractManager) Engine() *Engine {
+	return a.eng
+}
+
+func (a *AbstractManager) StartMainLoop(preLoop func() error, receive func(r Reply) (UpdateStatus, error), preDestroy func()) {
 	defer func() {
 		preDestroy()
 		a.eng.UnsubscribeState(a.engs)
