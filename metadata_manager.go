@@ -41,7 +41,7 @@ func NewMetadataManager(e *Engine, c Contract) (*MetadataManager, error) {
 		options:         options,
 	}
 
-	go m.startMainLoop(m.preLoop, m.receive, m.preDestroy)
+	go m.StartMainLoop(m.preLoop, m.receive, m.preDestroy)
 	return m, nil
 }
 

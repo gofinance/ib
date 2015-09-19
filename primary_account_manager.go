@@ -29,7 +29,7 @@ func NewPrimaryAccountManager(e *Engine) (*PrimaryAccountManager, error) {
 		portfolio: map[PortfolioValueKey]PortfolioValue{},
 	}
 
-	go p.startMainLoop(p.preLoop, p.receive, p.preDestroy)
+	go p.StartMainLoop(p.preLoop, p.receive, p.preDestroy)
 	return p, nil
 }
 

@@ -26,7 +26,7 @@ func NewChainManager(e *Engine, c Contract) (*ChainManager, error) {
 		chains:          OptionChains{},
 	}
 
-	go m.startMainLoop(m.preLoop, m.receive, m.preDestroy)
+	go m.StartMainLoop(m.preLoop, m.receive, m.preDestroy)
 	return m, nil
 }
 

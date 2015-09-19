@@ -92,7 +92,7 @@ func NewAdvisorAccountManager(e *Engine) (*AdvisorAccountManager, error) {
 		portfolio: map[PositionKey]Position{},
 	}
 
-	go a.startMainLoop(a.preLoop, a.receive, a.preDestroy)
+	go a.StartMainLoop(a.preLoop, a.receive, a.preDestroy)
 	return a, nil
 }
 

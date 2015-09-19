@@ -96,11 +96,16 @@ func NewAbstractManager(e *Engine) (*AbstractManager, error) {
 	}, nil
 }
 
-func (a *AbstractManager) startMainLoop(preLoop func() error, receive func(r Reply) (UpdateStatus, error), preDestroy func()) {
-	errors := make(chan error)
+func (a *AbstractManager) RecvChan() chan Reply {
+	return a.rc
+}
 
+func (a *AbstractManager) Engine() *Engine {
+	return a.eng
+}
+
+func (a *AbstractManager) StartMainLoop(preLoop func() error, receive func(r Reply) (UpdateStatus, error), preDestroy func()) {
 	defer func() {
-		<-errors // ensures preLoop goroutine has exited
 		preDestroy()
 		a.eng.UnsubscribeState(a.engs)
 		close(a.update)
@@ -108,23 +113,15 @@ func (a *AbstractManager) startMainLoop(preLoop func() error, receive func(r Rep
 	}()
 
 	go a.eng.SubscribeState(a.engs)
-	go func() {
-		err := preLoop()
-		if err != nil {
-			errors <- err
-		}
-		close(errors)
-	}()
+	if err := preLoop(); err != nil {
+		a.err = err
+		return
+	}
 
 	for {
 		select {
 		case <-a.exit:
 			return
-		case e, ok := <-errors:
-			if ok {
-				a.err = e
-				return
-			}
 		case r := <-a.rc:
 			if a.consume(r, receive) {
 				return

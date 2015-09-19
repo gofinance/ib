@@ -24,7 +24,7 @@ func NewExecutionManager(e *Engine, filter ExecutionFilter) (*ExecutionManager, 
 		filter: filter,
 	}
 
-	go em.startMainLoop(em.preLoop, em.receive, em.preDestroy)
+	go em.StartMainLoop(em.preLoop, em.receive, em.preDestroy)
 	return em, nil
 }
 

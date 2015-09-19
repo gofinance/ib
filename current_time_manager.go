@@ -18,7 +18,7 @@ func NewCurrentTimeManager(e *Engine) (*CurrentTimeManager, error) {
 
 	m := &CurrentTimeManager{AbstractManager: *am, id: UnmatchedReplyID}
 
-	go m.startMainLoop(m.preLoop, m.receive, m.preDestroy)
+	go m.StartMainLoop(m.preLoop, m.receive, m.preDestroy)
 	return m, nil
 }
 
