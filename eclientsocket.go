@@ -269,6 +269,9 @@ func (r *RequestMarketData) write(b *bytes.Buffer) error {
 		return err
 	}
 	if r.Contract.SecurityType == bagSecType {
+		if err := writeInt(b, int64(len(r.ComboLegs))); err != nil {
+			return err
+		}
 		for _, cl := range r.ComboLegs {
 			if err := (writeMapSlice{
 				{fct: writeInt, val: cl.ContractID},
@@ -286,13 +289,19 @@ func (r *RequestMarketData) write(b *bytes.Buffer) error {
 	}
 	if r.Comp != nil {
 		if err := (writeMapSlice{
+			{fct: writeBool, val: true},
 			{fct: writeInt, val: r.Comp.ContractID},
 			{fct: writeFloat, val: r.Comp.Delta},
 			{fct: writeFloat, val: r.Comp.Price},
 		}).Dump(b); err != nil {
 			return err
 		}
+	} else {
+		if err := writeBool(b, false); err != nil {
+			return err
+		}
 	}
+
 	if err := writeString(b, r.GenericTickList); err != nil {
 		return err
 	}
