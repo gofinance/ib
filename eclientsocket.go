@@ -301,7 +301,6 @@ func (r *RequestMarketData) write(b *bytes.Buffer) error {
 			return err
 		}
 	}
-
 	if err := writeString(b, r.GenericTickList); err != nil {
 		return err
 	}
