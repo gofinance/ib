@@ -282,10 +282,6 @@ func (r *RequestMarketData) write(b *bytes.Buffer) error {
 				return err
 			}
 		}
-	} else {
-		if err := writeInt(b, int64(0)); err != nil {
-			return err
-		}
 	}
 	if r.Comp != nil {
 		if err := (writeMapSlice{
