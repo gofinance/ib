@@ -318,7 +318,8 @@ func (e *Engine) deliverToObserver(c chan<- Reply, r Reply) {
 		case c <- r:
 			return
 		case <-time.After(time.Duration(5) * time.Second):
-			log.Printf("Waited 5 seconds for reply channel %v\n", c)
+			log.Printf("IB: Waited 5 seconds for reply channel %v, lost %v\n", c, r)
+			return
 		}
 	}
 }
