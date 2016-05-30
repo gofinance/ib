@@ -124,6 +124,8 @@ func (a *AbstractManager) startMainLoop(preLoop func() error, receive func(r Rep
 			if ok {
 				a.err = e
 				return
+			} else {
+				errors = nil
 			}
 		case r := <-a.rc:
 			if a.consume(r, receive) {
