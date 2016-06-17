@@ -108,9 +108,6 @@ func NewEngine(opt EngineOptions) (*Engine, error) {
 	}
 
 	client := opt.Client
-	if client == 0 {
-		client = <-clientSeq
-	}
 
 	e := Engine{
 		id:               uniqueID(100),
