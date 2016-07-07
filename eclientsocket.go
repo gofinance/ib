@@ -434,7 +434,7 @@ func (r *RequestRealTimeBars) write(b *bytes.Buffer) error {
 		{fct: writeString, val: r.Contract.Currency},
 		{fct: writeString, val: r.Contract.LocalSymbol},
 		{fct: writeString, val: r.Contract.TradingClass},
-		{fct: writeString, val: string(r.BarSize)},
+		{fct: writeInt, val: r.BarSize},
 		{fct: writeString, val: string(r.WhatToShow)},
 		{fct: writeBool, val: r.UseRTH},
 	}).Dump(b); err != nil {

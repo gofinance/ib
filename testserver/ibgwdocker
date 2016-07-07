@@ -5,7 +5,7 @@ sed -i.bak s/{{IBPASSWORD}}/$IB_PASSWORD/g ibcontroller-2.12.0.ini
 rm -rf tws
 mkdir tws
 cd tws
-unzip ../unixmacosx-943.2a.jar
+unzip ../unixmacosx-952.1e.jar
 cd IBJts
 socat TCP-LISTEN:4003,fork TCP:127.0.0.1:4002&
 xvfb-run java -cp ../../ibcontroller-2.12.0.jar:jts.jar:total.2013.jar -Xmx512M -XX:MaxPermSize=128M ibcontroller.IBGatewayController ../../ibcontroller-2.12.0.ini
