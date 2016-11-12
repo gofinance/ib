@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"os"
 	"reflect"
 	"strings"
 	"time"
@@ -35,6 +36,7 @@ type EngineOptions struct {
 	Gateway          string
 	Client           int64
 	DumpConversation bool
+	Logger           *log.Logger
 }
 
 // Engine is the entry point to the IB IB API
@@ -65,6 +67,7 @@ type Engine struct {
 	lastDumpRead     int64
 	lastDumpID       int64
 	fatalError       error
+	logger           *log.Logger
 }
 
 type command struct {
@@ -102,6 +105,12 @@ func NewEngine(opt EngineOptions) (re *Engine, rerr error) {
 	if gateway == "" {
 		gateway = gatewayDefault
 	}
+
+	logger := opt.Logger
+	if logger == nil {
+		logger = log.New(os.Stdout, "", log.LstdFlags)
+	}
+
 	conn, err := net.Dial("tcp", gateway)
 	if err != nil {
 		return nil, err
@@ -132,6 +141,7 @@ func NewEngine(opt EngineOptions) (re *Engine, rerr error) {
 		observers:        map[int64]chan<- Reply{},
 		state:            EngineReady,
 		dumpConversation: opt.DumpConversation,
+		logger:           logger,
 	}
 
 	if err := e.handshake(); err != nil {
@@ -242,8 +252,8 @@ func (e *Engine) startMainLoop() {
 				select {
 				case ob <- e.state:
 					continue outer
-				case <-time.After(5 * time.Second):
-					log.Printf("Waited 5 seconds for state channel %v\n", ob)
+				case <-time.After(time.Duration(5) * time.Second):
+					e.logger.Printf("Waited 5 seconds for state channel %v\n", ob)
 				}
 			}
 		}
@@ -254,12 +264,12 @@ func (e *Engine) startMainLoop() {
 			e.state = EngineExitNormal
 			return
 		case err := <-e.rxErr:
-			log.Printf("%s engine: RX error %s", e.ConnectionInfo(), err)
+			e.logger.Printf("%s engine: RX error %s", e.ConnectionInfo(), err)
 			e.fatalError = err
 			e.state = EngineExitError
 			return
 		case err := <-e.txErr:
-			log.Printf("%s engine: TX error %s", e.ConnectionInfo(), err)
+			e.logger.Printf("%s engine: TX error %s", e.ConnectionInfo(), err)
 			e.fatalError = err
 			e.state = EngineExitError
 			return
@@ -275,7 +285,7 @@ func (e *Engine) startMainLoop() {
 func (e *Engine) deliverToObservers(r Reply) {
 	if r.code() == mErrorMessage {
 		var done []chan<- Reply
-		outer:
+	outer:
 		for _, o := range e.observers {
 			for _, prevDone := range done {
 				if o == prevDone {
@@ -318,7 +328,7 @@ func (e *Engine) deliverToObserver(c chan<- Reply, r Reply) {
 		case c <- r:
 			return
 		case <-time.After(time.Duration(5) * time.Second):
-			log.Printf("IB: Waited 5 seconds for reply channel %v, lost %v\n", c, r)
+			e.logger.Printf("IB: Waited 5 seconds for reply channel %v, lost %v\n", c, r)
 			return
 		}
 	}
@@ -383,7 +393,7 @@ func (e *Engine) sendCommand(c func()) {
 	// given the cmd was delivered so we beat any exit/error situations)
 	select {
 	case <-e.terminated:
-		log.Println("Engine unexpectedly terminated after command sent")
+		e.logger.Println("Engine unexpectedly terminated after command sent")
 		return
 	case <-cmd.ack:
 		return
