@@ -919,13 +919,19 @@ func (o *OpenOrder) read(b *bufio.Reader) (err error) {
 			return err
 		}
 		o.Order.AlgoParams.Params = make([]*TagValue, algoParamsCount)
-		for _, p := range o.Order.AlgoParams.Params {
-			if p.Tag, err = readString(b); err != nil {
+		for indx, _ := range o.Order.AlgoParams.Params {
+			//at this point Params is a slice of nil pointers
+			// so read the tag and value from the input
+			// and create a TagValue to put in the slice
+			tag, err := readString(b)
+			if err != nil {
 				return err
 			}
-			if p.Value, err = readString(b); err != nil {
+			value, err := readString(b)
+			if err != nil {
 				return err
 			}
+			o.Order.AlgoParams.Params[indx] = &TagValue{Tag: tag, Value: value}
 		}
 	}
 	if o.Order.WhatIf, err = readBool(b); err != nil {
