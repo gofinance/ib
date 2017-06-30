@@ -585,6 +585,47 @@ func (e *Engine) Send(r Request) error {
 	}
 }
 
+func (e *Engine) SendRequest(r Request, handler func(r Reply) bool) error {
+	var rid int64
+	var rc = make(chan Reply)
+	if mr, ok := r.(MatchedRequest); ok {
+		if mr.ID() == 0 {
+			mr.SetID(e.NextRequestID())
+		}
+		rid = mr.ID()
+		e.Subscribe(rc, rid)
+	} else {
+		e.SubscribeAll(rc)
+	}
+	defer func() {
+		if rid != 0 {
+			e.Unsubscribe(rc, rid)
+		} else {
+			e.UnsubscribeAll(rc)
+		}
+		close(rc)
+	}()
+	e.Send(r)
+	var finish bool
+	for !finish {
+		select {
+		case r := <-rc:
+			em, ok := r.(*ErrorMessage)
+			if ok {
+				log.Printf("Error: %v", em)
+				return em.Error()
+			}
+			if handler(r) {
+				finish = true
+			}
+		case <-time.After(time.Second * 10):
+			log.Printf("Request %t timed out", r)
+			finish = true
+		}
+	}
+	return nil
+}
+
 type packetError struct {
 	value interface{}
 	kind  reflect.Type
