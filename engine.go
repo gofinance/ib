@@ -436,13 +436,12 @@ func (e *Engine) Unsubscribe(o chan Reply, id int64) {
 			return
 		}
 
-		newUnObs := []chan<- Reply{}
-		for _, existing := range e.unObservers {
-			if existing != o {
-				newUnObs = append(newUnObs, o)
+		for i, existing := range e.unObservers {
+			if existing == o {
+				e.unObservers = append(e.unObservers[:i], e.unObservers[i+1:]...)
+				break
 			}
 		}
-		e.unObservers = newUnObs
 	})
 	close(terminate)
 }
@@ -460,13 +459,12 @@ func (e *Engine) UnsubscribeAll(o chan Reply) {
 		}
 	}()
 	e.sendCommand(func() {
-		newUnObs := []chan<- Reply{}
-		for _, existing := range e.allObservers {
-			if existing != o {
-				newUnObs = append(newUnObs, o)
+		for i, existing := range e.allObservers {
+			if existing == o {
+				e.allObservers = append(e.allObservers[:i], e.allObservers[i+1:]...)
+				break
 			}
 		}
-		e.allObservers = newUnObs
 	})
 	close(terminate)
 }
