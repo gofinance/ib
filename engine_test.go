@@ -144,3 +144,28 @@ func logreply(t *testing.T, reply Reply, err error) {
 	}
 	t.Logf("\n")
 }
+
+func TestUnsubscribeAllAndUnmatched(t *testing.T) {
+	engine := NewTestEngine(t)
+	defer engine.ConditionalStop(t)
+	dummy := make(chan Reply)
+	rc := make(chan Reply)
+	engine.SubscribeAll(dummy)
+	engine.SubscribeAll(rc)
+	engine.UnsubscribeAll(rc)
+	for _, v := range engine.allObservers {
+		if v == rc {
+			t.Log("rc should be unsubscribed from allObservers")
+			t.Fail()
+		}
+	}
+	engine.Subscribe(dummy, UnmatchedReplyID)
+	engine.Subscribe(rc, UnmatchedReplyID)
+	engine.Unsubscribe(rc, UnmatchedReplyID)
+	for _, v := range engine.unObservers {
+		if v == rc {
+			t.Log("rc should be unsubscribed from unObservers")
+			t.Fail()
+		}
+	}
+}
