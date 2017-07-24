@@ -98,9 +98,10 @@ func NewAbstractManager(e *Engine) (*AbstractManager, error) {
 
 func (a *AbstractManager) startMainLoop(preLoop func() error, receive func(r Reply) (UpdateStatus, error), preDestroy func()) {
 	errors := make(chan error)
+	preLoopFinished := make(chan bool)
 
 	defer func() {
-		<-errors // ensures preLoop goroutine has exited
+		<-preLoopFinished // ensures preLoop goroutine has exited
 		preDestroy()
 		a.eng.UnsubscribeState(a.engs)
 		close(a.update)
@@ -114,6 +115,8 @@ func (a *AbstractManager) startMainLoop(preLoop func() error, receive func(r Rep
 			errors <- err
 		}
 		close(errors)
+		errors = nil
+		preLoopFinished <- true
 	}()
 
 	for {
@@ -124,8 +127,6 @@ func (a *AbstractManager) startMainLoop(preLoop func() error, receive func(r Rep
 			if ok {
 				a.err = e
 				return
-			} else {
-				errors = nil
 			}
 		case r := <-a.rc:
 			if a.consume(r, receive) {
