@@ -132,6 +132,7 @@ const (
 	mUpdateDisplayGroup                           = 69
 	mUnsubscribeFromGroupEvents                   = 70
 	mStartAPI                                     = 71
+	mRequestSecDefOptParams                       = 78
 )
 
 type serverHandshake struct {
@@ -1362,6 +1363,40 @@ type CancelPositions struct{}
 func (c *CancelPositions) code() OutgoingMessageID     { return mCancelPositions }
 func (c *CancelPositions) version() int64              { return 1 }
 func (c *CancelPositions) write(b *bytes.Buffer) error { return nil }
+
+// RequestSecDefOptParams is equivalent of IB API EClientSocket.reqSecDefOptParams
+type RequestSecDefOptParams struct {
+	id         int64
+	Symbol     string
+	Exchange   string
+	SecType    string
+	ContractId int64
+}
+
+func (r *RequestSecDefOptParams) SetID(id int64) { r.id = id }
+
+func (r *RequestSecDefOptParams) ID() int64               { return r.id }
+func (r *RequestSecDefOptParams) code() OutgoingMessageID { return mRequestSecDefOptParams }
+func (r *RequestSecDefOptParams) version() int64          { return -1 }
+func (r *RequestSecDefOptParams) write(b *bytes.Buffer) error {
+	if err := writeInt(b, r.id); err != nil {
+		return err
+	}
+
+	if err := writeString(b, r.Symbol); err != nil {
+		return err
+	}
+
+	if err := writeString(b, r.Exchange); err != nil {
+		return err
+	}
+
+	if err := writeString(b, r.SecType); err != nil {
+		return err
+	}
+
+	return writeInt(b, r.ContractId)
+}
 
 // RequestAccountSummary is equivalent of IB API EClientSocket.reqAccountSummary()
 type RequestAccountSummary struct {

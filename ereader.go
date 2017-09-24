@@ -14,49 +14,51 @@ type IncomingMessageID int64
 
 // Message types enum
 const (
-	mTickPrice              IncomingMessageID = 1
-	mTickSize                                 = 2
-	mOrderStatus                              = 3
-	mErrorMessage                             = 4
-	mOpenOrder                                = 5
-	mAccountValue                             = 6
-	mPortfolioValue                           = 7
-	mAccountUpdateTime                        = 8
-	mNextValidID                              = 9
-	mContractData                             = 10
-	mExecutionData                            = 11
-	mMarketDepth                              = 12
-	mMarketDepthL2                            = 13
-	mNewsBulletins                            = 14
-	mManagedAccounts                          = 15
-	mReceiveFA                                = 16
-	mHistoricalData                           = 17
-	mBondContractData                         = 18
-	mScannerParameters                        = 19
-	mScannerData                              = 20
-	mTickOptionComputation                    = 21
-	mTickGeneric                              = 45
-	mTickString                               = 46
-	mTickEFP                                  = 47
-	mCurrentTime                              = 49
-	mRealtimeBars                             = 50
-	mFundamentalData                          = 51
-	mContractDataEnd                          = 52
-	mOpenOrderEnd                             = 53
-	mAccountDownloadEnd                       = 54
-	mExecutionDataEnd                         = 55
-	mDeltaNeutralValidation                   = 56
-	mTickSnapshotEnd                          = 57
-	mMarketDataType                           = 58
-	mCommissionReport                         = 59
-	mPosition                                 = 61
-	mPositionEnd                              = 62
-	mAccountSummary                           = 63
-	mAccountSummaryEnd                        = 64
-	mVerifyMessageAPI                         = 65
-	mVerifyCompleted                          = 66
-	mDisplayGroupList                         = 67
-	mDisplayGroupUpdated                      = 68
+	mTickPrice                            IncomingMessageID = 1
+	mTickSize                                               = 2
+	mOrderStatus                                            = 3
+	mErrorMessage                                           = 4
+	mOpenOrder                                              = 5
+	mAccountValue                                           = 6
+	mPortfolioValue                                         = 7
+	mAccountUpdateTime                                      = 8
+	mNextValidID                                            = 9
+	mContractData                                           = 10
+	mExecutionData                                          = 11
+	mMarketDepth                                            = 12
+	mMarketDepthL2                                          = 13
+	mNewsBulletins                                          = 14
+	mManagedAccounts                                        = 15
+	mReceiveFA                                              = 16
+	mHistoricalData                                         = 17
+	mBondContractData                                       = 18
+	mScannerParameters                                      = 19
+	mScannerData                                            = 20
+	mTickOptionComputation                                  = 21
+	mTickGeneric                                            = 45
+	mTickString                                             = 46
+	mTickEFP                                                = 47
+	mCurrentTime                                            = 49
+	mRealtimeBars                                           = 50
+	mFundamentalData                                        = 51
+	mContractDataEnd                                        = 52
+	mOpenOrderEnd                                           = 53
+	mAccountDownloadEnd                                     = 54
+	mExecutionDataEnd                                       = 55
+	mDeltaNeutralValidation                                 = 56
+	mTickSnapshotEnd                                        = 57
+	mMarketDataType                                         = 58
+	mCommissionReport                                       = 59
+	mPosition                                               = 61
+	mPositionEnd                                            = 62
+	mAccountSummary                                         = 63
+	mAccountSummaryEnd                                      = 64
+	mVerifyMessageAPI                                       = 65
+	mVerifyCompleted                                        = 66
+	mDisplayGroupList                                       = 67
+	mDisplayGroupUpdated                                    = 68
+	mSecurityDefinitionOptionParameter                      = 75
+	mSecurityDefinitionOptionParameterEnd                   = 76
 )
 
 // code2Msg is equivalent of EReader.processMsg() switch statement cases.
@@ -148,10 +150,26 @@ func code2Msg(code int64) (r Reply, err error) {
 		r = &DisplayGroupList{}
 	case int64(mDisplayGroupUpdated):
 		r = &DisplayGroupUpdated{}
+	case int64(mSecurityDefinitionOptionParameter):
+		r = &SecurityDefinitionOptionParameter{}
+	case int64(mSecurityDefinitionOptionParameterEnd):
+		r = &SecurityDefinitionOptionParameterEnd{}
 	default:
 		err = fmt.Errorf("Unsupported incoming message type %d", code)
 	}
 	return r, err
+}
+
+func msgHasVersion(code int64) bool {
+	switch code {
+	case int64(mSecurityDefinitionOptionParameter):
+		return false
+	case int64(mSecurityDefinitionOptionParameterEnd):
+		return false
+	default:
+	}
+
+	return true
 }
 
 // TickPrice holds bid, ask, last, etc. price information
@@ -1891,5 +1909,82 @@ func (d *DisplayGroupUpdated) read(b *bufio.Reader) (err error) {
 		return err
 	}
 	d.ContractInfo, err = readString(b)
+	return err
+}
+
+type SecurityDefinitionOptionParameter struct {
+	id           int64
+	Exchange     string
+	ContractId   int64
+	TradingClass string
+	Multiplier   string
+	Expirations  []string
+	Strikes      []float64
+}
+
+func (s *SecurityDefinitionOptionParameter) ID() int64 { return s.id }
+func (s *SecurityDefinitionOptionParameter) code() IncomingMessageID {
+	return mSecurityDefinitionOptionParameter
+}
+func (s *SecurityDefinitionOptionParameter) read(b *bufio.Reader) (err error) {
+	if s.id, err = readInt(b); err != nil {
+		return err
+	}
+
+	if s.Exchange, err = readString(b); err != nil {
+		return err
+	}
+
+	if s.ContractId, err = readInt(b); err != nil {
+		return err
+	}
+
+	if s.TradingClass, err = readString(b); err != nil {
+		return err
+	}
+
+	if s.Multiplier, err = readString(b); err != nil {
+		return err
+	}
+
+	numExpirations, err := readInt(b)
+	if err != nil {
+		return err
+	}
+
+	s.Expirations = make([]string, numExpirations)
+	for i := int64(0); i < numExpirations; i += 1 {
+		if s.Expirations[i], err = readString(b); err != nil {
+			return err
+		}
+	}
+
+	numStrikes, err := readInt(b)
+	if err != nil {
+		return err
+	}
+
+	s.Strikes = make([]float64, numStrikes)
+	for i := int64(0); i < numStrikes; i += 1 {
+		if s.Strikes[i], err = readFloat(b); err != nil {
+			return err
+		}
+	}
+
+	return nil
+
+}
+
+type SecurityDefinitionOptionParameterEnd struct {
+	id int64
+}
+
+// ID contains the TWS "reqId", which is used for reply correlation.
+func (s *SecurityDefinitionOptionParameterEnd) ID() int64 { return s.id }
+func (s *SecurityDefinitionOptionParameterEnd) code() IncomingMessageID {
+	return mSecurityDefinitionOptionParameterEnd
+}
+func (s *SecurityDefinitionOptionParameterEnd) read(b *bufio.Reader) (err error) {
+	s.id, err = readInt(b)
 	return err
 }

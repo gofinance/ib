@@ -538,7 +538,11 @@ func (v *header) write(b *bytes.Buffer) error {
 	if err := writeInt(b, v.code); err != nil {
 		return err
 	}
-	return writeInt(b, v.version)
+
+	if v.version != -1 {
+		return writeInt(b, v.version)
+	}
+	return nil
 }
 
 func (v *header) read(b *bufio.Reader) error {
@@ -547,7 +551,13 @@ func (v *header) read(b *bufio.Reader) error {
 	if v.code, err = readInt(b); err != nil {
 		return err
 	}
-	v.version, err = readInt(b)
+
+	if msgHasVersion(v.code) {
+		v.version, err = readInt(b)
+	} else {
+		v.version = -1
+	}
+
 	return err
 }
 
