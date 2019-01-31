@@ -45,18 +45,18 @@ func (i *InstrumentManager) receive(r Reply) (UpdateStatus, error) {
 	switch r.(type) {
 	case *ErrorMessage:
 		r := r.(*ErrorMessage)
-		if r.SeverityWarning() {
+		if r.SeverityWarning() || r.Code == 10167 /*displaying delayed market data*/ {
 			return UpdateFalse, nil
 		}
 		return UpdateFalse, r.Error()
 	case *TickPrice:
 		r := r.(*TickPrice)
 		switch r.Type {
-		case TickLast:
+		case TickLast, TickDelayedLast:
 			i.last = r.Price
-		case TickBid:
+		case TickBid, TickDelayedBid:
 			i.bid = r.Price
-		case TickAsk:
+		case TickAsk, TickDelayedAsk:
 			i.ask = r.Price
 		}
 	}

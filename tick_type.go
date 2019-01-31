@@ -67,4 +67,11 @@ const (
 	TickLastRTHTrade                   = 57
 	TickNotSet                         = 58
 	TickRegulatoryImbalance            = 61
+	TickNews                           = 62
+	TickShortTermVolume3Min            = 63
+	TickShortTermVolume5Min            = 64
+	TickShortTermVolume10Min           = 65
+	TickDelayedBid                     = 66
+	TickDelayedAsk                     = 67
+	TickDelayedLast                    = 68
 )

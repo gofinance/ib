@@ -1340,6 +1340,13 @@ func (r *RequestGlobalCancel) code() OutgoingMessageID     { return mRequestGlob
 func (r *RequestGlobalCancel) version() int64              { return 1 }
 func (r *RequestGlobalCancel) write(b *bytes.Buffer) error { return nil }
 
+const (
+	MarketDataTypeLive          = 1
+	MarketDataTypeFrozen        = 2
+	MarketDataTypeDelayed       = 3
+	MarketDataTypeDelayedFrozen = 4
+)
+
 // RequestMarketDataType is equivalent of IB API EClientSocket.reqMarketDataType()
 type RequestMarketDataType struct {
 	MarketDataType int64
