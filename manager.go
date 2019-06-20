@@ -114,8 +114,6 @@ func (a *AbstractManager) startMainLoop(preLoop func() error, receive func(r Rep
 		if err != nil {
 			errors <- err
 		}
-		close(errors)
-		errors = nil
 		preLoopFinished <- true
 	}()
 
