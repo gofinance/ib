@@ -54,8 +54,7 @@ func readInt(b *bufio.Reader) (int64, error) {
 	if str == "" {
 		return math.MaxInt64, nil
 	}
-	i, err := strconv.ParseInt(str, 10, 64)
-	return i, err
+	return strconv.ParseInt(str, 10, 64)
 }
 
 // readIntList reads an IB pipe-separated string of integers into a Go slice.
@@ -83,8 +82,7 @@ func readFloat(b *bufio.Reader) (float64, error) {
 	if str == "" {
 		return math.MaxFloat64, nil
 	}
-	f, err := strconv.ParseFloat(str, 64)
-	return f, err
+	return strconv.ParseFloat(str, 64)
 }
 
 // readBool is equivalent of IB API EReader.readBoolFromInt.
@@ -122,13 +120,13 @@ func readTime(b *bufio.Reader, f timeFmt) (t time.Time, err error) {
 	if f == timeReadLocalDateTime {
 		format := "20060102 15:04:05"
 		if len(timeString) < len(format) {
-			return time.Now(), fmt.Errorf("ibgo: '%s' too short to be datetime format '%s'", timeString, format)
+			return t, fmt.Errorf("ibgo: '%s' too short to be datetime format '%s'", timeString, format)
 		}
 
 		// Truncate any portion this parse does not require (ie timezones)
 		fields := strings.Fields(timeString)
 		if len(fields) < 2 {
-			return time.Now(), fmt.Errorf("ibgo: '%s' does not contain expected whitespace for datetime format '%s'", timeString, format)
+			return t, fmt.Errorf("ibgo: '%s' does not contain expected whitespace for datetime format '%s'", timeString, format)
 		}
 		timeString = fields[0] + " " + fields[1]
 
@@ -138,7 +136,7 @@ func readTime(b *bufio.Reader, f timeFmt) (t time.Time, err error) {
 	if f == timeReadLocalDate {
 		format := "20060102"
 		if len(timeString) != len(format) {
-			return time.Now(), fmt.Errorf("ibgo: '%s' wrong length to be datetime format '%s'", timeString, format)
+			return t, fmt.Errorf("ibgo: '%s' wrong length to be date format '%s'", timeString, format)
 		}
 		return time.ParseInLocation(format, timeString, time.Local)
 	}
@@ -156,7 +154,7 @@ func readTime(b *bufio.Reader, f timeFmt) (t time.Time, err error) {
 		}
 	}
 
-	return time.Now(), fmt.Errorf("ibgo: unsupported read time format '%v'", f)
+	return t, fmt.Errorf("ibgo: unsupported read time format '%v'", f)
 
 }
 
@@ -212,11 +210,11 @@ func writeTime(b *bytes.Buffer, t time.Time, f timeFmt) error {
 }
 
 func detectTime(timeString string) (timeFmt, error) {
-	if len(timeString) == len("14:52") && strings.Contains(timeString, ":") {
+	if len(timeString) == len("15:04") && strings.Contains(timeString, ":") {
 		return timeReadLocalTime, nil
 	}
 
-	if len(timeString) == len("14:52:02") && strings.Contains(timeString, ":") {
+	if len(timeString) == len("15:04:05") && strings.Contains(timeString, ":") {
 		return timeReadLocalTime, nil
 	}
 
