@@ -4,7 +4,7 @@ import "fmt"
 
 // HistoricalDataManager .
 type HistoricalDataManager struct {
-	AbstractManager
+	*AbstractManager
 	request  RequestHistoricalData
 	histData []HistoricalDataItem
 }
@@ -18,7 +18,7 @@ func NewHistoricalDataManager(e *Engine, request RequestHistoricalData) (*Histor
 
 	request.id = e.NextRequestID()
 	m := &HistoricalDataManager{
-		AbstractManager: *am,
+		AbstractManager: am,
 		request:         request,
 	}
 
