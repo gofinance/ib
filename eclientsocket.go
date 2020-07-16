@@ -54,7 +54,7 @@ type writeMapSlice []writeMap
 // TODO: refactor helpers to use io.Writer instead of bytes.Buffer.
 func (m writeMapSlice) Dump(w *bytes.Buffer) error {
 	for _, elem := range m {
-		var err = fmt.Errorf("Unkown function type: %T", elem.fct)
+		var err = fmt.Errorf("Unknown function type: %T", elem.fct)
 		switch fct := elem.fct.(type) {
 		case func(*bytes.Buffer, time.Time, timeFmt) error:
 			err = fct(w, elem.val.(time.Time), elem.extra.(timeFmt))
