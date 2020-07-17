@@ -173,6 +173,19 @@ func writeFloat(b *bytes.Buffer, f float64) error {
 	return writeString(b, strconv.FormatFloat(f, 'g', 10, 64))
 }
 
+func writeTagValue(b *bytes.Buffer, options []TagValue) error {
+	var optionsBuf bytes.Buffer
+
+	optionsBuf.WriteString("")
+	for _, opt := range options {
+		optionsBuf.WriteString(opt.Tag)
+		optionsBuf.WriteString("=")
+		optionsBuf.WriteString(opt.Value)
+		optionsBuf.WriteString(";")
+	}
+	return writeString(b, optionsBuf.String())
+}
+
 // TODO: this never errors. Is it expected?
 func writeMaxFloat(b *bytes.Buffer, f float64) error {
 	if f >= math.MaxFloat64 {
