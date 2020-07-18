@@ -355,7 +355,7 @@ func (e *Engine) transmit(r Request) (err error) {
 	if e.dumpConversation {
 		b := e.output
 		s := strings.Replace(b.String(), "\000", "-", -1)
-		fmt.Printf("%d> '%s'\n", e.client, s)
+		e.logger.Printf("%d> '%s'\n", e.client, s)
 	}
 
 	_, err = e.con.Write(e.output.Bytes())
@@ -622,7 +622,7 @@ func (e *Engine) receive() (Reply, error) {
 	// decode header
 	if err := hdr.read(e.reader); err != nil {
 		if e.dumpConversation {
-			fmt.Printf("%d< %v\n", e.client, err)
+			e.logger.Printf("%d< %v\n", e.client, err)
 		}
 		return nil, err
 	}
@@ -631,14 +631,14 @@ func (e *Engine) receive() (Reply, error) {
 	r, err := code2Msg(hdr.code)
 	if err != nil {
 		if e.dumpConversation {
-			fmt.Printf("%d< %v %s\n", e.client, hdr, err)
+			e.logger.Printf("%d< %v %s\n", e.client, hdr, err)
 		}
 		return nil, err
 	}
 
 	if err := r.read(e.reader); err != nil {
 		if e.dumpConversation {
-			fmt.Printf("%d< %v %s\n", e.client, hdr, err)
+			e.logger.Printf("%d< %v %s\n", e.client, hdr, err)
 		}
 		return nil, err
 	}
@@ -660,7 +660,7 @@ func (e *Engine) receive() (Reply, error) {
 			if cut > 80 {
 				str = str[:76] + "..."
 			}
-			fmt.Printf("%d< %v %s\n", e.client, hdr, str)
+			e.logger.Printf("%d< %v %s\n", e.client, hdr, str)
 		}
 	}
 
