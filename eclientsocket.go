@@ -1865,3 +1865,23 @@ func (u *UnsubscribeFromGroupEvents) write(serverVersion int64, b *bytes.Buffer)
 		{fct: writeInt, val: u.id},
 	}).Dump(b)
 }
+
+// RequestGlobalCancel is equivalent of IB API EClientSocket.reqMatchingSymbols
+type ReqMatchingSymbols struct {
+	id      int64
+	Pattern string
+}
+
+// SetID assigns the TWS "reqId", which is used for reply correlation and request cancellation.
+func (r *ReqMatchingSymbols) SetID(id int64) { r.id = id }
+
+func (r *ReqMatchingSymbols) ID() int64               { return r.id }
+func (r *ReqMatchingSymbols) code() OutgoingMessageID { return mReqMatchingSymbols }
+func (r *ReqMatchingSymbols) version() int64          { return 1 }
+func (r *ReqMatchingSymbols) write(serverVersion int64, b *bytes.Buffer) error {
+	return (writeMapSlice{
+		{fct: writeInt, val: int64(r.code())},
+		{fct: writeInt, val: r.id},
+		{fct: writeString, val: r.Pattern},
+	}).Dump(b)
+}

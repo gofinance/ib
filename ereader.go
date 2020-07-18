@@ -205,6 +205,8 @@ func code2Msg(code int64) (r Reply, err error) {
 		r = &DisplayGroupList{}
 	case int64(mDisplayGroupUpdated):
 		r = &DisplayGroupUpdated{}
+	case int64(mSymbolSamples):
+		r = &SymbolSamples{}
 	default:
 		err = fmt.Errorf("Unsupported incoming message type %d", code)
 	}
@@ -2173,5 +2175,55 @@ func (d *DisplayGroupUpdated) read(serverVersion int64, b *bufio.Reader) (err er
 		return err
 	}
 	d.ContractInfo, err = readString(b)
+	return err
+}
+
+// SymbolSamples .
+type SymbolSamples struct {
+	id                   int64
+	ContractDescriptions []ContractDescription
+}
+
+// ID contains tha TWS "reqId", which is used for reply correlation.
+func (s *SymbolSamples) ID() int64               { return s.id }
+func (s *SymbolSamples) code() IncomingMessageID { return mSymbolSamples }
+func (s *SymbolSamples) read(serverVersion int64, b *bufio.Reader) (err error) {
+	if s.id, err = readInt(b); err != nil {
+		return err
+	}
+	var itemCount int64
+	if itemCount, err = readInt(b); err != nil {
+		return err
+	}
+	s.ContractDescriptions = make([]ContractDescription, itemCount)
+	for ic := range s.ContractDescriptions {
+		if s.ContractDescriptions[ic].Contract.ContractID, err = readInt(b); err != nil {
+			return err
+		}
+		if s.ContractDescriptions[ic].Contract.Symbol, err = readString(b); err != nil {
+			return err
+		}
+		if s.ContractDescriptions[ic].Contract.SecurityType, err = readString(b); err != nil {
+			return err
+		}
+		if s.ContractDescriptions[ic].Contract.PrimaryExchange, err = readString(b); err != nil {
+			return err
+		}
+		if s.ContractDescriptions[ic].Contract.Currency, err = readString(b); err != nil {
+			return err
+		}
+
+		if itemCount, err = readInt(b); err != nil {
+			return err
+		}
+
+		s.ContractDescriptions[ic].DerivativeSecTypes = make([]string, itemCount)
+		for jc := range s.ContractDescriptions[ic].DerivativeSecTypes {
+			if s.ContractDescriptions[ic].DerivativeSecTypes[jc], err = readString(b); err != nil {
+				return err
+			}
+		}
+	}
+
 	return err
 }
