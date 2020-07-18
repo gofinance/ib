@@ -1,7 +1,6 @@
 package ib
 
 import (
-	"bufio"
 	"bytes"
 	"fmt"
 	"math"
@@ -133,21 +132,6 @@ const (
 	mUnsubscribeFromGroupEvents                   = 70
 	mStartAPI                                     = 71
 )
-
-type serverHandshake struct {
-	version int64
-	time    time.Time
-}
-
-func (s *serverHandshake) read(b *bufio.Reader) error {
-	var err error
-
-	if s.version, err = readInt(b); err != nil {
-		return err
-	}
-	s.time, err = readTime(b, timeReadLocalDateTime)
-	return err
-}
 
 // StartAPI is equivalent of IB API EClientSocket.startAPI().
 type StartAPI struct {

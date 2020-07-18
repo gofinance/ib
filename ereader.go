@@ -59,6 +59,21 @@ const (
 	mDisplayGroupUpdated                      = 68
 )
 
+type serverHandshake struct {
+	version int64
+	time    time.Time
+}
+
+func (s *serverHandshake) read(b *bufio.Reader) error {
+	var err error
+
+	if s.version, err = readInt(b); err != nil {
+		return err
+	}
+	s.time, err = readTime(b, timeReadLocalDateTime)
+	return err
+}
+
 // code2Msg is equivalent of EReader.processMsg() switch statement cases.
 func code2Msg(code int64) (r Reply, err error) {
 	switch code {
