@@ -3,7 +3,9 @@ package ib
 import (
 	"bufio"
 	"bytes"
+	"encoding/binary"
 	"fmt"
+	"io"
 	"math"
 	"strconv"
 	"strings"
@@ -158,6 +160,31 @@ func readTime(b *bufio.Reader, f timeFmt) (t time.Time, err error) {
 
 	return time.Now(), fmt.Errorf("ibgo: unsupported read time format '%v'", f)
 
+}
+
+// read 4 bytes on wire in network order
+func readUInt32(b io.Reader) (uint32, error) {
+
+	data := make([]byte, 4)
+
+	n, err := b.Read(data)
+	if err != nil {
+		return 0, err
+	}
+
+	if n != len(data) {
+		// error?
+	}
+
+	buf := bytes.NewReader(data)
+
+	var num uint32
+	err = binary.Read(buf, binary.BigEndian, &num)
+	if err != nil {
+		return 0, err
+	}
+
+	return num, nil
 }
 
 func writeString(b *bytes.Buffer, s string) error {
