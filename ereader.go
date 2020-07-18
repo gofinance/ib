@@ -94,8 +94,9 @@ const (
 )
 
 type serverHandshake struct {
-	version int64
-	time    time.Time
+	version    int64
+	time       time.Time
+	NewAddress string
 }
 
 func (s *serverHandshake) read(b *bufio.Reader) error {
@@ -104,7 +105,16 @@ func (s *serverHandshake) read(b *bufio.Reader) error {
 	if s.version, err = readInt(b); err != nil {
 		return err
 	}
+
+	// Handle redirect
+	if s.version == -1 {
+		s.NewAddress, err = readString(b)
+		s.version = 0
+		return err
+	}
+
 	s.time, err = readTime(b, timeReadLocalDateTime)
+
 	return err
 }
 
