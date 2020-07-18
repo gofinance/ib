@@ -18,9 +18,11 @@ func (c *CommissionReport) code() IncomingMessageID {
 	return mCommissionReport
 }
 
-func (c *CommissionReport) read(b *bufio.Reader) error {
+func (c *CommissionReport) read(serverVersion int64, b *bufio.Reader) error {
 	var err error
-
+	if _, err := readInt(b); err != nil {
+		return err
+	}
 	if c.ExecutionID, err = readString(b); err != nil {
 		return err
 	}

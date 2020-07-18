@@ -25,11 +25,11 @@ const (
 )
 
 type readable interface {
-	read(b *bufio.Reader) error
+	read(serverVersion int64, b *bufio.Reader) error
 }
 
 type writable interface {
-	write(buf *bytes.Buffer) error
+	write(serverVersion int64, buf *bytes.Buffer) error
 }
 
 func readString(b *bufio.Reader) (s string, err error) {

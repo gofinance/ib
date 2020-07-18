@@ -65,6 +65,8 @@ func (m writeMapSlice) Dump(w *bytes.Buffer) error {
 			err = fct(w, elem.val.(string))
 		case func(*bytes.Buffer, float64) error:
 			err = fct(w, elem.val.(float64))
+		case func(*bytes.Buffer, []TagValue) error:
+			err = fct(w, elem.val.([]TagValue))
 		}
 		if err != nil {
 			return err
@@ -256,6 +258,9 @@ const (
 	mMinServerVerMktDepthPrimExchange    = 149
 	mMinServerVerReqCompletedOrders      = 150
 	mMinServerVerPriceMgmtAlgo           = 151
+	mMinServerVerEncodeMsgAscii7         = 153
+	mMinServerVerSendAllFamilyCodes      = 154
+	mMinServerVerNoDefaultOpenClose      = 155
 
 	mMinVersion = 100                        // envelope encoding, applicable to useV100Plus mode only
 	mMaxVersion = mMinServerVerPriceMgmtAlgo // ditto
@@ -263,12 +268,41 @@ const (
 
 // StartAPI is equivalent of IB API EClientSocket.startAPI().
 type StartAPI struct {
-	Client int64
+	Client               int64
+	OptionalCapabilities string
 }
 
-func (s *StartAPI) code() OutgoingMessageID           { return mStartAPI }
-func (s *StartAPI) version() int64                    { return 1 }
-func (s *StartAPI) write(b *bytes.Buffer) (err error) { return writeInt(b, s.Client) }
+func (s *StartAPI) code() OutgoingMessageID { return mStartAPI }
+func (s *StartAPI) version() int64          { return 2 }
+func (s *StartAPI) write(serverVersion int64, b *bytes.Buffer) (err error) {
+
+	if serverVersion < mMinServerVerLinking {
+		if err := writeInt(b, s.Client); err != nil {
+			return err
+		}
+
+	} else {
+		if err := writeInt(b, int64(s.code())); err != nil {
+			return err
+		}
+
+		if err := writeInt(b, s.version()); err != nil {
+			return err
+		}
+
+		if err := writeInt(b, s.Client); err != nil {
+			return err
+		}
+
+		if serverVersion >= mMinServerVerOptionalCapabilities {
+			if err := writeString(b, s.OptionalCapabilities); err != nil {
+				return err
+			}
+		}
+	}
+
+	return
+}
 
 // CancelScannerSubscription is equivalent of IB API EClientSocket.cancelScannerSubscription().
 type CancelScannerSubscription struct {
@@ -279,23 +313,40 @@ type CancelScannerSubscription struct {
 func (c *CancelScannerSubscription) SetID(id int64) { c.id = id }
 
 // ID .
-func (c *CancelScannerSubscription) ID() int64                   { return c.id }
-func (c *CancelScannerSubscription) code() OutgoingMessageID     { return mCancelScannerSubscription }
-func (c *CancelScannerSubscription) version() int64              { return 1 }
-func (c *CancelScannerSubscription) write(b *bytes.Buffer) error { return writeInt(b, c.id) }
+func (c *CancelScannerSubscription) ID() int64               { return c.id }
+func (c *CancelScannerSubscription) code() OutgoingMessageID { return mCancelScannerSubscription }
+func (c *CancelScannerSubscription) version() int64          { return 1 }
+func (c *CancelScannerSubscription) write(serverVersion int64, b *bytes.Buffer) error {
+
+	if serverVersion < 24 {
+		return fmt.Errorf("Server does not support API scanner subscription.")
+	}
+
+	return (writeMapSlice{
+		{fct: writeInt, val: int64(c.code())},
+		{fct: writeInt, val: c.version()},
+		{fct: writeInt, val: c.id},
+	}).Dump(b)
+}
 
 // RequestScannerParameters is equivalent of IB API EClientSocket.reqScannerParameters().
 type RequestScannerParameters struct{}
 
-func (r *RequestScannerParameters) code() OutgoingMessageID     { return mRequestScannerParameters }
-func (r *RequestScannerParameters) version() int64              { return 1 }
-func (r *RequestScannerParameters) write(b *bytes.Buffer) error { return nil }
+func (r *RequestScannerParameters) code() OutgoingMessageID { return mRequestScannerParameters }
+func (r *RequestScannerParameters) version() int64          { return 1 }
+func (r *RequestScannerParameters) write(serverVersion int64, b *bytes.Buffer) error {
+	return (writeMapSlice{
+		{fct: writeInt, val: int64(r.code())},
+		{fct: writeInt, val: r.version()},
+	}).Dump(b)
+}
 
 // RequestScannerSubscription is equivalent of IB API EClientSocket.reqScannerSubscription().
 type RequestScannerSubscription struct {
-	id                         int64
-	Subscription               ScannerSubscription
-	ScannerSubscriptionOptions []TagValue
+	id                               int64
+	Subscription                     ScannerSubscription
+	ScannerSubscriptionOptions       []TagValue
+	ScannerSubscriptionFilterOptions []TagValue
 }
 
 // SetID assigns the TWS "tickerId", used for reply correlation and request cancellation.
@@ -305,7 +356,21 @@ func (r *RequestScannerSubscription) SetID(id int64) { r.id = id }
 func (r *RequestScannerSubscription) ID() int64               { return r.id }
 func (r *RequestScannerSubscription) code() OutgoingMessageID { return mRequestScannerSubscription }
 func (r *RequestScannerSubscription) version() int64          { return 4 }
-func (r *RequestScannerSubscription) write(b *bytes.Buffer) error {
+func (r *RequestScannerSubscription) write(serverVersion int64, b *bytes.Buffer) error {
+	if serverVersion < 24 {
+		return fmt.Errorf("Server does not support API scanner subscription.")
+	}
+
+	if err := writeInt(b, int64(r.code())); err != nil {
+		return err
+	}
+
+	if serverVersion < mMinServerVerScannerGenericOpts {
+		if err := writeInt(b, r.version()); err != nil {
+			return err
+		}
+	}
+
 	if err := (writeMapSlice{
 		{fct: writeInt, val: r.id},
 		{fct: writeMaxInt, val: r.Subscription.NumberOfRows},
@@ -326,22 +391,26 @@ func (r *RequestScannerSubscription) write(b *bytes.Buffer) error {
 		{fct: writeMaxFloat, val: r.Subscription.CouponRateAbove},
 		{fct: writeMaxFloat, val: r.Subscription.CouponRateBelow},
 		{fct: writeString, val: r.Subscription.ExcludeConvertible},
-		{fct: writeMaxInt, val: r.Subscription.AverageOptionVolumeAbove},
-		{fct: writeString, val: r.Subscription.ScannerSettingPairs},
-		{fct: writeString, val: r.Subscription.StockTypeFilter},
+		{fct: writeMaxInt, val: r.Subscription.AverageOptionVolumeAbove}, // serverVersion >= 25
+		{fct: writeString, val: r.Subscription.ScannerSettingPairs},      // serverVersion >= 25
+		{fct: writeString, val: r.Subscription.StockTypeFilter},          // serverVersion >= 27
 	}).Dump(b); err != nil {
 		return err
 	}
 
-	var subOptions bytes.Buffer
-	subOptions.WriteString("")
-	for _, opt := range r.ScannerSubscriptionOptions {
-		subOptions.WriteString(opt.Tag)
-		subOptions.WriteString("=")
-		subOptions.WriteString(opt.Value)
-		subOptions.WriteString(";")
+	if serverVersion >= mMinServerVerScannerGenericOpts {
+		if err := writeTagValue(b, r.ScannerSubscriptionFilterOptions); err != nil {
+			return err
+		}
 	}
-	return writeString(b, subOptions.String())
+
+	if serverVersion >= mMinServerVerLinking {
+		if err := writeTagValue(b, r.ScannerSubscriptionOptions); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // RequestMarketData is equivalent of IB API EClientSocket.reqMktData().
@@ -349,7 +418,7 @@ type RequestMarketData struct {
 	id int64
 	Contract
 	ComboLegs         []ComboLeg `when:"SecurityType" cond:"not" value:"BAG"`
-	Comp              *UnderComp
+	Comp              *UnderComp // DeltaNeutralContract
 	GenericTickList   string
 	Snapshot          bool
 	MarketDataOptions []TagValue
@@ -362,25 +431,43 @@ func (r *RequestMarketData) SetID(id int64) { r.id = id }
 func (r *RequestMarketData) ID() int64               { return r.id }
 func (r *RequestMarketData) code() OutgoingMessageID { return mRequestMarketData }
 func (r *RequestMarketData) version() int64          { return 11 }
-func (r *RequestMarketData) write(b *bytes.Buffer) error {
+func (r *RequestMarketData) write(serverVersion int64, b *bytes.Buffer) error {
+	if serverVersion < mMinServerVerSnapshotMktData && r.Snapshot {
+		err := fmt.Errorf("Server does not support snapshot market data requests.")
+		return err
+	}
+
 	if err := (writeMapSlice{
+		{fct: writeInt, val: int64(r.code())},
+		{fct: writeInt, val: r.version()},
 		{fct: writeInt, val: r.id},
-		{fct: writeInt, val: r.Contract.ContractID},
+	}).Dump(b); err != nil {
+		return err
+	}
+
+	if serverVersion >= mMinServerVerScannerGenericOpts {
+		if err := writeInt(b, r.Contract.ContractID); err != nil {
+			return err
+		}
+	}
+
+	if err := (writeMapSlice{
 		{fct: writeString, val: r.Contract.Symbol},
 		{fct: writeString, val: r.Contract.SecurityType},
 		{fct: writeString, val: r.Contract.Expiry},
 		{fct: writeFloat, val: r.Contract.Strike},
 		{fct: writeString, val: r.Contract.Right},
-		{fct: writeString, val: r.Contract.Multiplier},
+		{fct: writeString, val: r.Contract.Multiplier}, // serverVersion >= 15
 		{fct: writeString, val: r.Contract.Exchange},
-		{fct: writeString, val: r.Contract.PrimaryExchange},
+		{fct: writeString, val: r.Contract.PrimaryExchange}, // serverVersion >= 14
 		{fct: writeString, val: r.Contract.Currency},
-		{fct: writeString, val: r.Contract.LocalSymbol},
-		{fct: writeString, val: r.Contract.TradingClass},
+		{fct: writeString, val: r.Contract.LocalSymbol},  // serverVersion >= 2
+		{fct: writeString, val: r.Contract.TradingClass}, // serverVersion >= mMinServerVerTradingClass
 	}).Dump(b); err != nil {
 		return err
 	}
-	if r.Contract.SecurityType == bagSecType {
+
+	if serverVersion >= 8 && r.Contract.SecurityType == bagSecType {
 		if err := writeInt(b, int64(len(r.ComboLegs))); err != nil {
 			return err
 		}
@@ -395,35 +482,41 @@ func (r *RequestMarketData) write(b *bytes.Buffer) error {
 			}
 		}
 	}
-	if r.Comp != nil {
-		if err := (writeMapSlice{
-			{fct: writeBool, val: true},
-			{fct: writeInt, val: r.Comp.ContractID},
-			{fct: writeFloat, val: r.Comp.Delta},
-			{fct: writeFloat, val: r.Comp.Price},
-		}).Dump(b); err != nil {
+
+	if serverVersion >= mMinServerVerDeltaNeutral {
+		if r.Comp != nil {
+			if err := (writeMapSlice{
+				{fct: writeBool, val: true},
+				{fct: writeInt, val: r.Comp.ContractID},
+				{fct: writeFloat, val: r.Comp.Delta},
+				{fct: writeFloat, val: r.Comp.Price},
+			}).Dump(b); err != nil {
+				return err
+			}
+		} else {
+			if err := writeBool(b, false); err != nil {
+				return err
+			}
+		}
+	}
+
+	if serverVersion >= 31 {
+		if err := writeString(b, r.GenericTickList); err != nil {
 			return err
 		}
-	} else {
-		if err := writeBool(b, false); err != nil {
+	}
+
+	if serverVersion >= mMinServerVerSnapshotMktData {
+		if err := writeBool(b, r.Snapshot); err != nil {
 			return err
 		}
 	}
-	if err := writeString(b, r.GenericTickList); err != nil {
-		return err
+
+	if serverVersion >= mMinServerVerLinking {
+		return writeTagValue(b, r.MarketDataOptions)
 	}
-	if err := writeBool(b, r.Snapshot); err != nil {
-		return err
-	}
-	var mktData bytes.Buffer
-	mktData.WriteString("")
-	for _, opt := range r.MarketDataOptions {
-		mktData.WriteString(opt.Tag)
-		mktData.WriteString("=")
-		mktData.WriteString(opt.Value)
-		mktData.WriteString(";")
-	}
-	return writeString(b, mktData.String())
+
+	return nil
 }
 
 // CancelHistoricalData is equivalent of IB API EClientSocket.cancelHistoricalData().
@@ -435,10 +528,16 @@ type CancelHistoricalData struct {
 func (c *CancelHistoricalData) SetID(id int64) { c.id = id }
 
 // ID .
-func (c *CancelHistoricalData) ID() int64                   { return c.id }
-func (c *CancelHistoricalData) code() OutgoingMessageID     { return mCancelHistoricalData }
-func (c *CancelHistoricalData) version() int64              { return 1 }
-func (c *CancelHistoricalData) write(b *bytes.Buffer) error { return writeInt(b, c.id) }
+func (c *CancelHistoricalData) ID() int64               { return c.id }
+func (c *CancelHistoricalData) code() OutgoingMessageID { return mCancelHistoricalData }
+func (c *CancelHistoricalData) version() int64          { return 1 }
+func (c *CancelHistoricalData) write(serverVersion int64, b *bytes.Buffer) error {
+	return (writeMapSlice{
+		{fct: writeInt, val: int64(c.code())},
+		{fct: writeInt, val: c.version()},
+		{fct: writeInt, val: c.id},
+	}).Dump(b)
+}
 
 // CancelRealTimeBars is equivalent of IB API EClientSocket.cancelRealTimeBars().
 type CancelRealTimeBars struct {
@@ -449,10 +548,16 @@ type CancelRealTimeBars struct {
 func (c *CancelRealTimeBars) SetID(id int64) { c.id = id }
 
 // ID .
-func (c *CancelRealTimeBars) ID() int64                   { return c.id }
-func (c *CancelRealTimeBars) code() OutgoingMessageID     { return mCancelRealTimeBars }
-func (c *CancelRealTimeBars) version() int64              { return 1 }
-func (c *CancelRealTimeBars) write(b *bytes.Buffer) error { return writeInt(b, c.id) }
+func (c *CancelRealTimeBars) ID() int64               { return c.id }
+func (c *CancelRealTimeBars) code() OutgoingMessageID { return mCancelRealTimeBars }
+func (c *CancelRealTimeBars) version() int64          { return 1 }
+func (c *CancelRealTimeBars) write(serverVersion int64, b *bytes.Buffer) error {
+	return (writeMapSlice{
+		{fct: writeInt, val: int64(c.code())},
+		{fct: writeInt, val: c.version()},
+		{fct: writeInt, val: c.id},
+	}).Dump(b)
+}
 
 // RequestHistoricalData is equivalent of IB API EClientSocket.requestHistoricalData().
 type RequestHistoricalData struct {
@@ -474,8 +579,10 @@ func (r *RequestHistoricalData) SetID(id int64) { r.id = id }
 func (r *RequestHistoricalData) ID() int64               { return r.id }
 func (r *RequestHistoricalData) code() OutgoingMessageID { return mRequestHistoricalData }
 func (r *RequestHistoricalData) version() int64          { return 6 }
-func (r *RequestHistoricalData) write(b *bytes.Buffer) error {
+func (r *RequestHistoricalData) write(serverVersion int64, b *bytes.Buffer) error {
 	if err := (writeMapSlice{
+		{fct: writeInt, val: int64(r.code())},
+		{fct: writeInt, val: r.version()},
 		{fct: writeInt, val: r.id},
 		{fct: writeInt, val: r.Contract.ContractID},
 		{fct: writeString, val: r.Contract.Symbol},
@@ -498,20 +605,14 @@ func (r *RequestHistoricalData) write(b *bytes.Buffer) error {
 	}).Dump(b); err != nil {
 		return err
 	}
+
 	// for formatDate==2, requesting daily bars returns the date in YYYYMMDD format
 	// for more frequent bar sizes, IB returns according to the spec (unix time in seconds)
 	if err := writeInt(b, 2); err != nil {
 		return err
 	}
-	var mktData bytes.Buffer
-	mktData.WriteString("")
-	for _, opt := range r.ChartOptions {
-		mktData.WriteString(opt.Tag)
-		mktData.WriteString("=")
-		mktData.WriteString(opt.Value)
-		mktData.WriteString(";")
-	}
-	return writeString(b, mktData.String())
+
+	return writeTagValue(b, r.ChartOptions)
 }
 
 // RequestRealTimeBars is equivalent of IB API EClientSocket.reqRealTimeBars().
@@ -531,8 +632,10 @@ func (r *RequestRealTimeBars) SetID(id int64) { r.id = id }
 func (r *RequestRealTimeBars) ID() int64               { return r.id }
 func (r *RequestRealTimeBars) code() OutgoingMessageID { return mRequestRealTimeBars }
 func (r *RequestRealTimeBars) version() int64          { return 3 }
-func (r *RequestRealTimeBars) write(b *bytes.Buffer) error {
+func (r *RequestRealTimeBars) write(serverVersion int64, b *bytes.Buffer) error {
 	if err := (writeMapSlice{
+		{fct: writeInt, val: int64(r.code())},
+		{fct: writeInt, val: r.version()},
 		{fct: writeInt, val: r.id},
 		{fct: writeInt, val: r.Contract.ContractID},
 		{fct: writeString, val: r.Contract.Symbol},
@@ -552,15 +655,8 @@ func (r *RequestRealTimeBars) write(b *bytes.Buffer) error {
 	}).Dump(b); err != nil {
 		return err
 	}
-	var barOption bytes.Buffer
-	barOption.WriteString("")
-	for _, opt := range r.RealTimeBarOptions {
-		barOption.WriteString(opt.Tag)
-		barOption.WriteString("=")
-		barOption.WriteString(opt.Value)
-		barOption.WriteString(";")
-	}
-	return writeString(b, barOption.String())
+
+	return writeTagValue(b, r.RealTimeBarOptions)
 }
 
 // RequestContractData is equivalent of IB API EClientSocket.reqContractDetails().
@@ -576,8 +672,10 @@ func (r *RequestContractData) SetID(id int64) { r.id = id }
 func (r *RequestContractData) ID() int64               { return r.id }
 func (r *RequestContractData) code() OutgoingMessageID { return mRequestContractData }
 func (r *RequestContractData) version() int64          { return 7 }
-func (r *RequestContractData) write(b *bytes.Buffer) error {
-	if err := (writeMapSlice{
+func (r *RequestContractData) write(serverVersion int64, b *bytes.Buffer) error {
+	return (writeMapSlice{
+		{fct: writeInt, val: int64(r.code())},
+		{fct: writeInt, val: r.version()},
 		{fct: writeInt, val: r.id},
 		{fct: writeInt, val: r.Contract.ContractID},
 		{fct: writeString, val: r.Contract.Symbol},
@@ -593,10 +691,7 @@ func (r *RequestContractData) write(b *bytes.Buffer) error {
 		{fct: writeBool, val: r.Contract.IncludeExpired},
 		{fct: writeString, val: r.Contract.SecIDType},
 		{fct: writeString, val: r.Contract.SecID},
-	}).Dump(b); err != nil {
-		return err
-	}
-	return nil
+	}).Dump(b)
 }
 
 // RequestMarketDepth is equivalent of IB API EClientSocket.reqMktDepth().
@@ -614,8 +709,10 @@ func (r *RequestMarketDepth) SetID(id int64) { r.id = id }
 func (r *RequestMarketDepth) ID() int64               { return r.id }
 func (r *RequestMarketDepth) code() OutgoingMessageID { return mRequestMarketDepth }
 func (r *RequestMarketDepth) version() int64          { return 5 }
-func (r *RequestMarketDepth) write(b *bytes.Buffer) error {
-	if err := (writeMapSlice{
+func (r *RequestMarketDepth) write(serverVersion int64, b *bytes.Buffer) error {
+	return (writeMapSlice{
+		{fct: writeInt, val: int64(r.code())},
+		{fct: writeInt, val: r.version()},
 		{fct: writeInt, val: r.id},
 		{fct: writeInt, val: r.Contract.ContractID},
 		{fct: writeString, val: r.Contract.Symbol},
@@ -629,18 +726,8 @@ func (r *RequestMarketDepth) write(b *bytes.Buffer) error {
 		{fct: writeString, val: r.Contract.LocalSymbol},
 		{fct: writeString, val: r.Contract.TradingClass},
 		{fct: writeInt, val: r.NumRows},
-	}).Dump(b); err != nil {
-		return err
-	}
-	var mktDepth bytes.Buffer
-	mktDepth.WriteString("")
-	for _, opt := range r.MarketDepthOptions {
-		mktDepth.WriteString(opt.Tag)
-		mktDepth.WriteString("=")
-		mktDepth.WriteString(opt.Value)
-		mktDepth.WriteString(";")
-	}
-	return writeString(b, mktDepth.String())
+		{fct: writeTagValue, val: r.MarketDepthOptions},
+	}).Dump(b)
 }
 
 // CancelMarketData is equivalent of IB API EClientSocket.cancelMktData().
@@ -652,10 +739,16 @@ type CancelMarketData struct {
 func (c *CancelMarketData) SetID(id int64) { c.id = id }
 
 // ID .
-func (c *CancelMarketData) ID() int64                   { return c.id }
-func (c *CancelMarketData) code() OutgoingMessageID     { return mCancelMarketData }
-func (c *CancelMarketData) version() int64              { return 1 }
-func (c *CancelMarketData) write(b *bytes.Buffer) error { return writeInt(b, c.id) }
+func (c *CancelMarketData) ID() int64               { return c.id }
+func (c *CancelMarketData) code() OutgoingMessageID { return mCancelMarketData }
+func (c *CancelMarketData) version() int64          { return 1 }
+func (c *CancelMarketData) write(serverVersion int64, b *bytes.Buffer) error {
+	return (writeMapSlice{
+		{fct: writeInt, val: int64(c.code())},
+		{fct: writeInt, val: c.version()},
+		{fct: writeInt, val: c.id},
+	}).Dump(b)
+}
 
 // CancelMarketDepth is equivalent of IB API EClientSocket.cancelMktDepth().
 type CancelMarketDepth struct {
@@ -666,10 +759,16 @@ type CancelMarketDepth struct {
 func (c *CancelMarketDepth) SetID(id int64) { c.id = id }
 
 // ID .
-func (c *CancelMarketDepth) ID() int64                   { return c.id }
-func (c *CancelMarketDepth) code() OutgoingMessageID     { return mCancelMarketDepth }
-func (c *CancelMarketDepth) version() int64              { return 1 }
-func (c *CancelMarketDepth) write(b *bytes.Buffer) error { return writeInt(b, c.id) }
+func (c *CancelMarketDepth) ID() int64               { return c.id }
+func (c *CancelMarketDepth) code() OutgoingMessageID { return mCancelMarketDepth }
+func (c *CancelMarketDepth) version() int64          { return 1 }
+func (c *CancelMarketDepth) write(serverVersion int64, b *bytes.Buffer) error {
+	return (writeMapSlice{
+		{fct: writeInt, val: int64(c.code())},
+		{fct: writeInt, val: c.version()},
+		{fct: writeInt, val: c.id},
+	}).Dump(b)
+}
 
 // ExerciseOptions is equivalent of IB API EClientSocket.exerciseOptions().
 type ExerciseOptions struct {
@@ -688,8 +787,10 @@ func (r *ExerciseOptions) SetID(id int64) { r.id = id }
 func (r *ExerciseOptions) ID() int64               { return r.id }
 func (r *ExerciseOptions) code() OutgoingMessageID { return mExerciseOptions }
 func (r *ExerciseOptions) version() int64          { return 2 }
-func (r *ExerciseOptions) write(b *bytes.Buffer) error {
-	if err := (writeMapSlice{
+func (r *ExerciseOptions) write(serverVersion int64, b *bytes.Buffer) error {
+	return (writeMapSlice{
+		{fct: writeInt, val: int64(r.code())},
+		{fct: writeInt, val: r.version()},
 		{fct: writeInt, val: r.id},
 		{fct: writeInt, val: r.Contract.ContractID},
 		{fct: writeString, val: r.Contract.Symbol},
@@ -706,10 +807,7 @@ func (r *ExerciseOptions) write(b *bytes.Buffer) error {
 		{fct: writeInt, val: r.ExerciseQuantity},
 		{fct: writeString, val: r.Account},
 		{fct: writeInt, val: r.Override},
-	}).Dump(b); err != nil {
-		return err
-	}
-	return nil
+	}).Dump(b)
 }
 
 // PlaceOrder is equivalent of IB API EClientSocket.placeOrder().
@@ -726,8 +824,10 @@ func (r *PlaceOrder) SetID(id int64) { r.id = id }
 func (r *PlaceOrder) ID() int64               { return r.id }
 func (r *PlaceOrder) code() OutgoingMessageID { return mPlaceOrder }
 func (r *PlaceOrder) version() int64          { return 42 }
-func (r *PlaceOrder) write(b *bytes.Buffer) error {
+func (r *PlaceOrder) write(serverVersion int64, b *bytes.Buffer) error {
 	if err := (writeMapSlice{
+		{fct: writeInt, val: int64(r.code())},
+		{fct: writeInt, val: r.version()},
 		{fct: writeInt, val: r.id},
 		{fct: writeInt, val: r.Contract.ContractID},
 		{fct: writeString, val: r.Contract.Symbol},
@@ -1066,15 +1166,7 @@ func (r *PlaceOrder) write(b *bytes.Buffer) error {
 		return err
 	}
 
-	var miscOptions bytes.Buffer
-	miscOptions.WriteString("")
-	for _, opt := range r.Order.OrderMiscOptions {
-		miscOptions.WriteString(opt.Tag)
-		miscOptions.WriteString("=")
-		miscOptions.WriteString(opt.Value)
-		miscOptions.WriteString(";")
-	}
-	return writeString(b, miscOptions.String())
+	return writeTagValue(b, r.Order.OrderMiscOptions)
 }
 
 // RequestAccountUpdates is equivalent of IB API EClientSocket.reqAccountUpdates().
@@ -1085,11 +1177,13 @@ type RequestAccountUpdates struct {
 
 func (r *RequestAccountUpdates) code() OutgoingMessageID { return mRequestAccountData }
 func (r *RequestAccountUpdates) version() int64          { return 2 }
-func (r *RequestAccountUpdates) write(b *bytes.Buffer) error {
-	if err := writeBool(b, r.Subscribe); err != nil {
-		return err
-	}
-	return writeString(b, r.AccountCode)
+func (r *RequestAccountUpdates) write(serverVersion int64, b *bytes.Buffer) error {
+	return (writeMapSlice{
+		{fct: writeInt, val: int64(r.code())},
+		{fct: writeInt, val: r.version()},
+		{fct: writeBool, val: r.Subscribe},
+		{fct: writeString, val: r.AccountCode},
+	}).Dump(b)
 }
 
 // RequestExecutions is equivalent of IB API EClientSocket.reqExecutions().
@@ -1105,7 +1199,14 @@ func (r *RequestExecutions) SetID(id int64) { r.id = id }
 func (r *RequestExecutions) ID() int64               { return r.id }
 func (r *RequestExecutions) code() OutgoingMessageID { return mRequestExecutions }
 func (r *RequestExecutions) version() int64          { return 3 }
-func (r *RequestExecutions) write(b *bytes.Buffer) error {
+func (r *RequestExecutions) write(serverVersion int64, b *bytes.Buffer) error {
+	if err := (writeMapSlice{
+		{fct: writeInt, val: int64(r.code())},
+		{fct: writeInt, val: r.version()},
+	}).Dump(b); err != nil {
+		return err
+	}
+
 	if err := writeInt(b, r.id); err != nil {
 		return err
 	}
@@ -1139,49 +1240,89 @@ type CancelOrder struct {
 func (c *CancelOrder) SetID(id int64) { c.id = id }
 
 // ID .
-func (c *CancelOrder) ID() int64                   { return c.id }
-func (c *CancelOrder) code() OutgoingMessageID     { return mCancelOrder }
-func (c *CancelOrder) version() int64              { return 1 }
-func (c *CancelOrder) write(b *bytes.Buffer) error { return writeInt(b, c.id) }
+func (c *CancelOrder) ID() int64               { return c.id }
+func (c *CancelOrder) code() OutgoingMessageID { return mCancelOrder }
+func (c *CancelOrder) version() int64          { return 1 }
+func (c *CancelOrder) write(serverVersion int64, b *bytes.Buffer) error {
+	return (writeMapSlice{
+		{fct: writeInt, val: int64(c.code())},
+		{fct: writeInt, val: c.version()},
+		{fct: writeInt, val: c.id},
+	}).Dump(b)
+}
 
 // RequestOpenOrders is equivalent of IB API EClientSocket.reqOpenOrders().
 type RequestOpenOrders struct{}
 
-func (r *RequestOpenOrders) code() OutgoingMessageID     { return mRequestOpenOrders }
-func (r *RequestOpenOrders) version() int64              { return 1 }
-func (r *RequestOpenOrders) write(b *bytes.Buffer) error { return nil }
+func (r *RequestOpenOrders) code() OutgoingMessageID { return mRequestOpenOrders }
+func (r *RequestOpenOrders) version() int64          { return 1 }
+func (r *RequestOpenOrders) write(serverVersion int64, b *bytes.Buffer) error {
+	return (writeMapSlice{
+		{fct: writeInt, val: int64(r.code())},
+		{fct: writeInt, val: r.version()},
+	}).Dump(b)
+}
 
 // RequestIDs is equivalent of IB API EClientSocket.reqIds().
 type RequestIDs struct{}
 
-func (r *RequestIDs) code() OutgoingMessageID     { return mRequestIDs }
-func (r *RequestIDs) version() int64              { return 1 }
-func (r *RequestIDs) write(b *bytes.Buffer) error { return writeInt(b, 1) }
+func (r *RequestIDs) code() OutgoingMessageID { return mRequestIDs }
+func (r *RequestIDs) version() int64          { return 1 }
+func (r *RequestIDs) write(serverVersion int64, b *bytes.Buffer) error {
+	if err := (writeMapSlice{
+		{fct: writeInt, val: int64(r.code())},
+		{fct: writeInt, val: r.version()},
+	}).Dump(b); err != nil {
+		return err
+	}
+
+	return writeInt(b, 1)
+}
 
 // RequestNewsBulletins is equivalent of IB API EClientSocket.reqNewsBulletins().
 type RequestNewsBulletins struct {
 	AllMsgs bool
 }
 
-func (r *RequestNewsBulletins) code() OutgoingMessageID     { return mRequestNewsBulletins }
-func (r *RequestNewsBulletins) version() int64              { return 1 }
-func (r *RequestNewsBulletins) write(b *bytes.Buffer) error { return writeBool(b, r.AllMsgs) }
+func (r *RequestNewsBulletins) code() OutgoingMessageID { return mRequestNewsBulletins }
+func (r *RequestNewsBulletins) version() int64          { return 1 }
+func (r *RequestNewsBulletins) write(serverVersion int64, b *bytes.Buffer) error {
+	if err := (writeMapSlice{
+		{fct: writeInt, val: int64(r.code())},
+		{fct: writeInt, val: r.version()},
+	}).Dump(b); err != nil {
+		return err
+	}
+
+	return writeBool(b, r.AllMsgs)
+}
 
 // CancelNewsBulletins is equivalent of IB API EClientSocket.cancelNewsBulletins().
 type CancelNewsBulletins struct{}
 
-func (c *CancelNewsBulletins) code() OutgoingMessageID     { return mCancelNewsBulletins }
-func (c *CancelNewsBulletins) version() int64              { return 1 }
-func (c *CancelNewsBulletins) write(b *bytes.Buffer) error { return nil }
+func (c *CancelNewsBulletins) code() OutgoingMessageID { return mCancelNewsBulletins }
+func (c *CancelNewsBulletins) version() int64          { return 1 }
+func (c *CancelNewsBulletins) write(serverVersion int64, b *bytes.Buffer) error {
+	return (writeMapSlice{
+		{fct: writeInt, val: int64(c.code())},
+		{fct: writeInt, val: c.version()},
+	}).Dump(b)
+}
 
 // SetServerLogLevel is equivalent of IB API EClientSocket.setServerLogLevel().
 type SetServerLogLevel struct {
 	LogLevel int64
 }
 
-func (s *SetServerLogLevel) code() OutgoingMessageID     { return mSetServerLogLevel }
-func (s *SetServerLogLevel) version() int64              { return 1 }
-func (s *SetServerLogLevel) write(b *bytes.Buffer) error { return writeInt(b, s.LogLevel) }
+func (s *SetServerLogLevel) code() OutgoingMessageID { return mSetServerLogLevel }
+func (s *SetServerLogLevel) version() int64          { return 1 }
+func (s *SetServerLogLevel) write(serverVersion int64, b *bytes.Buffer) error {
+	return (writeMapSlice{
+		{fct: writeInt, val: int64(s.code())},
+		{fct: writeInt, val: s.version()},
+		{fct: writeInt, val: s.LogLevel},
+	}).Dump(b)
+}
 
 // RequestAutoOpenOrders is equivalent of IB API EClientSocket.reqAutoOpenOrders().
 type RequestAutoOpenOrders struct {
@@ -1189,33 +1330,58 @@ type RequestAutoOpenOrders struct {
 }
 
 // SetAutoBind .
-func (r *RequestAutoOpenOrders) SetAutoBind(autobind bool)   { r.AutoBind = autobind }
-func (r *RequestAutoOpenOrders) code() OutgoingMessageID     { return mRequestAutoOpenOrders }
-func (r *RequestAutoOpenOrders) version() int64              { return 1 }
-func (r *RequestAutoOpenOrders) write(b *bytes.Buffer) error { return writeBool(b, r.AutoBind) }
+func (r *RequestAutoOpenOrders) SetAutoBind(autobind bool) { r.AutoBind = autobind }
+func (r *RequestAutoOpenOrders) code() OutgoingMessageID   { return mRequestAutoOpenOrders }
+func (r *RequestAutoOpenOrders) version() int64            { return 1 }
+func (r *RequestAutoOpenOrders) write(serverVersion int64, b *bytes.Buffer) error {
+	return (writeMapSlice{
+		{fct: writeInt, val: int64(r.code())},
+		{fct: writeInt, val: r.version()},
+		{fct: writeBool, val: r.AutoBind},
+	}).Dump(b)
+}
 
 // RequestAllOpenOrders is equivalent of IB API EClientSocket.reqAllOpenOrders().
 type RequestAllOpenOrders struct{}
 
-func (r *RequestAllOpenOrders) code() OutgoingMessageID     { return mRequestAllOpenOrders }
-func (r *RequestAllOpenOrders) version() int64              { return 1 }
-func (r *RequestAllOpenOrders) write(b *bytes.Buffer) error { return nil }
+func (r *RequestAllOpenOrders) code() OutgoingMessageID { return mRequestAllOpenOrders }
+func (r *RequestAllOpenOrders) version() int64          { return 1 }
+func (r *RequestAllOpenOrders) write(serverVersion int64, b *bytes.Buffer) error {
+	return (writeMapSlice{
+		{fct: writeInt, val: int64(r.code())},
+		{fct: writeInt, val: r.version()},
+	}).Dump(b)
+}
 
 // RequestManagedAccounts is equivalent of IB API EClientSocket.reqManagedAccts().
 type RequestManagedAccounts struct{}
 
-func (r *RequestManagedAccounts) code() OutgoingMessageID     { return mRequestManagedAccounts }
-func (r *RequestManagedAccounts) version() int64              { return 1 }
-func (r *RequestManagedAccounts) write(b *bytes.Buffer) error { return nil }
+func (r *RequestManagedAccounts) code() OutgoingMessageID { return mRequestManagedAccounts }
+func (r *RequestManagedAccounts) version() int64          { return 1 }
+func (r *RequestManagedAccounts) write(serverVersion int64, b *bytes.Buffer) error {
+	return (writeMapSlice{
+		{fct: writeInt, val: int64(r.code())},
+		{fct: writeInt, val: r.version()},
+	}).Dump(b)
+}
 
 // RequestFA is equivalent of IB API EClientSocket.requestFA().
 type RequestFA struct {
 	faDataType int64
 }
 
-func (r *RequestFA) code() OutgoingMessageID     { return mRequestFA }
-func (r *RequestFA) version() int64              { return 1 }
-func (r *RequestFA) write(b *bytes.Buffer) error { return writeInt(b, r.faDataType) }
+func (r *RequestFA) code() OutgoingMessageID { return mRequestFA }
+func (r *RequestFA) version() int64          { return 1 }
+func (r *RequestFA) write(serverVersion int64, b *bytes.Buffer) error {
+	if err := (writeMapSlice{
+		{fct: writeInt, val: int64(r.code())},
+		{fct: writeInt, val: r.version()},
+	}).Dump(b); err != nil {
+		return err
+	}
+
+	return writeInt(b, r.faDataType)
+}
 
 // ReplaceFA is equivalent of IB API EClientSocket.replaceFA().
 type ReplaceFA struct {
@@ -1225,7 +1391,14 @@ type ReplaceFA struct {
 
 func (r *ReplaceFA) code() OutgoingMessageID { return mReplaceFA }
 func (r *ReplaceFA) version() int64          { return 1 }
-func (r *ReplaceFA) write(b *bytes.Buffer) error {
+func (r *ReplaceFA) write(serverVersion int64, b *bytes.Buffer) error {
+	if err := (writeMapSlice{
+		{fct: writeInt, val: int64(r.code())},
+		{fct: writeInt, val: r.version()},
+	}).Dump(b); err != nil {
+		return err
+	}
+
 	if err := writeInt(b, r.faDataType); err != nil {
 		return err
 	}
@@ -1235,9 +1408,14 @@ func (r *ReplaceFA) write(b *bytes.Buffer) error {
 // RequestCurrentTime is equivalent of IB API EClientSocket.reqCurrentTime().
 type RequestCurrentTime struct{}
 
-func (r *RequestCurrentTime) code() OutgoingMessageID     { return mRequestCurrentTime }
-func (r *RequestCurrentTime) version() int64              { return 1 }
-func (r *RequestCurrentTime) write(b *bytes.Buffer) error { return nil }
+func (r *RequestCurrentTime) code() OutgoingMessageID { return mRequestCurrentTime }
+func (r *RequestCurrentTime) version() int64          { return 1 }
+func (r *RequestCurrentTime) write(serverVersion int64, b *bytes.Buffer) error {
+	return (writeMapSlice{
+		{fct: writeInt, val: int64(r.code())},
+		{fct: writeInt, val: r.version()},
+	}).Dump(b)
+}
 
 // RequestFundamentalData is equivalent of IB API EClientSocket.reqFundamentalData().
 type RequestFundamentalData struct {
@@ -1253,8 +1431,12 @@ func (r *RequestFundamentalData) SetID(id int64) { r.id = id }
 func (r *RequestFundamentalData) ID() int64               { return r.id }
 func (r *RequestFundamentalData) code() OutgoingMessageID { return mRequestFundamentalData }
 func (r *RequestFundamentalData) version() int64          { return 2 }
-func (r *RequestFundamentalData) write(b *bytes.Buffer) error {
-	if err := writeInt(b, r.id); err != nil {
+func (r *RequestFundamentalData) write(serverVersion int64, b *bytes.Buffer) error {
+	if err := (writeMapSlice{
+		{fct: writeInt, val: int64(r.code())},
+		{fct: writeInt, val: r.version()},
+		{fct: writeInt, val: r.id},
+	}).Dump(b); err != nil {
 		return err
 	}
 	if err := writeInt(b, r.Contract.ContractID); err != nil {
@@ -1290,10 +1472,16 @@ type CancelFundamentalData struct {
 func (c *CancelFundamentalData) SetID(id int64) { c.id = id }
 
 // ID .
-func (c *CancelFundamentalData) ID() int64                   { return c.id }
-func (c *CancelFundamentalData) code() OutgoingMessageID     { return mCancelFundamentalData }
-func (c *CancelFundamentalData) version() int64              { return 1 }
-func (c *CancelFundamentalData) write(b *bytes.Buffer) error { return writeInt(b, c.id) }
+func (c *CancelFundamentalData) ID() int64               { return c.id }
+func (c *CancelFundamentalData) code() OutgoingMessageID { return mCancelFundamentalData }
+func (c *CancelFundamentalData) version() int64          { return 1 }
+func (c *CancelFundamentalData) write(serverVersion int64, b *bytes.Buffer) error {
+	return (writeMapSlice{
+		{fct: writeInt, val: int64(c.code())},
+		{fct: writeInt, val: c.version()},
+		{fct: writeInt, val: c.id},
+	}).Dump(b)
+}
 
 // RequestCalcImpliedVol is equivalent of IB API EClientSocket.calculateImpliedVolatility().
 type RequestCalcImpliedVol struct {
@@ -1310,8 +1498,12 @@ func (r *RequestCalcImpliedVol) SetID(id int64) { r.id = id }
 func (r *RequestCalcImpliedVol) ID() int64               { return r.id }
 func (r *RequestCalcImpliedVol) code() OutgoingMessageID { return mRequestCalcImpliedVol }
 func (r *RequestCalcImpliedVol) version() int64          { return 2 }
-func (r *RequestCalcImpliedVol) write(b *bytes.Buffer) error {
-	if err := writeInt(b, r.id); err != nil {
+func (r *RequestCalcImpliedVol) write(serverVersion int64, b *bytes.Buffer) error {
+	if err := (writeMapSlice{
+		{fct: writeInt, val: int64(r.code())},
+		{fct: writeInt, val: r.version()},
+		{fct: writeInt, val: r.id},
+	}).Dump(b); err != nil {
 		return err
 	}
 	if err := writeInt(b, r.Contract.ContractID); err != nil {
@@ -1365,10 +1557,16 @@ type CancelCalcImpliedVol struct {
 func (c *CancelCalcImpliedVol) SetID(id int64) { c.id = id }
 
 // ID .
-func (c *CancelCalcImpliedVol) ID() int64                   { return c.id }
-func (c *CancelCalcImpliedVol) code() OutgoingMessageID     { return mCancelCalcImpliedVol }
-func (c *CancelCalcImpliedVol) version() int64              { return 1 }
-func (c *CancelCalcImpliedVol) write(b *bytes.Buffer) error { return writeInt(b, c.id) }
+func (c *CancelCalcImpliedVol) ID() int64               { return c.id }
+func (c *CancelCalcImpliedVol) code() OutgoingMessageID { return mCancelCalcImpliedVol }
+func (c *CancelCalcImpliedVol) version() int64          { return 1 }
+func (c *CancelCalcImpliedVol) write(serverVersion int64, b *bytes.Buffer) error {
+	return (writeMapSlice{
+		{fct: writeInt, val: int64(c.code())},
+		{fct: writeInt, val: c.version()},
+		{fct: writeInt, val: c.id},
+	}).Dump(b)
+}
 
 // RequestCalcOptionPrice is equivalent of IB API EClientSocket.calculateOptionPrice().
 type RequestCalcOptionPrice struct {
@@ -1385,8 +1583,12 @@ func (r *RequestCalcOptionPrice) SetID(id int64) { r.id = id }
 func (r *RequestCalcOptionPrice) ID() int64               { return r.id }
 func (r *RequestCalcOptionPrice) code() OutgoingMessageID { return mRequestCalcOptionPrice }
 func (r *RequestCalcOptionPrice) version() int64          { return 2 }
-func (r *RequestCalcOptionPrice) write(b *bytes.Buffer) error {
-	if err := writeInt(b, r.id); err != nil {
+func (r *RequestCalcOptionPrice) write(serverVersion int64, b *bytes.Buffer) error {
+	if err := (writeMapSlice{
+		{fct: writeInt, val: int64(r.code())},
+		{fct: writeInt, val: r.version()},
+		{fct: writeInt, val: r.id},
+	}).Dump(b); err != nil {
 		return err
 	}
 	if err := writeInt(b, r.Contract.ContractID); err != nil {
@@ -1440,40 +1642,67 @@ type CancelCalcOptionPrice struct {
 func (c *CancelCalcOptionPrice) SetID(id int64) { c.id = id }
 
 // ID .
-func (c *CancelCalcOptionPrice) ID() int64                   { return c.id }
-func (c *CancelCalcOptionPrice) code() OutgoingMessageID     { return mCancelCalcOptionPrice }
-func (c *CancelCalcOptionPrice) version() int64              { return 1 }
-func (c *CancelCalcOptionPrice) write(b *bytes.Buffer) error { return writeInt(b, c.id) }
+func (c *CancelCalcOptionPrice) ID() int64               { return c.id }
+func (c *CancelCalcOptionPrice) code() OutgoingMessageID { return mCancelCalcOptionPrice }
+func (c *CancelCalcOptionPrice) version() int64          { return 1 }
+func (c *CancelCalcOptionPrice) write(serverVersion int64, b *bytes.Buffer) error {
+	return (writeMapSlice{
+		{fct: writeInt, val: int64(c.code())},
+		{fct: writeInt, val: c.version()},
+		{fct: writeInt, val: c.id},
+	}).Dump(b)
+}
 
 // RequestGlobalCancel is equivalent of IB API EClientSocket.reqGlobalCancel()
 type RequestGlobalCancel struct{}
 
-func (r *RequestGlobalCancel) code() OutgoingMessageID     { return mRequestGlobalCancel }
-func (r *RequestGlobalCancel) version() int64              { return 1 }
-func (r *RequestGlobalCancel) write(b *bytes.Buffer) error { return nil }
+func (r *RequestGlobalCancel) code() OutgoingMessageID { return mRequestGlobalCancel }
+func (r *RequestGlobalCancel) version() int64          { return 1 }
+func (r *RequestGlobalCancel) write(serverVersion int64, b *bytes.Buffer) error {
+	return (writeMapSlice{
+		{fct: writeInt, val: int64(r.code())},
+		{fct: writeInt, val: r.version()},
+	}).Dump(b)
+}
 
 // RequestMarketDataType is equivalent of IB API EClientSocket.reqMarketDataType()
 type RequestMarketDataType struct {
 	MarketDataType int64
 }
 
-func (r *RequestMarketDataType) code() OutgoingMessageID     { return mRequestMarketDataType }
-func (r *RequestMarketDataType) version() int64              { return 1 }
-func (r *RequestMarketDataType) write(b *bytes.Buffer) error { return writeInt(b, r.MarketDataType) }
+func (r *RequestMarketDataType) code() OutgoingMessageID { return mRequestMarketDataType }
+func (r *RequestMarketDataType) version() int64          { return 1 }
+func (r *RequestMarketDataType) write(serverVersion int64, b *bytes.Buffer) error {
+	return (writeMapSlice{
+		{fct: writeInt, val: int64(r.code())},
+		{fct: writeInt, val: r.version()},
+		{fct: writeInt, val: r.MarketDataType},
+	}).Dump(b)
+}
 
 // RequestPositions is equivalent of IB API EClientSocket.reqPositions()
 type RequestPositions struct{}
 
-func (r *RequestPositions) code() OutgoingMessageID     { return mRequestPositions }
-func (r *RequestPositions) version() int64              { return 1 }
-func (r *RequestPositions) write(b *bytes.Buffer) error { return nil }
+func (r *RequestPositions) code() OutgoingMessageID { return mRequestPositions }
+func (r *RequestPositions) version() int64          { return 1 }
+func (r *RequestPositions) write(serverVersion int64, b *bytes.Buffer) error {
+	return (writeMapSlice{
+		{fct: writeInt, val: int64(r.code())},
+		{fct: writeInt, val: r.version()},
+	}).Dump(b)
+}
 
 // CancelPositions is equivalent of IB API EClientSocket.cancelPositions()
 type CancelPositions struct{}
 
-func (c *CancelPositions) code() OutgoingMessageID     { return mCancelPositions }
-func (c *CancelPositions) version() int64              { return 1 }
-func (c *CancelPositions) write(b *bytes.Buffer) error { return nil }
+func (c *CancelPositions) code() OutgoingMessageID { return mCancelPositions }
+func (c *CancelPositions) version() int64          { return 1 }
+func (c *CancelPositions) write(serverVersion int64, b *bytes.Buffer) error {
+	return (writeMapSlice{
+		{fct: writeInt, val: int64(c.code())},
+		{fct: writeInt, val: c.version()},
+	}).Dump(b)
+}
 
 // RequestAccountSummary is equivalent of IB API EClientSocket.reqAccountSummary()
 type RequestAccountSummary struct {
@@ -1489,14 +1718,14 @@ func (r *RequestAccountSummary) SetID(id int64) { r.id = id }
 func (r *RequestAccountSummary) ID() int64               { return r.id }
 func (r *RequestAccountSummary) code() OutgoingMessageID { return mRequestAccountSummary }
 func (r *RequestAccountSummary) version() int64          { return 1 }
-func (r *RequestAccountSummary) write(b *bytes.Buffer) error {
-	if err := writeInt(b, r.id); err != nil {
-		return err
-	}
-	if err := writeString(b, r.Group); err != nil {
-		return err
-	}
-	return writeString(b, r.Tags)
+func (r *RequestAccountSummary) write(serverVersion int64, b *bytes.Buffer) error {
+	return (writeMapSlice{
+		{fct: writeInt, val: int64(r.code())},
+		{fct: writeInt, val: r.version()},
+		{fct: writeInt, val: r.id},
+		{fct: writeString, val: r.Group},
+		{fct: writeString, val: r.Tags},
+	}).Dump(b)
 }
 
 // CancelAccountSummary is equivalent of IB API EClientSocket.cancelAccountSummary()
@@ -1508,10 +1737,16 @@ type CancelAccountSummary struct {
 func (c *CancelAccountSummary) SetID(id int64) { c.id = id }
 
 // ID .
-func (c *CancelAccountSummary) ID() int64                   { return c.id }
-func (c *CancelAccountSummary) code() OutgoingMessageID     { return mCancelAccountSummary }
-func (c *CancelAccountSummary) version() int64              { return 1 }
-func (c *CancelAccountSummary) write(b *bytes.Buffer) error { return writeInt(b, c.id) }
+func (c *CancelAccountSummary) ID() int64               { return c.id }
+func (c *CancelAccountSummary) code() OutgoingMessageID { return mCancelAccountSummary }
+func (c *CancelAccountSummary) version() int64          { return 1 }
+func (c *CancelAccountSummary) write(serverVersion int64, b *bytes.Buffer) error {
+	return (writeMapSlice{
+		{fct: writeInt, val: int64(c.code())},
+		{fct: writeInt, val: c.version()},
+		{fct: writeInt, val: c.id},
+	}).Dump(b)
+}
 
 // VerifyRequest is equivalent of IB API EClientSocket.verifyRequest()
 type VerifyRequest struct {
@@ -1521,12 +1756,13 @@ type VerifyRequest struct {
 
 func (v *VerifyRequest) code() OutgoingMessageID { return mVerifyRequest }
 func (v *VerifyRequest) version() int64          { return 1 }
-func (v *VerifyRequest) write(b *bytes.Buffer) error {
-	if err := writeString(b, v.apiName); err != nil {
-		return err
-	}
-
-	return writeString(b, v.apiVersion)
+func (v *VerifyRequest) write(serverVersion int64, b *bytes.Buffer) error {
+	return (writeMapSlice{
+		{fct: writeInt, val: int64(v.code())},
+		{fct: writeInt, val: v.version()},
+		{fct: writeString, val: v.apiName},
+		{fct: writeString, val: v.apiVersion},
+	}).Dump(b)
 }
 
 // VerifyMessage is equivalent of IB API EClientSocket.verifyMessage()
@@ -1534,9 +1770,15 @@ type VerifyMessage struct {
 	apiData string
 }
 
-func (v *VerifyMessage) code() OutgoingMessageID     { return mVerifyMessage }
-func (v *VerifyMessage) version() int64              { return 1 }
-func (v *VerifyMessage) write(b *bytes.Buffer) error { return writeString(b, v.apiData) }
+func (v *VerifyMessage) code() OutgoingMessageID { return mVerifyMessage }
+func (v *VerifyMessage) version() int64          { return 1 }
+func (v *VerifyMessage) write(serverVersion int64, b *bytes.Buffer) error {
+	return (writeMapSlice{
+		{fct: writeInt, val: int64(v.code())},
+		{fct: writeInt, val: v.version()},
+		{fct: writeString, val: v.apiData},
+	}).Dump(b)
+}
 
 // QueryDisplayGroups is equivalent of IB API EClientSocket.queryDisplayGroups()
 type QueryDisplayGroups struct {
@@ -1549,10 +1791,16 @@ func (q *QueryDisplayGroups) SetID(id int64) {
 }
 
 // ID .
-func (q *QueryDisplayGroups) ID() int64                   { return q.id }
-func (q *QueryDisplayGroups) code() OutgoingMessageID     { return mQueryDisplayGroups }
-func (q *QueryDisplayGroups) version() int64              { return 1 }
-func (q *QueryDisplayGroups) write(b *bytes.Buffer) error { return writeInt(b, q.id) }
+func (q *QueryDisplayGroups) ID() int64               { return q.id }
+func (q *QueryDisplayGroups) code() OutgoingMessageID { return mQueryDisplayGroups }
+func (q *QueryDisplayGroups) version() int64          { return 1 }
+func (q *QueryDisplayGroups) write(serverVersion int64, b *bytes.Buffer) error {
+	return (writeMapSlice{
+		{fct: writeInt, val: int64(q.code())},
+		{fct: writeInt, val: q.version()},
+		{fct: writeInt, val: q.id},
+	}).Dump(b)
+}
 
 // SubscribeToGroupEvents is equivalent of IB API EClientSocket.subscribeToGroupEvents()
 type SubscribeToGroupEvents struct {
@@ -1567,11 +1815,13 @@ func (s *SubscribeToGroupEvents) SetID(id int64) { s.id = id }
 func (s *SubscribeToGroupEvents) ID() int64               { return s.id }
 func (s *SubscribeToGroupEvents) code() OutgoingMessageID { return mSubscribeToGroupEvents }
 func (s *SubscribeToGroupEvents) version() int64          { return 1 }
-func (s *SubscribeToGroupEvents) write(b *bytes.Buffer) error {
-	if err := writeInt(b, s.id); err != nil {
-		return err
-	}
-	return writeInt(b, s.groupid)
+func (s *SubscribeToGroupEvents) write(serverVersion int64, b *bytes.Buffer) error {
+	return (writeMapSlice{
+		{fct: writeInt, val: int64(s.code())},
+		{fct: writeInt, val: s.version()},
+		{fct: writeInt, val: s.id},
+		{fct: writeInt, val: s.groupid},
+	}).Dump(b)
 }
 
 // UpdateDisplayGroup is equivalent of IB API EClientSocket.updateDisplayGroup()
@@ -1587,11 +1837,13 @@ func (u *UpdateDisplayGroup) SetID(id int64) { u.id = id }
 func (u *UpdateDisplayGroup) ID() int64               { return u.id }
 func (u *UpdateDisplayGroup) code() OutgoingMessageID { return mUpdateDisplayGroup }
 func (u *UpdateDisplayGroup) version() int64          { return 1 }
-func (u *UpdateDisplayGroup) write(b *bytes.Buffer) error {
-	if err := writeInt(b, u.id); err != nil {
-		return err
-	}
-	return writeString(b, u.ContractInfo)
+func (u *UpdateDisplayGroup) write(serverVersion int64, b *bytes.Buffer) error {
+	return (writeMapSlice{
+		{fct: writeInt, val: int64(u.code())},
+		{fct: writeInt, val: u.version()},
+		{fct: writeInt, val: u.id},
+		{fct: writeString, val: u.ContractInfo},
+	}).Dump(b)
 }
 
 // UnsubscribeFromGroupEvents is equivalent of IB API EClientSocket.unsubscribeFromGroupEvents()
@@ -1603,7 +1855,13 @@ type UnsubscribeFromGroupEvents struct {
 func (u *UnsubscribeFromGroupEvents) SetID(id int64) { u.id = id }
 
 // ID .
-func (u *UnsubscribeFromGroupEvents) ID() int64                   { return u.id }
-func (u *UnsubscribeFromGroupEvents) code() OutgoingMessageID     { return mUnsubscribeFromGroupEvents }
-func (u *UnsubscribeFromGroupEvents) version() int64              { return 1 }
-func (u *UnsubscribeFromGroupEvents) write(b *bytes.Buffer) error { return writeInt(b, u.id) }
+func (u *UnsubscribeFromGroupEvents) ID() int64               { return u.id }
+func (u *UnsubscribeFromGroupEvents) code() OutgoingMessageID { return mUnsubscribeFromGroupEvents }
+func (u *UnsubscribeFromGroupEvents) version() int64          { return 1 }
+func (u *UnsubscribeFromGroupEvents) write(serverVersion int64, b *bytes.Buffer) error {
+	return (writeMapSlice{
+		{fct: writeInt, val: int64(u.code())},
+		{fct: writeInt, val: u.version()},
+		{fct: writeInt, val: u.id},
+	}).Dump(b)
+}

@@ -16,6 +16,8 @@ package ib
 import (
 	"bufio"
 	"bytes"
+	"encoding/binary"
+	"encoding/hex"
 	"fmt"
 	"log"
 	"net"
@@ -36,6 +38,7 @@ type EngineOptions struct {
 	Gateway          string
 	Client           int64
 	DumpConversation bool
+	DisableV100Plus  bool
 	Logger           *log.Logger
 }
 
@@ -47,6 +50,7 @@ type Engine struct {
 	ch               chan command
 	gateway          string
 	client           int64
+	connected        bool
 	con              net.Conn
 	reader           *bufio.Reader
 	input            *bytes.Buffer
@@ -67,6 +71,7 @@ type Engine struct {
 	lastDumpRead     int64
 	lastDumpID       int64
 	fatalError       error
+	useV100Plus      bool
 	logger           *log.Logger
 }
 
@@ -141,6 +146,7 @@ func NewEngine(opt EngineOptions) (re *Engine, rerr error) {
 		observers:        map[int64]chan<- Reply{},
 		state:            EngineReady,
 		dumpConversation: opt.DumpConversation,
+		useV100Plus:      !opt.DisableV100Plus,
 		logger:           logger,
 	}
 
@@ -153,29 +159,94 @@ func NewEngine(opt EngineOptions) (re *Engine, rerr error) {
 	go e.startTransmitter()
 	go e.startMainLoop()
 
+	e.logger.Printf("Client: %v", e.client)
 	// send the StartAPI request
 	e.Send(&StartAPI{Client: e.client})
+
+	e.connected = true
 
 	return &e, nil
 }
 
-func (e *Engine) handshake() error {
-	// write client version
-	clientShake := &clientHandshake{clientVersion}
+func (e *Engine) IsUseV100Plus() bool {
+	return e.useV100Plus
+}
+
+func (e *Engine) makeV100APIHeader() {
+
+	out := buildVersionString(mMinVersion, mMaxVersion)
+
+	//if e.connectOptions != "" {
+	//	out += " " + connectOptions
+	//}
+
 	e.output.Reset()
-	if err := clientShake.write(e.output); err != nil {
-		return err
+	e.output.WriteString("API\000")
+	data := make([]byte, 4)
+	binary.BigEndian.PutUint32(data, uint32(len(out)))
+	e.output.Write(data)
+	e.output.WriteString(out)
+}
+
+func buildVersionString(minVersion, maxVersion int) string {
+	if minVersion < maxVersion {
+		return fmt.Sprintf("v%v..%v", minVersion, maxVersion)
 	}
 
+	return fmt.Sprintf("v%v", minVersion)
+}
+
+func (e *Engine) handshake() error {
+	e.output = bytes.NewBuffer(make([]byte, 0, 4096))
+
+	// send client version (unless logon via iserver and/or Version > 100)
+	if !e.useV100Plus {
+		// write client version
+		// Do not add length prefix here, because Server does not know Client's version yet
+		clientShake := &clientHandshake{clientVersion}
+		if err := clientShake.write(e.output); err != nil {
+			return err
+		}
+		e.logger.Printf("OLD")
+	} else {
+		// Switch to GW API (Version 100+ requires length prefix)
+		e.makeV100APIHeader()
+		e.logger.Printf("100V")
+	}
+
+	e.logger.Printf("WRITE")
 	if _, err := e.con.Write(e.output.Bytes()); err != nil {
 		return err
 	}
 
+	e.logger.Printf("READ")
 	// read server version and time
 	serverShake := &serverHandshake{}
 	e.input.Reset()
-	if err := serverShake.read(e.reader); err != nil {
-		return err
+	if e.useV100Plus {
+		num, err := readUInt32(e.reader)
+		if err != nil {
+			return err
+		}
+
+		data := make([]byte, num)
+
+		// TODO: check read size
+		if _, err := e.reader.Read(data); err != nil {
+			return err
+		}
+
+		if err = serverShake.read(e.serverVersion, bufio.NewReader(bytes.NewBuffer(data))); err != nil {
+			return err
+		}
+	} else {
+		if err := serverShake.read(e.serverVersion, e.reader); err != nil {
+			return err
+		}
+	}
+
+	if e.dumpConversation {
+		e.logger.Printf("SERVER VERSION %v\n", serverShake.version)
 	}
 
 	if serverShake.version < minServerVersion {
@@ -335,30 +406,37 @@ func (e *Engine) deliverToObserver(c chan<- Reply, r Reply) {
 }
 
 func (e *Engine) transmit(r Request) (err error) {
-	e.output.Reset()
-
-	// encode message type and client version
-	hdr := &header{
-		code:    int64(r.code()),
-		version: r.version(),
-	}
-
-	if err = hdr.write(e.output); err != nil {
-		return
-	}
+	e.output = bytes.NewBuffer(make([]byte, 0, 4096))
 
 	// encode the message itself
-	if err = r.write(e.output); err != nil {
+	if err = r.write(e.serverVersion, e.output); err != nil {
 		return
+	}
+
+	if e.useV100Plus {
+		data := make([]byte, 4)
+		outputbytes := e.output.Bytes()
+		if e.dumpConversation {
+			e.logger.Printf("MESSAGE SIZE: %v\n", len(outputbytes))
+		}
+
+		binary.BigEndian.PutUint32(data, uint32(len(outputbytes)))
+		outputbytes = append(data, outputbytes...)
+
+		e.output = bytes.NewBuffer(outputbytes)
 	}
 
 	if e.dumpConversation {
 		b := e.output
 		s := strings.Replace(b.String(), "\000", "-", -1)
-		e.logger.Printf("%d> '%s'\n", e.client, s)
+		e.logger.Printf("DUMP: %d> (%v) '%s'\n", e.client, e.output.Len(), s)
+		e.logger.Printf("MESSAGE:\n %v\n", hex.Dump(b.Bytes()))
 	}
 
-	_, err = e.con.Write(e.output.Bytes())
+	cnt, err := e.con.Write(e.output.Bytes())
+	if e.dumpConversation {
+		e.logger.Printf("DUMP: %d> wrote %v\n", e.client, cnt)
+	}
 	return
 }
 
@@ -543,28 +621,6 @@ func (e *Engine) Stop() {
 	<-e.terminated
 }
 
-type header struct {
-	code    int64
-	version int64
-}
-
-func (v *header) write(b *bytes.Buffer) error {
-	if err := writeInt(b, v.code); err != nil {
-		return err
-	}
-	return writeInt(b, v.version)
-}
-
-func (v *header) read(b *bufio.Reader) error {
-	var err error
-
-	if v.code, err = readInt(b); err != nil {
-		return err
-	}
-	v.version, err = readInt(b)
-	return err
-}
-
 // Send a message to the engine, blocking until sent or the engine exits.
 // This method will return an error if the UnmatchedReplyID is used or the
 // engine exits. A nil error indicates successful transmission. Any transmission
@@ -616,36 +672,60 @@ func failPacket(v interface{}) error {
 }
 
 func (e *Engine) receive() (Reply, error) {
-	e.input.Reset()
-	hdr := &header{}
+	var reader *bufio.Reader
 
-	// decode header
-	if err := hdr.read(e.reader); err != nil {
+	if e.useV100Plus {
+		num, err := readUInt32(e.reader)
+		if err != nil {
+			return nil, err
+		}
+
+		data := make([]byte, num)
+
+		// TODO: check read size
+		if _, err := e.reader.Read(data); err != nil {
+			return nil, err
+		}
+
 		if e.dumpConversation {
-			e.logger.Printf("%d< %v\n", e.client, err)
+			e.logger.Printf("READ MESSAGE:\n %v\n", hex.Dump(data))
+		}
+
+		e.input = bytes.NewBuffer(data)
+
+		reader = bufio.NewReader(e.input)
+	} else {
+		e.input.Reset()
+		reader = e.reader
+	}
+
+	code, err := readInt(reader)
+	if err != nil {
+		if e.dumpConversation {
+			e.logger.Printf("DUMP: %d< %v\n", e.client, err)
 		}
 		return nil, err
 	}
 
 	// decode message
-	r, err := code2Msg(hdr.code)
+	r, err := code2Msg(code)
 	if err != nil {
 		if e.dumpConversation {
-			e.logger.Printf("%d< %v %s\n", e.client, hdr, err)
+			e.logger.Printf("DUMP: %d< %v %s\n", e.client, code, err)
 		}
 		return nil, err
 	}
 
-	if err := r.read(e.reader); err != nil {
+	if err := r.read(e.serverVersion, reader); err != nil {
 		if e.dumpConversation {
-			e.logger.Printf("%d< %v %s\n", e.client, hdr, err)
+			e.logger.Printf("DUMP: %d< %v %s\n", e.client, code, err)
 		}
 		return nil, err
 	}
 
 	if e.dumpConversation {
-		dump := hdr.code != e.lastDumpRead
-		e.lastDumpRead = hdr.code
+		dump := code != e.lastDumpRead
+		e.lastDumpRead = code
 
 		dump = dump || r.code() == mErrorMessage
 
@@ -660,7 +740,7 @@ func (e *Engine) receive() (Reply, error) {
 			if cut > 80 {
 				str = str[:76] + "..."
 			}
-			e.logger.Printf("%d< %v %s\n", e.client, hdr, str)
+			e.logger.Printf("DUMP: %d< %v %s\n", e.client, code, str)
 		}
 	}
 

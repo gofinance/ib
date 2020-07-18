@@ -99,9 +99,7 @@ type serverHandshake struct {
 	NewAddress string
 }
 
-func (s *serverHandshake) read(b *bufio.Reader) error {
-	var err error
-
+func (s *serverHandshake) read(serverVersion int64, b *bufio.Reader) (err error) {
 	if s.version, err = readInt(b); err != nil {
 		return err
 	}
@@ -220,12 +218,19 @@ type TickPrice struct {
 	Price          float64
 	Size           int64
 	CanAutoExecute bool
+	PastLimit      bool
+	PreOpen        bool
 }
 
 // ID contains the TWS "tickerId", which was nominated at market data request time.
 func (t *TickPrice) ID() int64               { return t.id }
 func (t *TickPrice) code() IncomingMessageID { return mTickPrice }
-func (t *TickPrice) read(b *bufio.Reader) (err error) {
+func (t *TickPrice) read(serverVersion int64, b *bufio.Reader) (err error) {
+	var version int64
+	if version, err = readInt(b); err != nil {
+		return err
+	}
+
 	if t.id, err = readInt(b); err != nil {
 		return err
 	}
@@ -235,10 +240,34 @@ func (t *TickPrice) read(b *bufio.Reader) (err error) {
 	if t.Price, err = readFloat(b); err != nil {
 		return err
 	}
-	if t.Size, err = readInt(b); err != nil {
-		return err
+
+	if version >= 2 {
+		if t.Size, err = readInt(b); err != nil {
+			return err
+		}
 	}
-	t.CanAutoExecute, err = readBool(b)
+
+	if version >= 3 {
+		// TODO
+		var attrMask int64
+		if attrMask, err = readInt(b); err != nil {
+			return err
+		}
+		if serverVersion >= mMinServerVerPastLimit {
+			if attrMask&0x01 == 0x01 {
+				t.CanAutoExecute = true
+			}
+			if attrMask&0x02 == 0x02 {
+				t.PastLimit = true
+			}
+			if serverVersion >= mMinServerVerPreOpenBidAsk {
+				if attrMask&0x04 == 0x04 {
+					t.PreOpen = true
+				}
+			}
+		}
+	}
+
 	return err
 }
 
@@ -252,7 +281,11 @@ type TickSize struct {
 // ID contains the TWS "tickerId", which was nominated at market data request time.
 func (t *TickSize) ID() int64               { return t.id }
 func (t *TickSize) code() IncomingMessageID { return mTickSize }
-func (t *TickSize) read(b *bufio.Reader) (err error) {
+func (t *TickSize) read(serverVersion int64, b *bufio.Reader) (err error) {
+	// version
+	if _, err = readInt(b); err != nil {
+		return err
+	}
 	if t.id, err = readInt(b); err != nil {
 		return err
 	}
@@ -280,9 +313,11 @@ type TickOptionComputation struct {
 // ID contains the TWS "tickerId", which was nominated at market data request time.
 func (t *TickOptionComputation) ID() int64               { return t.id }
 func (t *TickOptionComputation) code() IncomingMessageID { return mTickOptionComputation }
-func (t *TickOptionComputation) read(b *bufio.Reader) error {
-	var err error
-
+func (t *TickOptionComputation) read(serverVersion int64, b *bufio.Reader) (err error) {
+	// version
+	if _, err = readInt(b); err != nil {
+		return err
+	}
 	if t.id, err = readInt(b); err != nil {
 		return err
 	}
@@ -326,7 +361,11 @@ type TickGeneric struct {
 // ID contains the TWS "tickerId", which was nominated at market data request time.
 func (t *TickGeneric) ID() int64               { return t.id }
 func (t *TickGeneric) code() IncomingMessageID { return mTickGeneric }
-func (t *TickGeneric) read(b *bufio.Reader) (err error) {
+func (t *TickGeneric) read(serverVersion int64, b *bufio.Reader) (err error) {
+	// version
+	if _, err = readInt(b); err != nil {
+		return err
+	}
 	if t.id, err = readInt(b); err != nil {
 		return err
 	}
@@ -347,7 +386,11 @@ type TickString struct {
 // ID contains the TWS "tickerId", which was nominated at market data request time.
 func (t *TickString) ID() int64               { return t.id }
 func (t *TickString) code() IncomingMessageID { return mTickString }
-func (t *TickString) read(b *bufio.Reader) (err error) {
+func (t *TickString) read(serverVersion int64, b *bufio.Reader) (err error) {
+	// version
+	if _, err = readInt(b); err != nil {
+		return err
+	}
 	if t.id, err = readInt(b); err != nil {
 		return err
 	}
@@ -374,8 +417,11 @@ type TickEFP struct {
 // ID contains the TWS "tickerId", which was nominated at market data request time.
 func (t *TickEFP) ID() int64               { return t.id }
 func (t *TickEFP) code() IncomingMessageID { return mTickEFP }
-func (t *TickEFP) read(b *bufio.Reader) error {
-	var err error
+func (t *TickEFP) read(serverVersion int64, b *bufio.Reader) (err error) {
+	// version
+	if _, err = readInt(b); err != nil {
+		return err
+	}
 
 	if t.id, err = readInt(b); err != nil {
 		return err
@@ -424,7 +470,11 @@ type OrderStatus struct {
 // ID contains the TWS order "id", which was nominated when the order was placed.
 func (o *OrderStatus) ID() int64               { return o.id }
 func (o *OrderStatus) code() IncomingMessageID { return mOrderStatus }
-func (o *OrderStatus) read(b *bufio.Reader) (err error) {
+func (o *OrderStatus) read(serverVersion int64, b *bufio.Reader) (err error) {
+	// version
+	if _, err = readInt(b); err != nil {
+		return err
+	}
 	if o.id, err = readInt(b); err != nil {
 		return err
 	}
@@ -470,9 +520,11 @@ type AccountValueKey struct {
 }
 
 func (a *AccountValue) code() IncomingMessageID { return mAccountValue }
-func (a *AccountValue) read(b *bufio.Reader) error {
-	var err error
-
+func (a *AccountValue) read(serverVersion int64, b *bufio.Reader) (err error) {
+	// version
+	if _, err = readInt(b); err != nil {
+		return err
+	}
 	if a.Key.Key, err = readString(b); err != nil {
 		return err
 	}
@@ -492,7 +544,7 @@ func (a *AccountValue) read(b *bufio.Reader) error {
 type PortfolioValue struct {
 	Key           PortfolioValueKey
 	Contract      Contract
-	Position      int64
+	Position      float64
 	MarketPrice   float64
 	MarketValue   float64
 	AverageCost   float64
@@ -507,9 +559,15 @@ type PortfolioValueKey struct {
 }
 
 func (p *PortfolioValue) code() IncomingMessageID { return mPortfolioValue }
-func (p *PortfolioValue) read(b *bufio.Reader) (err error) {
-	if p.Contract.ContractID, err = readInt(b); err != nil {
+func (p *PortfolioValue) read(serverVersion int64, b *bufio.Reader) (err error) {
+	var version int64
+	if version, err = readInt(b); err != nil {
 		return err
+	}
+	if version >= 6 {
+		if p.Contract.ContractID, err = readInt(b); err != nil {
+			return err
+		}
 	}
 	p.Key.ContractID = p.Contract.ContractID
 	if p.Contract.Symbol, err = readString(b); err != nil {
@@ -527,11 +585,13 @@ func (p *PortfolioValue) read(b *bufio.Reader) (err error) {
 	if p.Contract.Right, err = readString(b); err != nil {
 		return err
 	}
-	if p.Contract.Multiplier, err = readString(b); err != nil {
-		return err
-	}
-	if p.Contract.PrimaryExchange, err = readString(b); err != nil {
-		return err
+	if version >= 7 {
+		if p.Contract.Multiplier, err = readString(b); err != nil {
+			return err
+		}
+		if p.Contract.PrimaryExchange, err = readString(b); err != nil {
+			return err
+		}
 	}
 	if p.Contract.Currency, err = readString(b); err != nil {
 		return err
@@ -542,9 +602,19 @@ func (p *PortfolioValue) read(b *bufio.Reader) (err error) {
 	if p.Contract.TradingClass, err = readString(b); err != nil {
 		return err
 	}
-	if p.Position, err = readInt(b); err != nil {
-		return err
+
+	if serverVersion >= mMinServerVerFractionalPositions {
+		if p.Position, err = readFloat(b); err != nil {
+			return err
+		}
+	} else {
+		var value int64
+		if value, err = readInt(b); err != nil {
+			return err
+		}
+		p.Position = float64(value)
 	}
+
 	if p.MarketPrice, err = readFloat(b); err != nil {
 		return err
 	}
@@ -572,9 +642,15 @@ type AccountUpdateTime struct {
 }
 
 func (a *AccountUpdateTime) code() IncomingMessageID { return mAccountUpdateTime }
-func (a *AccountUpdateTime) read(b *bufio.Reader) (err error) {
+func (a *AccountUpdateTime) read(serverVersion int64, b *bufio.Reader) (err error) {
+	// version
+	if _, err = readInt(b); err != nil {
+		return err
+	}
+
 	a.Time, err = readTime(b, timeReadLocalTime)
-	return err
+
+	return
 }
 
 // ErrorMessage .
@@ -587,14 +663,29 @@ type ErrorMessage struct {
 // ID .
 func (e *ErrorMessage) ID() int64               { return e.id }
 func (e *ErrorMessage) code() IncomingMessageID { return mErrorMessage }
-func (e *ErrorMessage) read(b *bufio.Reader) (err error) {
+func (e *ErrorMessage) read(serverVersion int64, b *bufio.Reader) (err error) {
+	var version int64
+	if version, err = readInt(b); err != nil {
+		return err
+	}
+
+	if version < 2 {
+		e.Message, err = readString(b)
+		return err
+	}
 	if e.id, err = readInt(b); err != nil {
 		return err
 	}
 	if e.Code, err = readInt(b); err != nil {
 		return err
 	}
-	e.Message, err = readString(b)
+
+	if serverVersion >= mMinServerVerEncodeMsgAscii7 {
+		// TODO: decodeUnicodeEscapedString
+		e.Message, err = readString(b)
+	} else {
+		e.Message, err = readString(b)
+	}
 	return err
 }
 
@@ -612,7 +703,11 @@ type OpenOrder struct {
 // ID contains the TWS "orderId", which was nominated when the order was placed.
 func (o *OpenOrder) ID() int64               { return o.Order.OrderID }
 func (o *OpenOrder) code() IncomingMessageID { return mOpenOrder }
-func (o *OpenOrder) read(b *bufio.Reader) (err error) {
+func (o *OpenOrder) read(serverVersion int64, b *bufio.Reader) (err error) {
+	// version
+	if _, err = readInt(b); err != nil {
+		return err
+	}
 	if o.Order.OrderID, err = readInt(b); err != nil {
 		return err
 	}
@@ -1024,7 +1119,11 @@ type NextValidID struct {
 }
 
 func (n *NextValidID) code() IncomingMessageID { return mNextValidID }
-func (n *NextValidID) read(b *bufio.Reader) (err error) {
+func (n *NextValidID) read(serverVersion int64, b *bufio.Reader) (err error) {
+	// version
+	if _, err = readInt(b); err != nil {
+		return err
+	}
 	n.OrderID, err = readInt(b)
 	return err
 }
@@ -1038,7 +1137,11 @@ type ScannerData struct {
 // ID contains the TWS "reqId", which is used for reply correlation.
 func (s *ScannerData) ID() int64               { return s.id }
 func (s *ScannerData) code() IncomingMessageID { return mScannerData }
-func (s *ScannerData) read(b *bufio.Reader) (err error) {
+func (s *ScannerData) read(serverVersion int64, b *bufio.Reader) (err error) {
+	// version
+	if _, err = readInt(b); err != nil {
+		return err
+	}
 	if s.id, err = readInt(b); err != nil {
 		return err
 	}
@@ -1109,7 +1212,11 @@ type ContractData struct {
 // ID contains the TWS "reqId", which is used for reply correlation.
 func (c *ContractData) ID() int64               { return c.id }
 func (c *ContractData) code() IncomingMessageID { return mContractData }
-func (c *ContractData) read(b *bufio.Reader) (err error) {
+func (c *ContractData) read(serverVersion int64, b *bufio.Reader) (err error) {
+	// version
+	if _, err = readInt(b); err != nil {
+		return err
+	}
 	if c.id, err = readInt(b); err != nil {
 		return err
 	}
@@ -1227,7 +1334,11 @@ type BondContractData struct {
 // ID contains the TWS "reqId", which is used for reply correlation.
 func (bcd *BondContractData) ID() int64               { return bcd.id }
 func (bcd *BondContractData) code() IncomingMessageID { return mBondContractData }
-func (bcd *BondContractData) read(b *bufio.Reader) (err error) {
+func (bcd *BondContractData) read(serverVersion int64, b *bufio.Reader) (err error) {
+	// version
+	if _, err = readInt(b); err != nil {
+		return err
+	}
 	if bcd.id, err = readInt(b); err != nil {
 		return err
 	}
@@ -1342,7 +1453,11 @@ type ExecutionData struct {
 // ID contains the TWS "reqId", which is used for reply correlation.
 func (e *ExecutionData) ID() int64               { return e.id }
 func (e *ExecutionData) code() IncomingMessageID { return mExecutionData }
-func (e *ExecutionData) read(b *bufio.Reader) (err error) {
+func (e *ExecutionData) read(serverVersion int64, b *bufio.Reader) (err error) {
+	// version
+	if _, err = readInt(b); err != nil {
+		return err
+	}
 	if e.id, err = readInt(b); err != nil {
 		return err
 	}
@@ -1441,7 +1556,11 @@ type MarketDepth struct {
 // ID contains the TWS "tickerId", which was nominated at market data request time.
 func (m *MarketDepth) ID() int64               { return m.id }
 func (m *MarketDepth) code() IncomingMessageID { return mMarketDepth }
-func (m *MarketDepth) read(b *bufio.Reader) (err error) {
+func (m *MarketDepth) read(serverVersion int64, b *bufio.Reader) (err error) {
+	// version
+	if _, err = readInt(b); err != nil {
+		return err
+	}
 	if m.id, err = readInt(b); err != nil {
 		return err
 	}
@@ -1475,7 +1594,11 @@ type MarketDepthL2 struct {
 // ID contains the TWS "tickerId", which was nominated at market data request time.
 func (m *MarketDepthL2) ID() int64               { return m.id }
 func (m *MarketDepthL2) code() IncomingMessageID { return mMarketDepthL2 }
-func (m *MarketDepthL2) read(b *bufio.Reader) (err error) {
+func (m *MarketDepthL2) read(serverVersion int64, b *bufio.Reader) (err error) {
+	// version
+	if _, err = readInt(b); err != nil {
+		return err
+	}
 	if m.id, err = readInt(b); err != nil {
 		return err
 	}
@@ -1507,7 +1630,7 @@ type NewsBulletins struct {
 }
 
 func (n *NewsBulletins) code() IncomingMessageID { return mNewsBulletins }
-func (n *NewsBulletins) read(b *bufio.Reader) (err error) {
+func (n *NewsBulletins) read(serverVersion int64, b *bufio.Reader) (err error) {
 	if n.NewsMsgID, err = readInt(b); err != nil {
 		return err
 	}
@@ -1527,7 +1650,11 @@ type ManagedAccounts struct {
 }
 
 func (m *ManagedAccounts) code() IncomingMessageID { return mManagedAccounts }
-func (m *ManagedAccounts) read(b *bufio.Reader) (err error) {
+func (m *ManagedAccounts) read(serverVersion int64, b *bufio.Reader) (err error) {
+	// version
+	if _, err = readInt(b); err != nil {
+		return err
+	}
 	m.AccountsList, err = readStringList(b, ",")
 	return err
 }
@@ -1539,7 +1666,7 @@ type ReceiveFA struct {
 }
 
 func (r *ReceiveFA) code() IncomingMessageID { return mReceiveFA }
-func (r *ReceiveFA) read(b *bufio.Reader) (err error) {
+func (r *ReceiveFA) read(serverVersion int64, b *bufio.Reader) (err error) {
 	if r.Type, err = readInt(b); err != nil {
 		return err
 	}
@@ -1558,7 +1685,11 @@ type HistoricalData struct {
 // ID contains the TWS "reqId", which is used for reply correlation.
 func (h *HistoricalData) ID() int64               { return h.id }
 func (h *HistoricalData) code() IncomingMessageID { return mHistoricalData }
-func (h *HistoricalData) read(b *bufio.Reader) (err error) {
+func (h *HistoricalData) read(serverVersion int64, b *bufio.Reader) (err error) {
+	// version
+	if _, err = readInt(b); err != nil {
+		return err
+	}
 	if h.id, err = readInt(b); err != nil {
 		return err
 	}
@@ -1614,7 +1745,11 @@ type ScannerParameters struct {
 }
 
 func (s *ScannerParameters) code() IncomingMessageID { return mScannerParameters }
-func (s *ScannerParameters) read(b *bufio.Reader) (err error) {
+func (s *ScannerParameters) read(serverVersion int64, b *bufio.Reader) (err error) {
+	// version
+	if _, err = readInt(b); err != nil {
+		return err
+	}
 	s.XML, err = readString(b)
 	return err
 }
@@ -1625,7 +1760,11 @@ type CurrentTime struct {
 }
 
 func (c *CurrentTime) code() IncomingMessageID { return mCurrentTime }
-func (c *CurrentTime) read(b *bufio.Reader) (err error) {
+func (c *CurrentTime) read(serverVersion int64, b *bufio.Reader) (err error) {
+	// version
+	if _, err = readInt(b); err != nil {
+		return err
+	}
 	c.Time, err = readTime(b, timeReadEpoch)
 	return err
 }
@@ -1646,7 +1785,11 @@ type RealtimeBars struct {
 // ID contains the TWS "reqId", which is used for reply correlation.
 func (r *RealtimeBars) ID() int64               { return r.id }
 func (r *RealtimeBars) code() IncomingMessageID { return mRealtimeBars }
-func (r *RealtimeBars) read(b *bufio.Reader) (err error) {
+func (r *RealtimeBars) read(serverVersion int64, b *bufio.Reader) (err error) {
+	// version
+	if _, err = readInt(b); err != nil {
+		return err
+	}
 	if r.id, err = readInt(b); err != nil {
 		return err
 	}
@@ -1684,7 +1827,11 @@ type FundamentalData struct {
 // ID contains the TWS "reqId", which is used for reply correlation.
 func (f *FundamentalData) ID() int64               { return f.id }
 func (f *FundamentalData) code() IncomingMessageID { return mFundamentalData }
-func (f *FundamentalData) read(b *bufio.Reader) (err error) {
+func (f *FundamentalData) read(serverVersion int64, b *bufio.Reader) (err error) {
+	// version
+	if _, err = readInt(b); err != nil {
+		return err
+	}
 	if f.id, err = readInt(b); err != nil {
 		return err
 	}
@@ -1698,15 +1845,29 @@ type ContractDataEnd struct {
 }
 
 // ID contains the TWS "reqId", which is used for reply correlation.
-func (c *ContractDataEnd) ID() int64                        { return c.id }
-func (c *ContractDataEnd) code() IncomingMessageID          { return mContractDataEnd }
-func (c *ContractDataEnd) read(b *bufio.Reader) (err error) { c.id, err = readInt(b); return err }
+func (c *ContractDataEnd) ID() int64               { return c.id }
+func (c *ContractDataEnd) code() IncomingMessageID { return mContractDataEnd }
+func (c *ContractDataEnd) read(serverVersion int64, b *bufio.Reader) (err error) {
+	// version
+	if _, err = readInt(b); err != nil {
+		return err
+	}
+	c.id, err = readInt(b)
+	return err
+}
 
 // OpenOrderEnd .
 type OpenOrderEnd struct{}
 
-func (o *OpenOrderEnd) code() IncomingMessageID    { return mOpenOrderEnd }
-func (o *OpenOrderEnd) read(b *bufio.Reader) error { return nil }
+func (o *OpenOrderEnd) code() IncomingMessageID { return mOpenOrderEnd }
+func (o *OpenOrderEnd) read(serverVersion int64, b *bufio.Reader) (err error) {
+	// version
+	if _, err = readInt(b); err != nil {
+		return err
+	}
+
+	return
+}
 
 // AccountDownloadEnd .
 type AccountDownloadEnd struct {
@@ -1714,7 +1875,11 @@ type AccountDownloadEnd struct {
 }
 
 func (a *AccountDownloadEnd) code() IncomingMessageID { return mAccountDownloadEnd }
-func (a *AccountDownloadEnd) read(b *bufio.Reader) (err error) {
+func (a *AccountDownloadEnd) read(serverVersion int64, b *bufio.Reader) (err error) {
+	// version
+	if _, err = readInt(b); err != nil {
+		return err
+	}
 	a.Account, err = readString(b)
 	return err
 }
@@ -1725,9 +1890,16 @@ type ExecutionDataEnd struct {
 }
 
 // ID contains the TWS "reqId", which is used for reply correlation.
-func (e *ExecutionDataEnd) ID() int64                        { return e.id }
-func (e *ExecutionDataEnd) code() IncomingMessageID          { return mExecutionDataEnd }
-func (e *ExecutionDataEnd) read(b *bufio.Reader) (err error) { e.id, err = readInt(b); return err }
+func (e *ExecutionDataEnd) ID() int64               { return e.id }
+func (e *ExecutionDataEnd) code() IncomingMessageID { return mExecutionDataEnd }
+func (e *ExecutionDataEnd) read(serverVersion int64, b *bufio.Reader) (err error) {
+	// version
+	if _, err = readInt(b); err != nil {
+		return err
+	}
+	e.id, err = readInt(b)
+	return err
+}
 
 // DeltaNeutralValidation .
 type DeltaNeutralValidation struct {
@@ -1738,7 +1910,11 @@ type DeltaNeutralValidation struct {
 // ID .
 func (d *DeltaNeutralValidation) ID() int64               { return d.id }
 func (d *DeltaNeutralValidation) code() IncomingMessageID { return mDeltaNeutralValidation }
-func (d *DeltaNeutralValidation) read(b *bufio.Reader) (err error) {
+func (d *DeltaNeutralValidation) read(serverVersion int64, b *bufio.Reader) (err error) {
+	// version
+	if _, err = readInt(b); err != nil {
+		return err
+	}
 	if d.id, err = readInt(b); err != nil {
 		return err
 	}
@@ -1758,9 +1934,16 @@ type TickSnapshotEnd struct {
 }
 
 // ID contains the TWS "reqId", which is used for reply correlation.
-func (t *TickSnapshotEnd) ID() int64                        { return t.id }
-func (t *TickSnapshotEnd) code() IncomingMessageID          { return mTickSnapshotEnd }
-func (t *TickSnapshotEnd) read(b *bufio.Reader) (err error) { t.id, err = readInt(b); return err }
+func (t *TickSnapshotEnd) ID() int64               { return t.id }
+func (t *TickSnapshotEnd) code() IncomingMessageID { return mTickSnapshotEnd }
+func (t *TickSnapshotEnd) read(serverVersion int64, b *bufio.Reader) (err error) {
+	// version
+	if _, err = readInt(b); err != nil {
+		return err
+	}
+	t.id, err = readInt(b)
+	return err
+}
 
 // MarketDataType .
 type MarketDataType struct {
@@ -1771,7 +1954,11 @@ type MarketDataType struct {
 // ID contains the TWS "reqId", which is used for reply correlation.
 func (m *MarketDataType) ID() int64               { return m.id }
 func (m *MarketDataType) code() IncomingMessageID { return mMarketDataType }
-func (m *MarketDataType) read(b *bufio.Reader) (err error) {
+func (m *MarketDataType) read(serverVersion int64, b *bufio.Reader) (err error) {
+	// version
+	if _, err = readInt(b); err != nil {
+		return err
+	}
 	if m.id, err = readInt(b); err != nil {
 		return err
 	}
@@ -1794,7 +1981,11 @@ type PositionKey struct {
 }
 
 func (p *Position) code() IncomingMessageID { return mPosition }
-func (p *Position) read(b *bufio.Reader) (err error) {
+func (p *Position) read(serverVersion int64, b *bufio.Reader) (err error) {
+	// version
+	if _, err = readInt(b); err != nil {
+		return err
+	}
 	if p.Key.AccountCode, err = readString(b); err != nil {
 		return err
 	}
@@ -1842,8 +2033,14 @@ func (p *Position) read(b *bufio.Reader) (err error) {
 // PositionEnd .
 type PositionEnd struct{}
 
-func (p *PositionEnd) code() IncomingMessageID    { return mPositionEnd }
-func (p *PositionEnd) read(b *bufio.Reader) error { return nil }
+func (p *PositionEnd) code() IncomingMessageID { return mPositionEnd }
+func (p *PositionEnd) read(serverVersion int64, b *bufio.Reader) (err error) {
+	// version
+	if _, err = readInt(b); err != nil {
+		return err
+	}
+	return
+}
 
 // AccountSummary .
 type AccountSummary struct {
@@ -1862,9 +2059,11 @@ type AccountSummaryKey struct {
 // ID contains the TWS "reqId", which is used for reply correlation.
 func (a *AccountSummary) ID() int64               { return a.id }
 func (a *AccountSummary) code() IncomingMessageID { return mAccountSummary }
-func (a *AccountSummary) read(b *bufio.Reader) error {
-	var err error
-
+func (a *AccountSummary) read(serverVersion int64, b *bufio.Reader) (err error) {
+	// version
+	if _, err = readInt(b); err != nil {
+		return err
+	}
 	if a.id, err = readInt(b); err != nil {
 		return err
 	}
@@ -1889,9 +2088,16 @@ type AccountSummaryEnd struct {
 }
 
 // ID contains tha TWS "reqId", which is used for reply correlation.
-func (a *AccountSummaryEnd) ID() int64                        { return a.id }
-func (a *AccountSummaryEnd) code() IncomingMessageID          { return mAccountSummaryEnd }
-func (a *AccountSummaryEnd) read(b *bufio.Reader) (err error) { a.id, err = readInt(b); return err }
+func (a *AccountSummaryEnd) ID() int64               { return a.id }
+func (a *AccountSummaryEnd) code() IncomingMessageID { return mAccountSummaryEnd }
+func (a *AccountSummaryEnd) read(serverVersion int64, b *bufio.Reader) (err error) {
+	// version
+	if _, err = readInt(b); err != nil {
+		return err
+	}
+	a.id, err = readInt(b)
+	return err
+}
 
 // VerifyMessageAPI .
 type VerifyMessageAPI struct {
@@ -1899,7 +2105,11 @@ type VerifyMessageAPI struct {
 }
 
 func (v *VerifyMessageAPI) code() IncomingMessageID { return mVerifyMessageAPI }
-func (v *VerifyMessageAPI) read(b *bufio.Reader) (err error) {
+func (v *VerifyMessageAPI) read(serverVersion int64, b *bufio.Reader) (err error) {
+	// version
+	if _, err = readInt(b); err != nil {
+		return err
+	}
 	v.APIData, err = readString(b)
 	return err
 }
@@ -1911,7 +2121,11 @@ type VerifyCompleted struct {
 }
 
 func (v *VerifyCompleted) code() IncomingMessageID { return mVerifyCompleted }
-func (v *VerifyCompleted) read(b *bufio.Reader) (err error) {
+func (v *VerifyCompleted) read(serverVersion int64, b *bufio.Reader) (err error) {
+	// version
+	if _, err = readInt(b); err != nil {
+		return err
+	}
 	success, err := readString(b)
 	if err != nil {
 		return err
@@ -1933,7 +2147,11 @@ type DisplayGroupList struct {
 // ID contains tha TWS "reqId", which is used for reply correlation.
 func (d *DisplayGroupList) ID() int64               { return d.id }
 func (d *DisplayGroupList) code() IncomingMessageID { return mDisplayGroupList }
-func (d *DisplayGroupList) read(b *bufio.Reader) (err error) {
+func (d *DisplayGroupList) read(serverVersion int64, b *bufio.Reader) (err error) {
+	// version
+	if _, err = readInt(b); err != nil {
+		return err
+	}
 	if d.id, err = readInt(b); err != nil {
 		return err
 	}
@@ -1950,7 +2168,7 @@ type DisplayGroupUpdated struct {
 // ID contains tha TWS "reqId", which is used for reply correlation.
 func (d *DisplayGroupUpdated) ID() int64               { return d.id }
 func (d *DisplayGroupUpdated) code() IncomingMessageID { return mDisplayGroupUpdated }
-func (d *DisplayGroupUpdated) read(b *bufio.Reader) (err error) {
+func (d *DisplayGroupUpdated) read(serverVersion int64, b *bufio.Reader) (err error) {
 	if d.id, err = readInt(b); err != nil {
 		return err
 	}
