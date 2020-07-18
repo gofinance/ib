@@ -39,7 +39,7 @@ type EngineOptions struct {
 	Logger           *log.Logger
 }
 
-// Engine is the entry point to the IB IB API
+// Engine is the entry point to the IB TWS API
 type Engine struct {
 	id               chan int64
 	exit             chan bool
