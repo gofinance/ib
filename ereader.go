@@ -1233,53 +1233,53 @@ func (s *ScannerData) read(serverVersion int64, b *bufio.Reader) (err error) {
 		return err
 	}
 	s.Detail = make([]ScannerDetail, size)
-	for _, sd := range s.Detail {
-		if sd.Rank, err = readInt(b); err != nil {
+	for ic := range s.Detail {
+		if s.Detail[ic].Rank, err = readInt(b); err != nil {
 			return err
 		}
-		if sd.ContractID, err = readInt(b); err != nil {
+		if s.Detail[ic].ContractID, err = readInt(b); err != nil {
 			return err
 		}
-		if sd.Contract.Summary.Symbol, err = readString(b); err != nil {
+		if s.Detail[ic].Contract.Summary.Symbol, err = readString(b); err != nil {
 			return err
 		}
-		if sd.Contract.Summary.SecurityType, err = readString(b); err != nil {
+		if s.Detail[ic].Contract.Summary.SecurityType, err = readString(b); err != nil {
 			return err
 		}
-		if sd.Contract.Summary.Expiry, err = readString(b); err != nil {
+		if s.Detail[ic].Contract.Summary.Expiry, err = readString(b); err != nil {
 			return err
 		}
-		if sd.Contract.Summary.Strike, err = readFloat(b); err != nil {
+		if s.Detail[ic].Contract.Summary.Strike, err = readFloat(b); err != nil {
 			return err
 		}
-		if sd.Contract.Summary.Right, err = readString(b); err != nil {
+		if s.Detail[ic].Contract.Summary.Right, err = readString(b); err != nil {
 			return err
 		}
-		if sd.Contract.Summary.Exchange, err = readString(b); err != nil {
+		if s.Detail[ic].Contract.Summary.Exchange, err = readString(b); err != nil {
 			return err
 		}
-		if sd.Contract.Summary.Currency, err = readString(b); err != nil {
+		if s.Detail[ic].Contract.Summary.Currency, err = readString(b); err != nil {
 			return err
 		}
-		if sd.Contract.Summary.LocalSymbol, err = readString(b); err != nil {
+		if s.Detail[ic].Contract.Summary.LocalSymbol, err = readString(b); err != nil {
 			return err
 		}
-		if sd.Contract.MarketName, err = readString(b); err != nil {
+		if s.Detail[ic].Contract.MarketName, err = readString(b); err != nil {
 			return err
 		}
-		if sd.Contract.Summary.TradingClass, err = readString(b); err != nil {
+		if s.Detail[ic].Contract.Summary.TradingClass, err = readString(b); err != nil {
 			return err
 		}
-		if sd.Distance, err = readString(b); err != nil {
+		if s.Detail[ic].Distance, err = readString(b); err != nil {
 			return err
 		}
-		if sd.Benchmark, err = readString(b); err != nil {
+		if s.Detail[ic].Benchmark, err = readString(b); err != nil {
 			return err
 		}
-		if sd.Projection, err = readString(b); err != nil {
+		if s.Detail[ic].Projection, err = readString(b); err != nil {
 			return err
 		}
-		if sd.Legs, err = readString(b); err != nil {
+		if s.Detail[ic].Legs, err = readString(b); err != nil {
 			return err
 		}
 	}
@@ -1514,11 +1514,11 @@ func (bcd *BondContractData) read(serverVersion int64, b *bufio.Reader) (err err
 		return err
 	}
 	bcd.Contract.SecIDList = make([]TagValue, secIDListCount)
-	for _, si := range bcd.Contract.SecIDList {
-		if si.Tag, err = readString(b); err != nil {
+	for ic := range bcd.Contract.SecIDList {
+		if bcd.Contract.SecIDList[ic].Tag, err = readString(b); err != nil {
 			return err
 		}
-		if si.Value, err = readString(b); err != nil {
+		if bcd.Contract.SecIDList[ic].Value, err = readString(b); err != nil {
 			return err
 		}
 	}
@@ -1787,34 +1787,34 @@ func (h *HistoricalData) read(serverVersion int64, b *bufio.Reader) (err error) 
 		return err
 	}
 	h.Data = make([]HistoricalDataItem, itemCount)
-	for i := range h.Data {
-		if h.Data[i].Date, err = readTime(b, timeReadAutoDetect); err != nil {
+	for ic := range h.Data {
+		if h.Data[ic].Date, err = readTime(b, timeReadAutoDetect); err != nil {
 			return err
 		}
-		if h.Data[i].Open, err = readFloat(b); err != nil {
+		if h.Data[ic].Open, err = readFloat(b); err != nil {
 			return err
 		}
-		if h.Data[i].High, err = readFloat(b); err != nil {
+		if h.Data[ic].High, err = readFloat(b); err != nil {
 			return err
 		}
-		if h.Data[i].Low, err = readFloat(b); err != nil {
+		if h.Data[ic].Low, err = readFloat(b); err != nil {
 			return err
 		}
-		if h.Data[i].Close, err = readFloat(b); err != nil {
+		if h.Data[ic].Close, err = readFloat(b); err != nil {
 			return err
 		}
-		if h.Data[i].Volume, err = readInt(b); err != nil {
+		if h.Data[ic].Volume, err = readInt(b); err != nil {
 			return err
 		}
-		if h.Data[i].WAP, err = readFloat(b); err != nil {
+		if h.Data[ic].WAP, err = readFloat(b); err != nil {
 			return err
 		}
 		var hasGaps string
 		if hasGaps, err = readString(b); err != nil {
 			return err
 		}
-		h.Data[i].HasGaps = hasGaps == "true"
-		h.Data[i].BarCount, err = readInt(b)
+		h.Data[ic].HasGaps = hasGaps == "true"
+		h.Data[ic].BarCount, err = readInt(b)
 		if err != nil {
 			return err
 		}

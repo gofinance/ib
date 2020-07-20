@@ -108,7 +108,7 @@ type DeltaNeutralData struct {
 
 // AlgoParams .
 type AlgoParams struct {
-	Params []*TagValue
+	Params []TagValue
 }
 
 // NewOrder .
