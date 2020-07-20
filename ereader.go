@@ -556,8 +556,8 @@ type AccountValueKey struct {
 
 func (a *AccountValue) code() IncomingMessageID { return mAccountValue }
 func (a *AccountValue) read(serverVersion int64, b *bufio.Reader) (err error) {
-	// version
-	if _, err = readInt(b); err != nil {
+	var version int64
+	if version, err = readInt(b); err != nil {
 		return err
 	}
 	if a.Key.Key, err = readString(b); err != nil {
@@ -569,8 +569,10 @@ func (a *AccountValue) read(serverVersion int64, b *bufio.Reader) (err error) {
 	if a.Currency, err = readString(b); err != nil {
 		return err
 	}
-	if a.Key.AccountCode, err = readString(b); err != nil {
-		return err
+	if version >= 2 {
+		if a.Key.AccountCode, err = readString(b); err != nil {
+			return err
+		}
 	}
 	return nil
 }
