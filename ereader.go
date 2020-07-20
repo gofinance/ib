@@ -492,23 +492,28 @@ func (t *TickEFP) read(serverVersion int64, b *bufio.Reader) (err error) {
 type OrderStatus struct {
 	id               int64
 	Status           string
-	Filled           int64
-	Remaining        int64
+	Filled           float64
+	Remaining        float64
 	AverageFillPrice float64
 	PermID           int64
 	ParentID         int64
 	LastFillPrice    float64
 	ClientID         int64
 	WhyHeld          string
+	MarketCapPrice   float64
 }
 
 // ID contains the TWS order "id", which was nominated when the order was placed.
 func (o *OrderStatus) ID() int64               { return o.id }
 func (o *OrderStatus) code() IncomingMessageID { return mOrderStatus }
 func (o *OrderStatus) read(serverVersion int64, b *bufio.Reader) (err error) {
-	// version
-	if _, err = readInt(b); err != nil {
-		return err
+	var version int64
+	if serverVersion >= mMinServerVerMarketCapPrice {
+		version = math.MaxInt64
+	} else {
+		if version, err = readInt(b); err != nil {
+			return err
+		}
 	}
 	if o.id, err = readInt(b); err != nil {
 		return err
@@ -516,28 +521,69 @@ func (o *OrderStatus) read(serverVersion int64, b *bufio.Reader) (err error) {
 	if o.Status, err = readString(b); err != nil {
 		return err
 	}
-	if o.Filled, err = readInt(b); err != nil {
-		return err
+
+	if serverVersion >= mMinServerVerFractionalPositions {
+		if o.Filled, err = readFloat(b); err != nil {
+			return err
+		}
+		if o.Remaining, err = readFloat(b); err != nil {
+			return err
+		}
+	} else {
+		var temp int64
+		if temp, err = readInt(b); err != nil {
+			return err
+		}
+		o.Filled = float64(temp)
+		if temp, err = readInt(b); err != nil {
+			return err
+		}
+		o.Remaining = float64(temp)
 	}
-	if o.Remaining, err = readInt(b); err != nil {
-		return err
-	}
+
 	if o.AverageFillPrice, err = readFloat(b); err != nil {
 		return err
 	}
-	if o.PermID, err = readInt(b); err != nil {
-		return err
+
+	o.PermID = 0
+	if version >= 2 {
+		if o.PermID, err = readInt(b); err != nil {
+			return err
+		}
 	}
-	if o.ParentID, err = readInt(b); err != nil {
-		return err
+
+	o.ParentID = 0
+	if version >= 3 {
+		if o.ParentID, err = readInt(b); err != nil {
+			return err
+		}
 	}
-	if o.LastFillPrice, err = readFloat(b); err != nil {
-		return err
+
+	o.LastFillPrice = 0.0
+	if version >= 4 {
+		if o.LastFillPrice, err = readFloat(b); err != nil {
+			return err
+		}
 	}
-	if o.ClientID, err = readInt(b); err != nil {
-		return err
+
+	o.ClientID = 0
+	if version >= 5 {
+		if o.ClientID, err = readInt(b); err != nil {
+			return err
+		}
 	}
-	o.WhyHeld, err = readString(b)
+
+	o.WhyHeld = ""
+	if version >= 6 {
+		o.WhyHeld, err = readString(b)
+	}
+
+	if serverVersion >= mMinServerVerMarketCapPrice {
+		if o.MarketCapPrice, err = readFloat(b); err != nil {
+			return err
+		}
+	}
+
 	return err
 }
 
