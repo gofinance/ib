@@ -123,6 +123,14 @@ func code2Msg(code int64) (r Reply, err error) {
 		r = &TickPrice{}
 	case int64(mTickSize):
 		r = &TickSize{}
+	case int64(mPosition):
+		r = &Position{}
+	case int64(mPositionEnd):
+		r = &PositionEnd{}
+	case int64(mAccountSummary):
+		r = &AccountSummary{}
+	case int64(mAccountSummaryEnd):
+		r = &AccountSummaryEnd{}
 	case int64(mTickOptionComputation):
 		r = &TickOptionComputation{}
 	case int64(mTickGeneric):
@@ -189,14 +197,6 @@ func code2Msg(code int64) (r Reply, err error) {
 		r = &MarketDataType{}
 	case int64(mCommissionReport):
 		r = &CommissionReport{}
-	case int64(mPosition):
-		r = &Position{}
-	case int64(mPositionEnd):
-		r = &PositionEnd{}
-	case int64(mAccountSummary):
-		r = &AccountSummary{}
-	case int64(mAccountSummaryEnd):
-		r = &AccountSummaryEnd{}
 	case int64(mVerifyMessageAPI):
 		r = &VerifyMessageAPI{}
 	case int64(mVerifyCompleted):
@@ -205,8 +205,41 @@ func code2Msg(code int64) (r Reply, err error) {
 		r = &DisplayGroupList{}
 	case int64(mDisplayGroupUpdated):
 		r = &DisplayGroupUpdated{}
+	case int64(mVerifyAndAuthMessageApi):
+	case int64(mVerifyAndAuthCompleted):
+	case int64(mPositionMulti):
+	case int64(mPositionMultiEnd):
+	case int64(mAccountUpdateMulti):
+	case int64(mAccountUpdateMultiEnd):
+	case int64(mSecurityDefinitionOptionParameter):
+	case int64(mSecurityDefinitionOptionParameterEnd):
+	case int64(mSoftDollarTiers):
+	case int64(mFamilyCodes):
+	case int64(mSmartComponents):
+	case int64(mTickReqParams):
 	case int64(mSymbolSamples):
 		r = &SymbolSamples{}
+	case int64(mMktDepthExchanges):
+	case int64(mHeadTimestamp):
+	case int64(mTickNews):
+	case int64(mNewsProviders):
+	case int64(mNewsArticle):
+	case int64(mHistoricalNews):
+	case int64(mHistoricalNewsEnd):
+	case int64(mHistogramData):
+	case int64(mHistoricalDataUpdate):
+	case int64(mRerouteMktDataReq):
+	case int64(mRerouteMktDepthReq):
+	case int64(mMarketRule):
+	case int64(mPnl):
+	case int64(mPnlSingle):
+	case int64(mHistoricalTicks):
+	case int64(mHistoricalTicksBidAsk):
+	case int64(mHistoricalTicksLast):
+	case int64(mTickByTick):
+	case int64(mOrderBound):
+	case int64(mCompletedOrder):
+	case int64(mCompletedOrdersEnd):
 	default:
 		err = fmt.Errorf("Unsupported incoming message type %d", code)
 	}
