@@ -179,9 +179,9 @@ const (
 	mMinServerVerAlgoOrders              = 41
 	mMinServerVerExecutionDataChain      = 42
 	mMinServerVerNotHeld                 = 44
-	mMinServerVerSecIdType               = 45
-	mMinServerVerPlaceOrderConid         = 46
-	mMinServerVerReqMktDataConid         = 47
+	mMinServerVerSecIDType               = 45
+	mMinServerVerPlaceOrderConID         = 46
+	mMinServerVerReqMktDataConID         = 47
 	mMinServerVerReqCalcImpliedVolat     = 49
 	mMinServerVerReqCalcOptionPrice      = 50
 	mMinServerVerCancelCalcImpliedVolat  = 50
@@ -202,7 +202,7 @@ const (
 	mMinServerVerTradingClass            = 68
 	mMinServerVerScaleTable              = 69
 	mMinServerVerLinking                 = 70
-	mMinServerVerAlgoId                  = 71
+	mMinServerVerAlgoID                  = 71
 	mMinServerVerOptionalCapabilities    = 72
 	mMinServerVerOrderSolicited          = 73
 	mMinServerVerLinkingAuth             = 74
@@ -250,7 +250,7 @@ const (
 	mMinServerVerAutoPriceForHedge       = 141
 	mMinServerVerWhatIfExtFields         = 142
 	mMinServerVerScannerGenericOpts      = 143
-	mMinServerVerApiBindOrder            = 144
+	mMinServerVerAPIBindOrder            = 144
 	mMinServerVerOrderContainer          = 145
 	mMinServerVerSmartDepth              = 146
 	mMinServerVerRemoveNullAllCasting    = 147
@@ -258,7 +258,7 @@ const (
 	mMinServerVerMktDepthPrimExchange    = 149
 	mMinServerVerReqCompletedOrders      = 150
 	mMinServerVerPriceMgmtAlgo           = 151
-	mMinServerVerEncodeMsgAscii7         = 153
+	mMinServerVerEncodeMsgASCII7         = 153
 	mMinServerVerSendAllFamilyCodes      = 154
 	mMinServerVerNoDefaultOpenClose      = 155
 
@@ -319,7 +319,7 @@ func (c *CancelScannerSubscription) version() int64          { return 1 }
 func (c *CancelScannerSubscription) write(serverVersion int64, b *bytes.Buffer) error {
 
 	if serverVersion < 24 {
-		return fmt.Errorf("Server does not support API scanner subscription.")
+		return fmt.Errorf("server does not support API scanner subscription")
 	}
 
 	return (writeMapSlice{
@@ -358,7 +358,7 @@ func (r *RequestScannerSubscription) code() OutgoingMessageID { return mRequestS
 func (r *RequestScannerSubscription) version() int64          { return 4 }
 func (r *RequestScannerSubscription) write(serverVersion int64, b *bytes.Buffer) error {
 	if serverVersion < 24 {
-		return fmt.Errorf("Server does not support API scanner subscription.")
+		return fmt.Errorf("server does not support API scanner subscription")
 	}
 
 	if err := writeInt(b, int64(r.code())); err != nil {
@@ -433,7 +433,7 @@ func (r *RequestMarketData) code() OutgoingMessageID { return mRequestMarketData
 func (r *RequestMarketData) version() int64          { return 11 }
 func (r *RequestMarketData) write(serverVersion int64, b *bytes.Buffer) error {
 	if serverVersion < mMinServerVerSnapshotMktData && r.Snapshot {
-		err := fmt.Errorf("Server does not support snapshot market data requests.")
+		err := fmt.Errorf("server does not support snapshot market data requests")
 		return err
 	}
 
@@ -1866,7 +1866,7 @@ func (u *UnsubscribeFromGroupEvents) write(serverVersion int64, b *bytes.Buffer)
 	}).Dump(b)
 }
 
-// RequestGlobalCancel is equivalent of IB API EClientSocket.reqMatchingSymbols
+// ReqMatchingSymbols is equivalent of IB API EClientSocket.reqMatchingSymbols.
 type ReqMatchingSymbols struct {
 	id      int64
 	Pattern string
@@ -1875,6 +1875,7 @@ type ReqMatchingSymbols struct {
 // SetID assigns the TWS "reqId", which is used for reply correlation and request cancellation.
 func (r *ReqMatchingSymbols) SetID(id int64) { r.id = id }
 
+// ID .
 func (r *ReqMatchingSymbols) ID() int64               { return r.id }
 func (r *ReqMatchingSymbols) code() OutgoingMessageID { return mReqMatchingSymbols }
 func (r *ReqMatchingSymbols) version() int64          { return 1 }

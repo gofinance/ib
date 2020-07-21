@@ -57,7 +57,7 @@ const (
 	mVerifyCompleted                                        = 66
 	mDisplayGroupList                                       = 67
 	mDisplayGroupUpdated                                    = 68
-	mVerifyAndAuthMessageApi                                = 69
+	mVerifyAndAuthMessageAPI                                = 69
 	mVerifyAndAuthCompleted                                 = 70
 	mPositionMulti                                          = 71
 	mPositionMultiEnd                                       = 72
@@ -205,7 +205,7 @@ func code2Msg(code int64) (r Reply, err error) {
 		r = &DisplayGroupList{}
 	case int64(mDisplayGroupUpdated):
 		r = &DisplayGroupUpdated{}
-	case int64(mVerifyAndAuthMessageApi):
+	case int64(mVerifyAndAuthMessageAPI):
 	case int64(mVerifyAndAuthCompleted):
 	case int64(mPositionMulti):
 	case int64(mPositionMultiEnd):
@@ -763,7 +763,7 @@ func (e *ErrorMessage) read(serverVersion int64, b *bufio.Reader) (err error) {
 		return err
 	}
 
-	if serverVersion >= mMinServerVerEncodeMsgAscii7 {
+	if serverVersion >= mMinServerVerEncodeMsgASCII7 {
 		// TODO: decodeUnicodeEscapedString
 		e.Message, err = readString(b)
 	} else {

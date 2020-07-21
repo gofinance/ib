@@ -168,6 +168,7 @@ func NewEngine(opt EngineOptions) (re *Engine, rerr error) {
 	return &e, nil
 }
 
+// IsUseV100Plus .
 func (e *Engine) IsUseV100Plus() bool {
 	return e.useV100Plus
 }
