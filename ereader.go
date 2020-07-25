@@ -679,11 +679,15 @@ func (p *PortfolioValue) read(serverVersion int64, b *bufio.Reader) (err error) 
 	if p.Contract.Currency, err = readString(b); err != nil {
 		return err
 	}
-	if p.Contract.LocalSymbol, err = readString(b); err != nil {
-		return err
+	if version >= 2 {
+		if p.Contract.LocalSymbol, err = readString(b); err != nil {
+			return err
+		}
 	}
-	if p.Contract.TradingClass, err = readString(b); err != nil {
-		return err
+	if version >= 8 {
+		if p.Contract.TradingClass, err = readString(b); err != nil {
+			return err
+		}
 	}
 
 	if serverVersion >= mMinServerVerFractionalPositions {
@@ -704,18 +708,27 @@ func (p *PortfolioValue) read(serverVersion int64, b *bufio.Reader) (err error) 
 	if p.MarketValue, err = readFloat(b); err != nil {
 		return err
 	}
-	if p.AverageCost, err = readFloat(b); err != nil {
-		return err
+	if version >= 3 {
+		if p.AverageCost, err = readFloat(b); err != nil {
+			return err
+		}
+		if p.UnrealizedPNL, err = readFloat(b); err != nil {
+			return err
+		}
+		if p.RealizedPNL, err = readFloat(b); err != nil {
+			return err
+		}
 	}
-	if p.UnrealizedPNL, err = readFloat(b); err != nil {
-		return err
+	if version >= 4 {
+		if p.Key.AccountCode, err = readString(b); err != nil {
+			return err
+		}
 	}
-	if p.RealizedPNL, err = readFloat(b); err != nil {
-		return err
+
+	if version == 6 && serverVersion == 39 {
+		p.Contract.PrimaryExchange, err = readString(b)
 	}
-	if p.Key.AccountCode, err = readString(b); err != nil {
-		return err
-	}
+
 	return err
 }
 
