@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-// This file ports IB API EReader.java. Please preserve declaration order.
+// This file ports IB API EDecoder.java. Please preserve declaration order.
 
 // IncomingMessageID .
 type IncomingMessageID int64
