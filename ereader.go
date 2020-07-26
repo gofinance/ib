@@ -800,412 +800,284 @@ type OpenOrder struct {
 func (o *OpenOrder) ID() int64               { return o.Order.OrderID }
 func (o *OpenOrder) code() IncomingMessageID { return mOpenOrder }
 func (o *OpenOrder) read(serverVersion int64, b *bufio.Reader) (err error) {
-	// version
-	if _, err = readInt(b); err != nil {
-		return err
-	}
-	if o.Order.OrderID, err = readInt(b); err != nil {
-		return err
-	}
-	if o.Contract.ContractID, err = readInt(b); err != nil {
-		return err
-	}
-	if o.Contract.Symbol, err = readString(b); err != nil {
-		return err
-	}
-	if o.Contract.SecurityType, err = readString(b); err != nil {
-		return err
-	}
-	if o.Contract.Expiry, err = readString(b); err != nil {
-		return err
-	}
-	if o.Contract.Strike, err = readFloat(b); err != nil {
-		return err
-	}
-	if o.Contract.Right, err = readString(b); err != nil {
-		return err
-	}
-	if o.Contract.Multiplier, err = readString(b); err != nil {
-		return err
-	}
-	if o.Contract.Exchange, err = readString(b); err != nil {
-		return err
-	}
-	if o.Contract.Currency, err = readString(b); err != nil {
-		return err
-	}
-	if o.Contract.LocalSymbol, err = readString(b); err != nil {
-		return err
-	}
-	if o.Contract.TradingClass, err = readString(b); err != nil {
-		return err
-	}
-	if o.Order.Action, err = readString(b); err != nil {
-		return err
-	}
-	if o.Order.TotalQty, err = readInt(b); err != nil {
-		return err
-	}
-	if o.Order.OrderType, err = readString(b); err != nil {
-		return err
-	}
-	if o.Order.LimitPrice, err = readFloat(b); err != nil {
-		return err
-	}
-	if o.Order.AuxPrice, err = readFloat(b); err != nil {
-		return err
-	}
-	if o.Order.TIF, err = readString(b); err != nil {
-		return err
-	}
-	if o.Order.OCAGroup, err = readString(b); err != nil {
-		return err
-	}
-	if o.Order.Account, err = readString(b); err != nil {
-		return err
-	}
-	if o.Order.OpenClose, err = readString(b); err != nil {
-		return err
-	}
-	if o.Order.Origin, err = readInt(b); err != nil {
-		return err
-	}
-	if o.Order.OrderRef, err = readString(b); err != nil {
-		return err
-	}
-	if o.Order.ClientID, err = readInt(b); err != nil {
-		return err
-	}
-	if o.Order.PermID, err = readInt(b); err != nil {
-		return err
-	}
-	if o.Order.OutsideRTH, err = readBool(b); err != nil {
-		return err
-	}
-	if o.Order.Hidden, err = readBool(b); err != nil {
-		return err
-	}
-	if o.Order.DiscretionaryAmount, err = readFloat(b); err != nil {
-		return err
-	}
-	if o.Order.GoodAfterTime, err = readString(b); err != nil {
-		return err
-	}
-	// skip deprecated sharesAllocation field
-	if _, err = readString(b); err != nil {
-		return err
-	}
-	if o.Order.FAGroup, err = readString(b); err != nil {
-		return err
-	}
-	if o.Order.FAMethod, err = readString(b); err != nil {
-		return err
-	}
-	if o.Order.FAPercentage, err = readString(b); err != nil {
-		return err
-	}
-	if o.Order.FAProfile, err = readString(b); err != nil {
-		return err
-	}
-	if o.Order.GoodTillDate, err = readString(b); err != nil {
-		return err
-	}
-	if o.Order.Rule80A, err = readString(b); err != nil {
-		return err
-	}
-	if o.Order.PercentOffset, err = readFloat(b); err != nil {
-		return err
-	}
-	if o.Order.SettlingFirm, err = readString(b); err != nil {
-		return err
-	}
-	if o.Order.ShortSaleSlot, err = readInt(b); err != nil {
-		return err
-	}
-	if o.Order.DesignatedLocation, err = readString(b); err != nil {
-		return err
-	}
-	if o.Order.ExemptCode, err = readInt(b); err != nil {
-		return err
-	}
-	if o.Order.AuctionStrategy, err = readInt(b); err != nil {
-		return err
-	}
-	if o.Order.StartingPrice, err = readFloat(b); err != nil {
-		return err
-	}
-	if o.Order.StockRefPrice, err = readFloat(b); err != nil {
-		return err
-	}
-	if o.Order.Delta, err = readFloat(b); err != nil {
-		return err
-	}
-	if o.Order.StockRangeLower, err = readFloat(b); err != nil {
-		return err
-	}
-	if o.Order.StockRangeUpper, err = readFloat(b); err != nil {
-		return err
-	}
-	if o.Order.DisplaySize, err = readInt(b); err != nil {
-		return err
-	}
-	if o.Order.BlockOrder, err = readBool(b); err != nil {
-		return err
-	}
-	if o.Order.SweepToFill, err = readBool(b); err != nil {
-		return err
-	}
-	if o.Order.AllOrNone, err = readBool(b); err != nil {
-		return err
-	}
-	if o.Order.MinQty, err = readInt(b); err != nil {
-		return err
-	}
-	if o.Order.OCAType, err = readInt(b); err != nil {
-		return err
-	}
-	if o.Order.ETradeOnly, err = readInt(b); err != nil {
-		return err
-	}
-	if o.Order.FirmQuoteOnly, err = readBool(b); err != nil {
-		return err
-	}
-	if o.Order.NBBOPriceCap, err = readFloat(b); err != nil {
-		return err
-	}
-	if o.Order.ParentID, err = readInt(b); err != nil {
-		return err
-	}
-	if o.Order.TriggerMethod, err = readInt(b); err != nil {
-		return err
-	}
-	if o.Order.Volatility, err = readFloat(b); err != nil {
-		return err
-	}
-	if o.Order.VolatilityType, err = readInt(b); err != nil {
-		return err
-	}
-	if o.Order.DeltaNeutralOrderType, err = readString(b); err != nil {
-		return err
-	}
-	if o.Order.DeltaNeutralAuxPrice, err = readFloat(b); err != nil {
-		return err
-	}
-	if o.Order.DeltaNeutralOrderType != "" {
-		if o.Order.DeltaNeutral.ContractID, err = readInt(b); err != nil {
+	var version int64
+
+	if serverVersion < mMinServerVerOrderContainer {
+		if version, err = readInt(b); err != nil {
 			return err
 		}
-		if o.Order.DeltaNeutral.SettlingFirm, err = readString(b); err != nil {
-			return err
-		}
-		if o.Order.DeltaNeutral.ClearingAccount, err = readString(b); err != nil {
-			return err
-		}
-		if o.Order.DeltaNeutral.ClearingIntent, err = readString(b); err != nil {
-			return err
-		}
-		if o.Order.DeltaNeutral.OpenClose, err = readString(b); err != nil {
-			return err
-		}
-		if o.Order.DeltaNeutral.ShortSale, err = readBool(b); err != nil {
-			return err
-		}
-		if o.Order.DeltaNeutral.ShortSaleSlot, err = readInt(b); err != nil {
-			return err
-		}
-		if o.Order.DeltaNeutral.DesignatedLocation, err = readString(b); err != nil {
-			return err
-		}
+	} else {
+		version = serverVersion
 	}
-	if o.Order.ContinuousUpdate, err = readInt(b); err != nil {
+
+	eorderdecoder := &eOrderDecoder{
+		ReadBuf:       b,
+		Version:       version,
+		ServerVersion: serverVersion,
+		Contract:      &o.Contract,
+		Order:         &o.Order,
+		OrderState:    &o.OrderState,
+	}
+
+	// read order id
+	if err = eorderdecoder.readOrderID(); err != nil {
 		return err
 	}
-	if o.Order.ReferencePriceType, err = readInt(b); err != nil {
+
+	// read contract fields
+	if err = eorderdecoder.readContractFields(); err != nil {
 		return err
 	}
-	if o.Order.TrailStopPrice, err = readFloat(b); err != nil {
+
+	// read order fields
+	if err = eorderdecoder.readAction(); err != nil {
 		return err
 	}
-	if o.Order.TrailingPercent, err = readFloat(b); err != nil {
+	if err = eorderdecoder.readTotalQuantity(); err != nil {
 		return err
 	}
-	if o.Order.BasisPoints, err = readFloat(b); err != nil {
+	if err = eorderdecoder.readOrderType(); err != nil {
 		return err
 	}
-	if o.Order.BasisPointsType, err = readInt(b); err != nil {
+	if err = eorderdecoder.readLmtPrice(); err != nil {
 		return err
 	}
-	if o.Contract.ComboLegsDescription, err = readString(b); err != nil {
+	if err = eorderdecoder.readAuxPrice(); err != nil {
 		return err
 	}
-	var comboLegsCount int64
-	if comboLegsCount, err = readInt(b); err != nil {
+	if err = eorderdecoder.readTIF(); err != nil {
 		return err
 	}
-	o.Contract.ComboLegs = make([]ComboLeg, comboLegsCount)
-	for _, cl := range o.Contract.ComboLegs {
-		if cl.ContractID, err = readInt(b); err != nil {
-			return err
-		}
-		if cl.Ratio, err = readInt(b); err != nil {
-			return err
-		}
-		if cl.Action, err = readString(b); err != nil {
-			return err
-		}
-		if cl.Exchange, err = readString(b); err != nil {
-			return err
-		}
-		if cl.OpenClose, err = readInt(b); err != nil {
-			return err
-		}
-		if cl.ShortSaleSlot, err = readInt(b); err != nil {
-			return err
-		}
-		if cl.DesignatedLocation, err = readString(b); err != nil {
-			return err
-		}
-		if cl.ExemptCode, err = readInt(b); err != nil {
-			return err
-		}
-	}
-	var orderComboLegsCount int64
-	if orderComboLegsCount, err = readInt(b); err != nil {
+	if err = eorderdecoder.readOcaGroup(); err != nil {
 		return err
 	}
-	o.Order.OrderComboLegs = make([]OrderComboLeg, orderComboLegsCount)
-	for _, ocl := range o.Order.OrderComboLegs {
-		if ocl.Price, err = readFloat(b); err != nil {
-			return err
-		}
-	}
-	var smartSize int64
-	if smartSize, err = readInt(b); err != nil {
+	if err = eorderdecoder.readAccount(); err != nil {
 		return err
 	}
-	o.Order.SmartComboRoutingParams = make([]TagValue, smartSize)
-	for _, sc := range o.Order.SmartComboRoutingParams {
-		if sc.Tag, err = readString(b); err != nil {
-			return err
-		}
-		if sc.Value, err = readString(b); err != nil {
-			return err
-		}
-	}
-	if o.Order.ScaleInitLevelSize, err = readInt(b); err != nil {
+	if err = eorderdecoder.readOpenClose(); err != nil {
 		return err
 	}
-	if o.Order.ScaleSubsLevelSize, err = readInt(b); err != nil {
+
+	if err = eorderdecoder.readOrigin(); err != nil {
 		return err
 	}
-	if o.Order.ScalePriceIncrement, err = readFloat(b); err != nil {
+
+	if err = eorderdecoder.readOrderRef(); err != nil {
 		return err
 	}
-	if o.Order.ScalePriceIncrement > 0.0 && o.Order.ScalePriceIncrement < math.MaxFloat64 {
-		if o.Order.ScalePriceAdjustValue, err = readFloat(b); err != nil {
-			return err
-		}
-		if o.Order.ScalePriceAdjustInterval, err = readInt(b); err != nil {
-			return err
-		}
-		if o.Order.ScaleProfitOffset, err = readFloat(b); err != nil {
-			return err
-		}
-		if o.Order.ScaleAutoReset, err = readBool(b); err != nil {
-			return err
-		}
-		if o.Order.ScaleInitPosition, err = readInt(b); err != nil {
-			return err
-		}
-		if o.Order.ScaleInitFillQty, err = readInt(b); err != nil {
-			return err
-		}
-		if o.Order.ScaleRandomPercent, err = readBool(b); err != nil {
-			return err
-		}
-	}
-	if o.Order.HedgeType, err = readString(b); err != nil {
+
+	if err = eorderdecoder.readClientID(); err != nil {
 		return err
 	}
-	if o.Order.HedgeType != "" {
-		if o.Order.HedgeParam, err = readString(b); err != nil {
-			return err
-		}
-	}
-	if o.Order.OptOutSmartRouting, err = readBool(b); err != nil {
+
+	if err = eorderdecoder.readPermID(); err != nil {
 		return err
 	}
-	if o.Order.ClearingAccount, err = readString(b); err != nil {
+
+	if err = eorderdecoder.readOutsideRth(); err != nil {
 		return err
 	}
-	if o.Order.ClearingIntent, err = readString(b); err != nil {
+
+	if err = eorderdecoder.readHidden(); err != nil {
 		return err
 	}
-	if o.Order.NotHeld, err = readBool(b); err != nil {
+
+	if err = eorderdecoder.readDiscretionaryAmount(); err != nil {
 		return err
 	}
-	var haveUnderComp bool
-	if haveUnderComp, err = readBool(b); err != nil {
+
+	if err = eorderdecoder.readGoodAfterTime(); err != nil {
 		return err
 	}
-	if haveUnderComp {
-		o.Contract.UnderComp = new(UnderComp)
-		if o.Contract.UnderComp.ContractID, err = readInt(b); err != nil {
-			return err
-		}
-		if o.Contract.UnderComp.Delta, err = readFloat(b); err != nil {
-			return err
-		}
-		if o.Contract.UnderComp.Price, err = readFloat(b); err != nil {
-			return err
-		}
-	}
-	if o.Order.AlgoStrategy, err = readString(b); err != nil {
+
+	if err = eorderdecoder.skipSharesAllocation(); err != nil {
 		return err
 	}
-	if o.Order.AlgoStrategy != "" {
-		var algoParamsCount int64
-		if algoParamsCount, err = readInt(b); err != nil {
-			return err
-		}
-		o.Order.AlgoParams.Params = make([]*TagValue, algoParamsCount)
-		for _, p := range o.Order.AlgoParams.Params {
-			if p.Tag, err = readString(b); err != nil {
-				return err
-			}
-			if p.Value, err = readString(b); err != nil {
-				return err
-			}
-		}
-	}
-	if o.Order.WhatIf, err = readBool(b); err != nil {
+
+	if err = eorderdecoder.readFAParams(); err != nil {
 		return err
 	}
-	if o.OrderState.Status, err = readString(b); err != nil {
+
+	if err = eorderdecoder.readModelCode(); err != nil {
 		return err
 	}
-	if o.OrderState.InitialMargin, err = readString(b); err != nil {
+
+	if err = eorderdecoder.readGoodTillDate(); err != nil {
 		return err
 	}
-	if o.OrderState.MaintenanceMargin, err = readString(b); err != nil {
+
+	if err = eorderdecoder.readRule80A(); err != nil {
 		return err
 	}
-	if o.OrderState.EquityWithLoan, err = readString(b); err != nil {
+
+	if err = eorderdecoder.readPercentOffset(); err != nil {
 		return err
 	}
-	if o.OrderState.Commission, err = readFloat(b); err != nil {
+
+	if err = eorderdecoder.readSettlingFirm(); err != nil {
 		return err
 	}
-	if o.OrderState.MinCommission, err = readFloat(b); err != nil {
+
+	if err = eorderdecoder.readShortSaleParams(); err != nil {
 		return err
 	}
-	if o.OrderState.MaxCommission, err = readFloat(b); err != nil {
+
+	if err = eorderdecoder.readAuctionStrategy(); err != nil {
 		return err
 	}
-	if o.OrderState.CommissionCurrency, err = readString(b); err != nil {
+
+	if err = eorderdecoder.readBoxOrderParams(); err != nil {
 		return err
 	}
-	o.OrderState.WarningText, err = readString(b)
+
+	if err = eorderdecoder.readPegToStkOrVolOrderParams(); err != nil {
+		return err
+	}
+
+	if err = eorderdecoder.readDisplaySize(); err != nil {
+		return err
+	}
+
+	if err = eorderdecoder.readOldStyleOutsideRth(); err != nil {
+		return err
+	}
+
+	if err = eorderdecoder.readBlockOrder(); err != nil {
+		return err
+	}
+
+	if err = eorderdecoder.readSweepToFill(); err != nil {
+		return err
+	}
+
+	if err = eorderdecoder.readAllOrNone(); err != nil {
+		return err
+	}
+
+	if err = eorderdecoder.readMinQty(); err != nil {
+		return err
+	}
+
+	if err = eorderdecoder.readOcaType(); err != nil {
+		return err
+	}
+
+	if err = eorderdecoder.readETradeOnly(); err != nil {
+		return err
+	}
+
+	if err = eorderdecoder.readFirmQuoteOnly(); err != nil {
+		return err
+	}
+
+	if err = eorderdecoder.readNbboPriceCap(); err != nil {
+		return err
+	}
+
+	if err = eorderdecoder.readParentID(); err != nil {
+		return err
+	}
+
+	if err = eorderdecoder.readTriggerMethod(); err != nil {
+		return err
+	}
+
+	if err = eorderdecoder.readVolOrderParams(true); err != nil {
+		return err
+	}
+
+	if err = eorderdecoder.readTrailParams(); err != nil {
+		return err
+	}
+
+	if err = eorderdecoder.readBasisPoints(); err != nil {
+		return err
+	}
+
+	if err = eorderdecoder.readComboLegs(); err != nil {
+		return err
+	}
+
+	if err = eorderdecoder.readSmartComboRoutingParams(); err != nil {
+		return err
+	}
+
+	if err = eorderdecoder.readScaleOrderParams(); err != nil {
+		return err
+	}
+
+	if err = eorderdecoder.readHedgeParams(); err != nil {
+		return err
+	}
+
+	if err = eorderdecoder.readOptOutSmartRouting(); err != nil {
+		return err
+	}
+
+	if err = eorderdecoder.readClearingParams(); err != nil {
+		return err
+	}
+
+	if err = eorderdecoder.readNotHeld(); err != nil {
+		return err
+	}
+
+	if err = eorderdecoder.readDeltaNeutral(); err != nil {
+		return err
+	}
+
+	if err = eorderdecoder.readAlgoParams(); err != nil {
+		return err
+	}
+
+	if err = eorderdecoder.readSolicited(); err != nil {
+		return err
+	}
+
+	if err = eorderdecoder.readWhatIfInfoAndCommission(); err != nil {
+		return err
+	}
+
+	if err = eorderdecoder.readVolRandomizeFlags(); err != nil {
+		return err
+	}
+
+	if err = eorderdecoder.readPegToBenchParams(); err != nil {
+		return err
+	}
+
+	if err = eorderdecoder.readConditions(); err != nil {
+		return err
+	}
+
+	if err = eorderdecoder.readAdjustedOrderParams(); err != nil {
+		return err
+	}
+
+	if err = eorderdecoder.readSoftDollarTier(); err != nil {
+		return err
+	}
+
+	if err = eorderdecoder.readCashQty(); err != nil {
+		return err
+	}
+
+	if err = eorderdecoder.readDontUseAutoPriceForHedge(); err != nil {
+		return err
+	}
+
+	if err = eorderdecoder.readIsOmsContainer(); err != nil {
+		return err
+	}
+
+	if err = eorderdecoder.readDiscretionaryUpToLimitPrice(); err != nil {
+		return err
+	}
+
+	if err = eorderdecoder.readUsePriceMgmtAlgo(); err != nil {
+		return err
+	}
+
 	return err
 }
 

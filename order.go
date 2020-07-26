@@ -12,7 +12,7 @@ type Order struct {
 	ClientID                      int64
 	PermID                        int64
 	Action                        string
-	TotalQty                      int64
+	TotalQty                      float64
 	OrderType                     string
 	LimitPrice                    float64
 	AuxPrice                      float64
@@ -92,6 +92,43 @@ type Order struct {
 	SmartComboRoutingParams       []TagValue
 	OrderComboLegs                []OrderComboLeg
 	OrderMiscOptions              []TagValue
+	ModelCode                     string
+	Solicited                     bool
+	RandomizeSize                 bool
+	RandomizePrice                bool
+	ReferenceContractID           int64
+	PeggedChangeAmount            float64
+	IsPeggedChangeAmountDecrease  bool
+	ReferenceChangeAmount         float64
+	ReferenceExchangeID           string
+	Conditions                    []OrderCondition
+	ConditionsCancelOrder         bool
+	ConditionsIgnoreRth           bool
+
+	SoftDollarTier
+	DontUseAutoPriceForHedge    bool
+	IsOmsContainer              bool
+	DiscretionaryUpToLimitPrice bool
+
+	AdjustedOrderType string
+
+	TriggerPrice           float64
+	AdjustedStopPrice      float64
+	AdjustedStopLimitPrice float64
+	AdjustedTrailingAmount float64
+	AdjustableTrailingUnit int64
+	LimitPriceOffset       float64
+	CashQty                float64
+	UsePriceMgmtAlgo       bool
+
+	//private String  m_autoCancelDate;
+	//private double  m_filledQuantity;
+	//private int     m_refFuturesConId;
+	//private boolean m_autoCancelParent;
+	//private String  m_shareholder;
+	//private boolean m_imbalanceOnly;
+	//private boolean m_routeMarketableToBbo;
+	//private long    m_parentPermId;
 }
 
 // DeltaNeutralData .
