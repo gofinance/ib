@@ -776,11 +776,14 @@ func (e *ErrorMessage) read(serverVersion int64, b *bufio.Reader) (err error) {
 		return err
 	}
 
+	var tempstr string
+	if tempstr, err = readString(b); err != nil {
+		return err
+	}
 	if serverVersion >= mMinServerVerEncodeMsgASCII7 {
-		// TODO: decodeUnicodeEscapedString
-		e.Message, err = readString(b)
+		e.Message = decodeUnicodeEscapedString(tempstr)
 	} else {
-		e.Message, err = readString(b)
+		e.Message = tempstr
 	}
 	return err
 }
@@ -1106,8 +1109,8 @@ type ScannerData struct {
 func (s *ScannerData) ID() int64               { return s.id }
 func (s *ScannerData) code() IncomingMessageID { return mScannerData }
 func (s *ScannerData) read(serverVersion int64, b *bufio.Reader) (err error) {
-	// version
-	if _, err = readInt(b); err != nil {
+	var version int64
+	if version, err = readInt(b); err != nil {
 		return err
 	}
 	if s.id, err = readInt(b); err != nil {
@@ -1122,8 +1125,10 @@ func (s *ScannerData) read(serverVersion int64, b *bufio.Reader) (err error) {
 		if s.Detail[ic].Rank, err = readInt(b); err != nil {
 			return err
 		}
-		if s.Detail[ic].ContractID, err = readInt(b); err != nil {
-			return err
+		if version >= 3 {
+			if s.Detail[ic].ContractID, err = readInt(b); err != nil {
+				return err
+			}
 		}
 		if s.Detail[ic].Contract.Summary.Symbol, err = readString(b); err != nil {
 			return err
@@ -1164,8 +1169,10 @@ func (s *ScannerData) read(serverVersion int64, b *bufio.Reader) (err error) {
 		if s.Detail[ic].Projection, err = readString(b); err != nil {
 			return err
 		}
-		if s.Detail[ic].Legs, err = readString(b); err != nil {
-			return err
+		if version >= 2 {
+			if s.Detail[ic].Legs, err = readString(b); err != nil {
+				return err
+			}
 		}
 	}
 	return err
@@ -1173,20 +1180,24 @@ func (s *ScannerData) read(serverVersion int64, b *bufio.Reader) (err error) {
 
 // ContractData .
 type ContractData struct {
-	id       int64
+	reqID    int64
 	Contract ContractDetails
 }
 
 // ID contains the TWS "reqId", which is used for reply correlation.
-func (c *ContractData) ID() int64               { return c.id }
+func (c *ContractData) ID() int64               { return c.reqID }
 func (c *ContractData) code() IncomingMessageID { return mContractData }
 func (c *ContractData) read(serverVersion int64, b *bufio.Reader) (err error) {
-	// version
-	if _, err = readInt(b); err != nil {
+	var version int64
+	if version, err = readInt(b); err != nil {
 		return err
 	}
-	if c.id, err = readInt(b); err != nil {
-		return err
+
+	c.reqID = -1
+	if version >= 3 {
+		if c.reqID, err = readInt(b); err != nil {
+			return err
+		}
 	}
 	if c.Contract.Summary.Symbol, err = readString(b); err != nil {
 		return err
@@ -1197,6 +1208,8 @@ func (c *ContractData) read(serverVersion int64, b *bufio.Reader) (err error) {
 	if c.Contract.Summary.Expiry, err = readString(b); err != nil {
 		return err
 	}
+	parseLastTradeDate(&c.Contract, false, c.Contract.Summary.Expiry)
+
 	if c.Contract.Summary.Strike, err = readFloat(b); err != nil {
 		return err
 	}
@@ -1224,6 +1237,11 @@ func (c *ContractData) read(serverVersion int64, b *bufio.Reader) (err error) {
 	if c.Contract.MinTick, err = readFloat(b); err != nil {
 		return err
 	}
+	if serverVersion >= mMinServerVerMdSizeMultiplier {
+		if c.Contract.MarketDataSizeMultiplier, err = readInt(b); err != nil {
+			return err
+		}
+	}
 	if c.Contract.Summary.Multiplier, err = readString(b); err != nil {
 		return err
 	}
@@ -1233,83 +1251,140 @@ func (c *ContractData) read(serverVersion int64, b *bufio.Reader) (err error) {
 	if c.Contract.ValidExchanges, err = readString(b); err != nil {
 		return err
 	}
-	if c.Contract.PriceMagnifier, err = readInt(b); err != nil {
-		return err
-	}
-	if c.Contract.UnderContractID, err = readInt(b); err != nil {
-		return err
-	}
-	if c.Contract.LongName, err = readString(b); err != nil {
-		return err
-	}
-	if c.Contract.Summary.PrimaryExchange, err = readString(b); err != nil {
-		return err
-	}
-	if c.Contract.ContractMonth, err = readString(b); err != nil {
-		return err
-	}
-	if c.Contract.Industry, err = readString(b); err != nil {
-		return err
-	}
-	if c.Contract.Category, err = readString(b); err != nil {
-		return err
-	}
-	if c.Contract.Subcategory, err = readString(b); err != nil {
-		return err
-	}
-	if c.Contract.TimezoneID, err = readString(b); err != nil {
-		return err
-	}
-	if c.Contract.TradingHours, err = readString(b); err != nil {
-		return err
-	}
-	if c.Contract.LiquidHours, err = readString(b); err != nil {
-		return err
-	}
-	if c.Contract.EVRule, err = readString(b); err != nil {
-		return err
-	}
-	if c.Contract.EVMultiplier, err = readFloat(b); err != nil {
-		return err
-	}
-	var secIDListCount int64
-	if secIDListCount, err = readInt(b); err != nil {
-		return err
-	}
-	c.Contract.SecIDList = make([]TagValue, secIDListCount)
-	for i := int64(0); i < secIDListCount; i++ {
-		tag, err := readString(b)
-		if err != nil {
+	if version >= 2 {
+		if c.Contract.PriceMagnifier, err = readInt(b); err != nil {
 			return err
 		}
-		c.Contract.SecIDList[i].Tag = tag
+	}
+	if version >= 4 {
+		if c.Contract.UnderContractID, err = readInt(b); err != nil {
+			return err
+		}
+	}
+	if version >= 5 {
+		var tempstr string
+		if tempstr, err = readString(b); err != nil {
+			return err
+		}
+		if serverVersion >= mMinServerVerEncodeMsgASCII7 {
+			c.Contract.LongName = decodeUnicodeEscapedString(tempstr)
+		} else {
+			c.Contract.LongName = tempstr
+		}
+		if c.Contract.Summary.PrimaryExchange, err = readString(b); err != nil {
+			return err
+		}
+	}
+	if version >= 6 {
+		if c.Contract.ContractMonth, err = readString(b); err != nil {
+			return err
+		}
+		if c.Contract.Industry, err = readString(b); err != nil {
+			return err
+		}
+		if c.Contract.Category, err = readString(b); err != nil {
+			return err
+		}
+		if c.Contract.Subcategory, err = readString(b); err != nil {
+			return err
+		}
+		if c.Contract.TimezoneID, err = readString(b); err != nil {
+			return err
+		}
+		if c.Contract.TradingHours, err = readString(b); err != nil {
+			return err
+		}
+		if c.Contract.LiquidHours, err = readString(b); err != nil {
+			return err
+		}
+	}
 
-		value, err := readString(b)
-		if err != nil {
+	if version >= 8 {
+		if c.Contract.EVRule, err = readString(b); err != nil {
 			return err
 		}
-		c.Contract.SecIDList[i].Value = value
+		if c.Contract.EVMultiplier, err = readFloat(b); err != nil {
+			return err
+		}
 	}
+	if version >= 7 {
+		var secIDListCount int64
+		if secIDListCount, err = readInt(b); err != nil {
+			return err
+		}
+		c.Contract.SecIDList = make([]TagValue, secIDListCount)
+		for i := int64(0); i < secIDListCount; i++ {
+			tag, err := readString(b)
+			if err != nil {
+				return err
+			}
+			c.Contract.SecIDList[i].Tag = tag
+
+			value, err := readString(b)
+			if err != nil {
+				return err
+			}
+			c.Contract.SecIDList[i].Value = value
+		}
+	}
+
+	if serverVersion >= mMinServerVerAggGroup {
+		if c.Contract.AggGroup, err = readInt(b); err != nil {
+			return err
+		}
+	}
+
+	if serverVersion >= mMinServerVerUnderlyingInfo {
+		if c.Contract.UnderSymbol, err = readString(b); err != nil {
+			return err
+		}
+		if c.Contract.UnderSecType, err = readString(b); err != nil {
+			return err
+		}
+	}
+
+	if serverVersion >= mMinServerVerMarketRules {
+		if c.Contract.MarketRuleIds, err = readString(b); err != nil {
+			return err
+		}
+	}
+
+	if serverVersion >= mMinServerVerRealExpirationDate {
+		if c.Contract.RealExpirationDate, err = readString(b); err != nil {
+			return err
+		}
+	}
+
+	if serverVersion >= mMinServerVerStockType {
+		if c.Contract.StockType, err = readString(b); err != nil {
+			return err
+		}
+	}
+
 	return err
 }
 
 // BondContractData .
 type BondContractData struct {
-	id       int64
+	reqID    int64
 	Contract BondContractDetails
 }
 
 // ID contains the TWS "reqId", which is used for reply correlation.
-func (bcd *BondContractData) ID() int64               { return bcd.id }
+func (bcd *BondContractData) ID() int64               { return bcd.reqID }
 func (bcd *BondContractData) code() IncomingMessageID { return mBondContractData }
 func (bcd *BondContractData) read(serverVersion int64, b *bufio.Reader) (err error) {
-	// version
-	if _, err = readInt(b); err != nil {
+	var version int64
+	if version, err = readInt(b); err != nil {
 		return err
 	}
-	if bcd.id, err = readInt(b); err != nil {
-		return err
+
+	if version >= 3 {
+		if bcd.reqID, err = readInt(b); err != nil {
+			return err
+		}
 	}
+
 	if bcd.Contract.Summary.Symbol, err = readString(b); err != nil {
 		return err
 	}
@@ -1322,9 +1397,12 @@ func (bcd *BondContractData) read(serverVersion int64, b *bufio.Reader) (err err
 	if bcd.Contract.Coupon, err = readFloat(b); err != nil {
 		return err
 	}
+
 	if bcd.Contract.Maturity, err = readString(b); err != nil {
 		return err
 	}
+	parseLastTradeDate(&bcd.Contract.ContractDetails, true, bcd.Contract.Maturity)
+
 	if bcd.Contract.IssueDate, err = readString(b); err != nil {
 		return err
 	}
@@ -1358,7 +1436,7 @@ func (bcd *BondContractData) read(serverVersion int64, b *bufio.Reader) (err err
 	if bcd.Contract.MarketName, err = readString(b); err != nil {
 		return err
 	}
-	if bcd.Contract.TradingClass, err = readString(b); err != nil {
+	if bcd.Contract.Summary.TradingClass, err = readString(b); err != nil {
 		return err
 	}
 	if bcd.Contract.Summary.ContractID, err = readInt(b); err != nil {
@@ -1367,48 +1445,79 @@ func (bcd *BondContractData) read(serverVersion int64, b *bufio.Reader) (err err
 	if bcd.Contract.MinTick, err = readFloat(b); err != nil {
 		return err
 	}
+
+	if serverVersion >= mMinServerVerMdSizeMultiplier {
+		if bcd.Contract.MarketDataSizeMultiplier, err = readInt(b); err != nil {
+			return err
+		}
+	}
+
 	if bcd.Contract.OrderTypes, err = readString(b); err != nil {
 		return err
 	}
 	if bcd.Contract.ValidExchanges, err = readString(b); err != nil {
 		return err
 	}
-	if bcd.Contract.NextOptionDate, err = readString(b); err != nil {
-		return err
-	}
-	if bcd.Contract.NextOptionType, err = readString(b); err != nil {
-		return err
-	}
-	if bcd.Contract.NextOptionPartial, err = readBool(b); err != nil {
-		return err
-	}
-	if bcd.Contract.Notes, err = readString(b); err != nil {
-		return err
-	}
-	if bcd.Contract.LongName, err = readString(b); err != nil {
-		return err
-	}
-	if bcd.Contract.EVRule, err = readString(b); err != nil {
-		return err
-	}
-	if bcd.Contract.EVMultiplier, err = readFloat(b); err != nil {
-		return err
-	}
-	var secIDListCount int64
-	if secIDListCount, err = readInt(b); err != nil {
-		return err
-	}
-	bcd.Contract.SecIDList = make([]TagValue, secIDListCount)
-	for ic := range bcd.Contract.SecIDList {
-		if bcd.Contract.SecIDList[ic].Tag, err = readString(b); err != nil {
-			return err
-		}
-		if bcd.Contract.SecIDList[ic].Value, err = readString(b); err != nil {
-			return err
-		}
-	}
-	return err
 
+	if version >= 2 {
+		if bcd.Contract.NextOptionDate, err = readString(b); err != nil {
+			return err
+		}
+		if bcd.Contract.NextOptionType, err = readString(b); err != nil {
+			return err
+		}
+		if bcd.Contract.NextOptionPartial, err = readBool(b); err != nil {
+			return err
+		}
+		if bcd.Contract.Notes, err = readString(b); err != nil {
+			return err
+		}
+	}
+
+	if version >= 4 {
+		if bcd.Contract.LongName, err = readString(b); err != nil {
+			return err
+		}
+	}
+
+	if version >= 6 {
+		if bcd.Contract.EVRule, err = readString(b); err != nil {
+			return err
+		}
+		if bcd.Contract.EVMultiplier, err = readFloat(b); err != nil {
+			return err
+		}
+	}
+
+	if version >= 5 {
+		var secIDListCount int64
+		if secIDListCount, err = readInt(b); err != nil {
+			return err
+		}
+		bcd.Contract.SecIDList = make([]TagValue, secIDListCount)
+		for ic := range bcd.Contract.SecIDList {
+			if bcd.Contract.SecIDList[ic].Tag, err = readString(b); err != nil {
+				return err
+			}
+			if bcd.Contract.SecIDList[ic].Value, err = readString(b); err != nil {
+				return err
+			}
+		}
+	}
+
+	if serverVersion >= mMinServerVerAggGroup {
+		if bcd.Contract.AggGroup, err = readInt(b); err != nil {
+			return err
+		}
+	}
+
+	if serverVersion >= mMinServerVerMarketRules {
+		if bcd.Contract.MarketRuleIds, err = readString(b); err != nil {
+			return err
+		}
+	}
+
+	return err
 }
 
 // ExecutionData .

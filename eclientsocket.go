@@ -258,6 +258,7 @@ const (
 	mMinServerVerMktDepthPrimExchange    = 149
 	mMinServerVerReqCompletedOrders      = 150
 	mMinServerVerPriceMgmtAlgo           = 151
+	mMinServerVerStockType               = 152
 	mMinServerVerEncodeMsgASCII7         = 153
 	mMinServerVerSendAllFamilyCodes      = 154
 	mMinServerVerNoDefaultOpenClose      = 155

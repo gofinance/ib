@@ -5,35 +5,37 @@ package ib
 
 // ContractDetails .
 type ContractDetails struct {
-	Summary         Contract
-	MarketName      string
-	MinTick         float64
-	PriceMagnifier  int64
-	OrderTypes      string
-	ValidExchanges  string
-	UnderContractID int64
-	LongName        string
-	ContractMonth   string
-	Industry        string
-	Category        string
-	Subcategory     string
-	TimezoneID      string
-	TradingHours    string
-	LiquidHours     string
-	EVRule          string
-	EVMultiplier    float64
-	SecIDList       []TagValue
+	Summary                  Contract
+	MarketName               string
+	MinTick                  float64
+	MarketDataSizeMultiplier int64
+	PriceMagnifier           int64
+	OrderTypes               string
+	ValidExchanges           string
+	UnderContractID          int64
+	LongName                 string
+	ContractMonth            string
+	Industry                 string
+	Category                 string
+	Subcategory              string
+	TimezoneID               string
+	TradingHours             string
+	LiquidHours              string
+	EVRule                   string
+	EVMultiplier             float64
+	SecIDList                []TagValue
+	AggGroup                 int64
+	UnderSymbol              string
+	UnderSecType             string
+	MarketRuleIds            string
+	RealExpirationDate       string
+	LastTradeTime            string
+	StockType                string
 }
 
 // BondContractDetails .
 type BondContractDetails struct {
-	Summary           Contract
-	MarketName        string
-	TradingClass      string
-	MinTick           float64
-	OrderTypes        string
-	ValidExchanges    string
-	LongName          string
+	ContractDetails
 	Cusip             string
 	Ratings           string
 	DescAppend        string
@@ -49,7 +51,4 @@ type BondContractDetails struct {
 	NextOptionType    string
 	NextOptionPartial bool
 	Notes             string
-	EVRule            string
-	EVMultiplier      float64
-	SecIDList         []TagValue
 }

@@ -280,3 +280,46 @@ func detectTime(timeString string) (timeFmt, error) {
 
 	return -1, fmt.Errorf("ibgo: '%s' has unknown time format", timeString)
 }
+
+func decodeUnicodeEscapedString(str string) string {
+	// TODO
+	return str
+	//String v = new String(str);
+	//
+	//try {
+	//    for (;;) {
+	//        int escapeIndex = v.indexOf("\\u");
+
+	//        if (escapeIndex == -1
+	//         || v.length() - escapeIndex < 6) {
+	//            break;
+	//        }
+
+	//        String escapeString = v.substring(escapeIndex ,  escapeIndex + 6);
+	//        int hexVal = Integer.parseInt(escapeString.replace("\\u", ""), 16);
+
+	//        v = v.replace(escapeString, "" + (char)hexVal);
+	//    }
+	//} catch (NumberFormatException e) { }
+	//
+	//return v;
+}
+
+func parseLastTradeDate(contract *ContractDetails, isBond bool, lastTradeDateOrContractMonthStr string) {
+	if lastTradeDateOrContractMonthStr != "" {
+		//String[] splitted = lastTradeDateOrContractMonth.split("\\s+");
+		//if (splitted.length > 0) {
+		//    if (isBond) {
+		//        contract.maturity(splitted[0]);
+		//    } else {
+		//        contract.contract().lastTradeDateOrContractMonth(splitted[0]);
+		//    }
+		//}
+		//if (splitted.length > 1) {
+		//    contract.lastTradeTime(splitted[1]);
+		//}
+		//if (isBond && splitted.length > 2) {
+		//    contract.timeZoneId(splitted[2]);
+		//}
+	}
+}
