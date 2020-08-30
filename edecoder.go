@@ -2144,8 +2144,8 @@ type PositionKey struct {
 
 func (p *Position) code() IncomingMessageID { return mPosition }
 func (p *Position) read(serverVersion int64, b *bufio.Reader) (err error) {
-	// version
-	if _, err = readInt(b); err != nil {
+	var version int64
+	if version, err = readInt(b); err != nil {
 		return err
 	}
 	if p.Key.AccountCode, err = readString(b); err != nil {
@@ -2182,14 +2182,32 @@ func (p *Position) read(serverVersion int64, b *bufio.Reader) (err error) {
 	if p.Contract.LocalSymbol, err = readString(b); err != nil {
 		return err
 	}
-	if p.Contract.TradingClass, err = readString(b); err != nil {
-		return err
+	if version >= 2 {
+		if p.Contract.TradingClass, err = readString(b); err != nil {
+			return err
+		}
 	}
-	if p.Position, err = readFloat(b); err != nil {
-		return err
+
+	if serverVersion >= mMinServerVerFractionalPositions {
+		if p.Position, err = readFloat(b); err != nil {
+			return err
+		}
+	} else {
+		var temp int64
+		if temp, err = readInt(b); err != nil {
+			return err
+		}
+
+		p.Position = float64(temp)
 	}
-	p.AverageCost, err = readFloat(b)
-	return err
+
+	if version >= 3 {
+		if p.AverageCost, err = readFloat(b); err != nil {
+			return err
+		}
+	}
+
+	return
 }
 
 // PositionEnd .
