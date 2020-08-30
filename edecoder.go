@@ -1531,19 +1531,31 @@ type ExecutionData struct {
 func (e *ExecutionData) ID() int64               { return e.id }
 func (e *ExecutionData) code() IncomingMessageID { return mExecutionData }
 func (e *ExecutionData) read(serverVersion int64, b *bufio.Reader) (err error) {
-	// version
-	if _, err = readInt(b); err != nil {
-		return err
+	var version int64
+
+	if serverVersion < mMinServerVerLastLiquidity {
+		if version, err = readInt(b); err != nil {
+			return err
+		}
 	}
-	if e.id, err = readInt(b); err != nil {
-		return err
+
+	e.id = -1
+	if version >= 7 {
+		if e.id, err = readInt(b); err != nil {
+			return err
+		}
 	}
+
 	if e.Exec.OrderID, err = readInt(b); err != nil {
 		return err
 	}
-	if e.Contract.ContractID, err = readInt(b); err != nil {
-		return err
+
+	if version >= 5 {
+		if e.Contract.ContractID, err = readInt(b); err != nil {
+			return err
+		}
 	}
+
 	if e.Contract.Symbol, err = readString(b); err != nil {
 		return err
 	}
@@ -1559,8 +1571,10 @@ func (e *ExecutionData) read(serverVersion int64, b *bufio.Reader) (err error) {
 	if e.Contract.Right, err = readString(b); err != nil {
 		return err
 	}
-	if e.Contract.Multiplier, err = readString(b); err != nil {
-		return err
+	if version >= 9 {
+		if e.Contract.Multiplier, err = readString(b); err != nil {
+			return err
+		}
 	}
 	if e.Contract.Exchange, err = readString(b); err != nil {
 		return err
@@ -1571,8 +1585,10 @@ func (e *ExecutionData) read(serverVersion int64, b *bufio.Reader) (err error) {
 	if e.Contract.LocalSymbol, err = readString(b); err != nil {
 		return err
 	}
-	if e.Contract.TradingClass, err = readString(b); err != nil {
-		return err
+	if version >= 10 {
+		if e.Contract.TradingClass, err = readString(b); err != nil {
+			return err
+		}
 	}
 	if e.Exec.ExecID, err = readString(b); err != nil {
 		return err
@@ -1589,34 +1605,69 @@ func (e *ExecutionData) read(serverVersion int64, b *bufio.Reader) (err error) {
 	if e.Exec.Side, err = readString(b); err != nil {
 		return err
 	}
-	if e.Exec.Shares, err = readInt(b); err != nil {
-		return err
+	if serverVersion >= mMinServerVerFractionalPositions {
+		if e.Exec.Shares, err = readFloat(b); err != nil {
+			return err
+		}
+	} else {
+		var temp int64
+		if temp, err = readInt(b); err != nil {
+			return err
+		}
+		e.Exec.Shares = float64(temp)
 	}
 	if e.Exec.Price, err = readFloat(b); err != nil {
 		return err
 	}
-	if e.Exec.PermID, err = readInt(b); err != nil {
-		return err
+	if version >= 2 {
+		if e.Exec.PermID, err = readInt(b); err != nil {
+			return err
+		}
 	}
-	if e.Exec.ClientID, err = readInt(b); err != nil {
-		return err
+	if version >= 3 {
+		if e.Exec.ClientID, err = readInt(b); err != nil {
+			return err
+		}
 	}
-	if e.Exec.Liquidation, err = readInt(b); err != nil {
-		return err
+	if version >= 4 {
+		if e.Exec.Liquidation, err = readInt(b); err != nil {
+			return err
+		}
 	}
-	if e.Exec.CumQty, err = readInt(b); err != nil {
-		return err
+	if version >= 6 {
+		if e.Exec.CumQty, err = readInt(b); err != nil {
+			return err
+		}
+		if e.Exec.AveragePrice, err = readFloat(b); err != nil {
+			return err
+		}
 	}
-	if e.Exec.AveragePrice, err = readFloat(b); err != nil {
-		return err
+	if version >= 8 {
+		if e.Exec.OrderRef, err = readString(b); err != nil {
+			return err
+		}
 	}
-	if e.Exec.OrderRef, err = readString(b); err != nil {
-		return err
+	if version >= 9 {
+		if e.Exec.EVRule, err = readString(b); err != nil {
+			return err
+		}
+		if e.Exec.EVMultiplier, err = readFloat(b); err != nil {
+			return err
+		}
 	}
-	if e.Exec.EVRule, err = readString(b); err != nil {
-		return err
+
+	if serverVersion >= mMinServerVerModelsSupport {
+		if e.Exec.ModelCode, err = readString(b); err != nil {
+			return err
+		}
 	}
-	e.Exec.EVMultiplier, err = readFloat(b)
+
+	if serverVersion >= mMinServerVerLastLiquidity {
+		if e.Exec.LastLiquidity, err = readInt(b); err != nil {
+			return err
+		}
+	}
+
 	return err
 }
 
