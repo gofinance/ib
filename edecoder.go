@@ -1767,6 +1767,10 @@ type NewsBulletins struct {
 
 func (n *NewsBulletins) code() IncomingMessageID { return mNewsBulletins }
 func (n *NewsBulletins) read(serverVersion int64, b *bufio.Reader) (err error) {
+	// version
+	if _, err = readInt(b); err != nil {
+		return err
+	}
 	if n.NewsMsgID, err = readInt(b); err != nil {
 		return err
 	}
@@ -1803,6 +1807,10 @@ type ReceiveFA struct {
 
 func (r *ReceiveFA) code() IncomingMessageID { return mReceiveFA }
 func (r *ReceiveFA) read(serverVersion int64, b *bufio.Reader) (err error) {
+	// version
+	if _, err = readInt(b); err != nil {
+		return err
+	}
 	if r.Type, err = readInt(b); err != nil {
 		return err
 	}
@@ -1822,18 +1830,23 @@ type HistoricalData struct {
 func (h *HistoricalData) ID() int64               { return h.id }
 func (h *HistoricalData) code() IncomingMessageID { return mHistoricalData }
 func (h *HistoricalData) read(serverVersion int64, b *bufio.Reader) (err error) {
-	// version
-	if _, err = readInt(b); err != nil {
-		return err
+	var version int64
+	if serverVersion < mMinServerVerSyntRealtimeBars {
+		if version, err = readInt(b); err != nil {
+			return err
+		}
 	}
 	if h.id, err = readInt(b); err != nil {
 		return err
 	}
-	if h.StartDate, err = readString(b); err != nil {
-		return err
-	}
-	if h.EndDate, err = readString(b); err != nil {
-		return err
+
+	if version >= 2 {
+		if h.StartDate, err = readString(b); err != nil {
+			return err
+		}
+		if h.EndDate, err = readString(b); err != nil {
+			return err
+		}
 	}
 	var itemCount int64
 	if itemCount, err = readInt(b); err != nil {
@@ -1856,20 +1869,33 @@ func (h *HistoricalData) read(serverVersion int64, b *bufio.Reader) (err error) 
 		if h.Data[ic].Close, err = readFloat(b); err != nil {
 			return err
 		}
-		if h.Data[ic].Volume, err = readInt(b); err != nil {
-			return err
+		if serverVersion < mMinServerVerSyntRealtimeBars {
+			if h.Data[ic].Volume, err = readInt(b); err != nil {
+				return err
+			}
+		} else {
+			// long
+			if h.Data[ic].Volume, err = readInt(b); err != nil {
+				return err
+			}
 		}
 		if h.Data[ic].WAP, err = readFloat(b); err != nil {
 			return err
 		}
+
 		var hasGaps string
-		if hasGaps, err = readString(b); err != nil {
-			return err
+		if serverVersion < mMinServerVerSyntRealtimeBars {
+			if hasGaps, err = readString(b); err != nil {
+				return err
+			}
 		}
 		h.Data[ic].HasGaps = hasGaps == "true"
-		h.Data[ic].BarCount, err = readInt(b)
-		if err != nil {
-			return err
+
+		if version >= 3 {
+			h.Data[ic].BarCount, err = readInt(b)
+			if err != nil {
+				return err
+			}
 		}
 	}
 	return err
