@@ -1710,13 +1710,14 @@ func (m *MarketDepth) read(serverVersion int64, b *bufio.Reader) (err error) {
 
 // MarketDepthL2 .
 type MarketDepthL2 struct {
-	id          int64
-	Position    int64
-	MarketMaker string
-	Operation   int64
-	Side        int64
-	Price       float64
-	Size        int64
+	id           int64
+	Position     int64
+	MarketMaker  string
+	Operation    int64
+	Side         int64
+	Price        float64
+	Size         int64
+	IsSmartDepth bool
 }
 
 // ID contains the TWS "tickerId", which was nominated at market data request time.
@@ -1745,7 +1746,14 @@ func (m *MarketDepthL2) read(serverVersion int64, b *bufio.Reader) (err error) {
 	if m.Price, err = readFloat(b); err != nil {
 		return err
 	}
-	m.Size, err = readInt(b)
+	if m.Size, err = readInt(b); err != nil {
+		return err
+	}
+	if serverVersion >= mMinServerVerSmartDepth {
+		if m.IsSmartDepth, err = readBool(b); err != nil {
+			return err
+		}
+	}
 	return err
 }
 
