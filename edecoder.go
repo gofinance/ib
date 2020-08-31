@@ -2349,6 +2349,10 @@ type DisplayGroupUpdated struct {
 func (d *DisplayGroupUpdated) ID() int64               { return d.id }
 func (d *DisplayGroupUpdated) code() IncomingMessageID { return mDisplayGroupUpdated }
 func (d *DisplayGroupUpdated) read(serverVersion int64, b *bufio.Reader) (err error) {
+	// version
+	if _, err = readInt(b); err != nil {
+		return err
+	}
 	if d.id, err = readInt(b); err != nil {
 		return err
 	}
