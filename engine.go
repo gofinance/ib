@@ -31,6 +31,7 @@ import (
 const (
 	gatewayDefault   = "127.0.0.1:4001"
 	UnmatchedReplyID = int64(-9223372036854775808)
+	maxMsgLength     = 0xffffff
 )
 
 // EngineOptions .
@@ -431,7 +432,7 @@ func (e *Engine) transmit(r Request) (err error) {
 		b := e.output
 		s := strings.Replace(b.String(), "\000", "-", -1)
 		e.logger.Printf("DUMP: %d> (%v) '%s'\n", e.client, e.output.Len(), s)
-		e.logger.Printf("MESSAGE:\n %v\n", hex.Dump(b.Bytes()))
+		e.logger.Printf("MESSAGE:\n%v\n", hex.Dump(b.Bytes()))
 	}
 
 	cnt, err := e.con.Write(e.output.Bytes())
@@ -676,20 +677,46 @@ func (e *Engine) receive() (Reply, error) {
 	var reader *bufio.Reader
 
 	if e.useV100Plus {
-		num, err := readUInt32(e.reader)
+		msgSize, err := readUInt32(e.reader)
 		if err != nil {
 			return nil, err
 		}
 
-		data := make([]byte, num)
+		if e.dumpConversation {
+			e.logger.Printf("READ SIZE: %v\n", msgSize)
+		}
+
+		if msgSize > maxMsgLength {
+			// TODO: handle this gracefully
+			panic("message is too long: " + fmt.Sprintf("%v", msgSize))
+		}
+
+		data := make([]byte, msgSize)
 
 		// TODO: check read size
-		if _, err := e.reader.Read(data); err != nil {
+		cnt, err := e.reader.Read(data)
+		if err != nil {
 			return nil, err
 		}
 
 		if e.dumpConversation {
-			e.logger.Printf("READ MESSAGE:\n %v\n", hex.Dump(data))
+			e.logger.Printf("READ SIZE1: %v of %v\n", cnt, msgSize)
+		}
+
+		// handle case where read does not fill the buffer
+		for cnt != int(msgSize) {
+			tmp, err := e.reader.Read(data[cnt:])
+			if err != nil {
+				return nil, err
+			}
+			cnt += tmp
+			if e.dumpConversation {
+				e.logger.Printf("READ SIZE2: %v of %v\n", cnt, msgSize)
+			}
+		}
+
+		if e.dumpConversation {
+			e.logger.Printf("READ MESSAGE:\n%v\n", hex.Dump(data))
 		}
 
 		e.input = bytes.NewBuffer(data)
