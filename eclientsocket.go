@@ -42,9 +42,9 @@ func (s FaMsgType) String() string {
 // - writeString
 // - writeTime (with `extra` field.)
 type writeMap struct {
-	fct   interface{}
-	val   interface{}
-	extra interface{}
+	val    interface{}
+	extra  interface{}
+	useMax bool
 }
 
 type writeMapSlice []writeMap
@@ -54,19 +54,27 @@ type writeMapSlice []writeMap
 func (m writeMapSlice) Dump(w *bytes.Buffer) error {
 	for _, elem := range m {
 		var err = fmt.Errorf("Unknown function type: %T", elem.fct)
-		switch fct := elem.fct.(type) {
-		case func(*bytes.Buffer, time.Time, timeFmt) error:
-			err = fct(w, elem.val.(time.Time), elem.extra.(timeFmt))
-		case func(*bytes.Buffer, bool) error:
-			err = fct(w, elem.val.(bool))
-		case func(*bytes.Buffer, int64) error:
-			err = fct(w, elem.val.(int64))
-		case func(*bytes.Buffer, string) error:
-			err = fct(w, elem.val.(string))
-		case func(*bytes.Buffer, float64) error:
-			err = fct(w, elem.val.(float64))
-		case func(*bytes.Buffer, []TagValue) error:
-			err = fct(w, elem.val.([]TagValue))
+		switch elem.val.(type) {
+		case time.Time:
+			err = writeTime(w, elem.val.(time.Time), elem.extra.(timeFmt))
+		case bool:
+			err = writeBool(w, elem.val.(bool))
+		case int64:
+			if elem.useMax {
+				err = writeMaxInt(w, elem.val.(int64))
+			} else {
+				err = writeInt(w, elem.val.(int64))
+			}
+		case string:
+			err = writeString(w, elem.val.(string))
+		case float64:
+			if elem.useMax {
+				err = writeMaxFloat(w, elem.val.(float64))
+			} else {
+				err = writeFloat(w, elem.val.(float64))
+			}
+		case []TagValue:
+			err = writeTagValue(w, elem.val.([]TagValue))
 		}
 		if err != nil {
 			return err
@@ -324,9 +332,9 @@ func (c *CancelScannerSubscription) write(serverVersion int64, b *bytes.Buffer) 
 	}
 
 	return (writeMapSlice{
-		{fct: writeInt, val: int64(c.code())},
-		{fct: writeInt, val: c.version()},
-		{fct: writeInt, val: c.id},
+		{val: int64(c.code())},
+		{val: c.version()},
+		{val: c.id},
 	}).Dump(b)
 }
 
@@ -337,8 +345,8 @@ func (r *RequestScannerParameters) code() OutgoingMessageID { return mRequestSca
 func (r *RequestScannerParameters) version() int64          { return 1 }
 func (r *RequestScannerParameters) write(serverVersion int64, b *bytes.Buffer) error {
 	return (writeMapSlice{
-		{fct: writeInt, val: int64(r.code())},
-		{fct: writeInt, val: r.version()},
+		{val: int64(r.code())},
+		{val: r.version()},
 	}).Dump(b)
 }
 
@@ -373,28 +381,28 @@ func (r *RequestScannerSubscription) write(serverVersion int64, b *bytes.Buffer)
 	}
 
 	if err := (writeMapSlice{
-		{fct: writeInt, val: r.id},
-		{fct: writeMaxInt, val: r.Subscription.NumberOfRows},
-		{fct: writeString, val: r.Subscription.Instrument},
-		{fct: writeString, val: r.Subscription.LocationCode},
-		{fct: writeString, val: r.Subscription.ScanCode},
-		{fct: writeMaxFloat, val: r.Subscription.AbovePrice},
-		{fct: writeMaxFloat, val: r.Subscription.BelowPrice},
-		{fct: writeMaxInt, val: r.Subscription.AboveVolume},
-		{fct: writeMaxFloat, val: r.Subscription.MarketCapAbove},
-		{fct: writeMaxFloat, val: r.Subscription.MarketCapBelow},
-		{fct: writeString, val: r.Subscription.MoodyRatingAbove},
-		{fct: writeString, val: r.Subscription.MoodyRatingBelow},
-		{fct: writeString, val: r.Subscription.SPRatingAbove},
-		{fct: writeString, val: r.Subscription.SPRatingBelow},
-		{fct: writeString, val: r.Subscription.MaturityDateAbove},
-		{fct: writeString, val: r.Subscription.MaturityDateBelow},
-		{fct: writeMaxFloat, val: r.Subscription.CouponRateAbove},
-		{fct: writeMaxFloat, val: r.Subscription.CouponRateBelow},
-		{fct: writeString, val: r.Subscription.ExcludeConvertible},
-		{fct: writeMaxInt, val: r.Subscription.AverageOptionVolumeAbove}, // serverVersion >= 25
-		{fct: writeString, val: r.Subscription.ScannerSettingPairs},      // serverVersion >= 25
-		{fct: writeString, val: r.Subscription.StockTypeFilter},          // serverVersion >= 27
+		{val: r.id},
+		{val: r.Subscription.NumberOfRows, useMax: true},
+		{val: r.Subscription.Instrument},
+		{val: r.Subscription.LocationCode},
+		{val: r.Subscription.ScanCode},
+		{val: r.Subscription.AbovePrice, useMax: true},
+		{val: r.Subscription.BelowPrice, useMax: true},
+		{val: r.Subscription.AboveVolume, useMax: true},
+		{val: r.Subscription.MarketCapAbove, useMax: true},
+		{val: r.Subscription.MarketCapBelow, useMax: true},
+		{val: r.Subscription.MoodyRatingAbove},
+		{val: r.Subscription.MoodyRatingBelow},
+		{val: r.Subscription.SPRatingAbove},
+		{val: r.Subscription.SPRatingBelow},
+		{val: r.Subscription.MaturityDateAbove},
+		{val: r.Subscription.MaturityDateBelow},
+		{val: r.Subscription.CouponRateAbove, useMax: true},
+		{val: r.Subscription.CouponRateBelow, useMax: true},
+		{val: r.Subscription.ExcludeConvertible},
+		{val: r.Subscription.AverageOptionVolumeAbove, useMax: true}, // serverVersion >= 25
+		{val: r.Subscription.ScannerSettingPairs},                    // serverVersion >= 25
+		{val: r.Subscription.StockTypeFilter},                        // serverVersion >= 27
 	}).Dump(b); err != nil {
 		return err
 	}
@@ -439,9 +447,9 @@ func (r *RequestMarketData) write(serverVersion int64, b *bytes.Buffer) error {
 	}
 
 	if err := (writeMapSlice{
-		{fct: writeInt, val: int64(r.code())},
-		{fct: writeInt, val: r.version()},
-		{fct: writeInt, val: r.id},
+		{val: int64(r.code())},
+		{val: r.version()},
+		{val: r.id},
 	}).Dump(b); err != nil {
 		return err
 	}
@@ -453,17 +461,17 @@ func (r *RequestMarketData) write(serverVersion int64, b *bytes.Buffer) error {
 	}
 
 	if err := (writeMapSlice{
-		{fct: writeString, val: r.Contract.Symbol},
-		{fct: writeString, val: r.Contract.SecurityType},
-		{fct: writeString, val: r.Contract.Expiry},
-		{fct: writeFloat, val: r.Contract.Strike},
-		{fct: writeString, val: r.Contract.Right},
-		{fct: writeString, val: r.Contract.Multiplier}, // serverVersion >= 15
-		{fct: writeString, val: r.Contract.Exchange},
-		{fct: writeString, val: r.Contract.PrimaryExchange}, // serverVersion >= 14
-		{fct: writeString, val: r.Contract.Currency},
-		{fct: writeString, val: r.Contract.LocalSymbol},  // serverVersion >= 2
-		{fct: writeString, val: r.Contract.TradingClass}, // serverVersion >= mMinServerVerTradingClass
+		{val: r.Contract.Symbol},
+		{val: r.Contract.SecurityType},
+		{val: r.Contract.Expiry},
+		{val: r.Contract.Strike},
+		{val: r.Contract.Right},
+		{val: r.Contract.Multiplier}, // serverVersion >= 15
+		{val: r.Contract.Exchange},
+		{val: r.Contract.PrimaryExchange}, // serverVersion >= 14
+		{val: r.Contract.Currency},
+		{val: r.Contract.LocalSymbol},  // serverVersion >= 2
+		{val: r.Contract.TradingClass}, // serverVersion >= mMinServerVerTradingClass
 	}).Dump(b); err != nil {
 		return err
 	}
@@ -474,10 +482,10 @@ func (r *RequestMarketData) write(serverVersion int64, b *bytes.Buffer) error {
 		}
 		for _, cl := range r.ComboLegs {
 			if err := (writeMapSlice{
-				{fct: writeInt, val: cl.ContractID},
-				{fct: writeInt, val: cl.Ratio},
-				{fct: writeString, val: cl.Action},
-				{fct: writeString, val: cl.Exchange},
+				{val: cl.ContractID},
+				{val: cl.Ratio},
+				{val: cl.Action},
+				{val: cl.Exchange},
 			}).Dump(b); err != nil {
 				return err
 			}
@@ -487,10 +495,10 @@ func (r *RequestMarketData) write(serverVersion int64, b *bytes.Buffer) error {
 	if serverVersion >= mMinServerVerDeltaNeutral {
 		if r.Comp != nil {
 			if err := (writeMapSlice{
-				{fct: writeBool, val: true},
-				{fct: writeInt, val: r.Comp.ContractID},
-				{fct: writeFloat, val: r.Comp.Delta},
-				{fct: writeFloat, val: r.Comp.Price},
+				{val: true},
+				{val: r.Comp.ContractID},
+				{val: r.Comp.Delta},
+				{val: r.Comp.Price},
 			}).Dump(b); err != nil {
 				return err
 			}
@@ -534,9 +542,9 @@ func (c *CancelHistoricalData) code() OutgoingMessageID { return mCancelHistoric
 func (c *CancelHistoricalData) version() int64          { return 1 }
 func (c *CancelHistoricalData) write(serverVersion int64, b *bytes.Buffer) error {
 	return (writeMapSlice{
-		{fct: writeInt, val: int64(c.code())},
-		{fct: writeInt, val: c.version()},
-		{fct: writeInt, val: c.id},
+		{val: int64(c.code())},
+		{val: c.version()},
+		{val: c.id},
 	}).Dump(b)
 }
 
@@ -554,9 +562,9 @@ func (c *CancelRealTimeBars) code() OutgoingMessageID { return mCancelRealTimeBa
 func (c *CancelRealTimeBars) version() int64          { return 1 }
 func (c *CancelRealTimeBars) write(serverVersion int64, b *bytes.Buffer) error {
 	return (writeMapSlice{
-		{fct: writeInt, val: int64(c.code())},
-		{fct: writeInt, val: c.version()},
-		{fct: writeInt, val: c.id},
+		{val: int64(c.code())},
+		{val: c.version()},
+		{val: c.id},
 	}).Dump(b)
 }
 
@@ -582,27 +590,27 @@ func (r *RequestHistoricalData) code() OutgoingMessageID { return mRequestHistor
 func (r *RequestHistoricalData) version() int64          { return 6 }
 func (r *RequestHistoricalData) write(serverVersion int64, b *bytes.Buffer) error {
 	if err := (writeMapSlice{
-		{fct: writeInt, val: int64(r.code())},
-		{fct: writeInt, val: r.version()},
-		{fct: writeInt, val: r.id},
-		{fct: writeInt, val: r.Contract.ContractID},
-		{fct: writeString, val: r.Contract.Symbol},
-		{fct: writeString, val: r.Contract.SecurityType},
-		{fct: writeString, val: r.Contract.Expiry},
-		{fct: writeFloat, val: r.Contract.Strike},
-		{fct: writeString, val: r.Contract.Right},
-		{fct: writeString, val: r.Contract.Multiplier},
-		{fct: writeString, val: r.Contract.Exchange},
-		{fct: writeString, val: r.Contract.PrimaryExchange},
-		{fct: writeString, val: r.Contract.Currency},
-		{fct: writeString, val: r.Contract.LocalSymbol},
-		{fct: writeString, val: r.Contract.TradingClass},
-		{fct: writeBool, val: r.IncludeExpired},
-		{fct: writeTime, val: r.EndDateTime, extra: timeWriteUTC},
-		{fct: writeString, val: string(r.BarSize)},
-		{fct: writeString, val: r.Duration},
-		{fct: writeBool, val: r.UseRTH},
-		{fct: writeString, val: string(r.WhatToShow)},
+		{val: int64(r.code())},
+		{val: r.version()},
+		{val: r.id},
+		{val: r.Contract.ContractID},
+		{val: r.Contract.Symbol},
+		{val: r.Contract.SecurityType},
+		{val: r.Contract.Expiry},
+		{val: r.Contract.Strike},
+		{val: r.Contract.Right},
+		{val: r.Contract.Multiplier},
+		{val: r.Contract.Exchange},
+		{val: r.Contract.PrimaryExchange},
+		{val: r.Contract.Currency},
+		{val: r.Contract.LocalSymbol},
+		{val: r.Contract.TradingClass},
+		{val: r.IncludeExpired},
+		{val: r.EndDateTime, extra: timeWriteUTC},
+		{val: string(r.BarSize)},
+		{val: r.Duration},
+		{val: r.UseRTH},
+		{val: string(r.WhatToShow)},
 	}).Dump(b); err != nil {
 		return err
 	}
@@ -635,24 +643,24 @@ func (r *RequestRealTimeBars) code() OutgoingMessageID { return mRequestRealTime
 func (r *RequestRealTimeBars) version() int64          { return 3 }
 func (r *RequestRealTimeBars) write(serverVersion int64, b *bytes.Buffer) error {
 	if err := (writeMapSlice{
-		{fct: writeInt, val: int64(r.code())},
-		{fct: writeInt, val: r.version()},
-		{fct: writeInt, val: r.id},
-		{fct: writeInt, val: r.Contract.ContractID},
-		{fct: writeString, val: r.Contract.Symbol},
-		{fct: writeString, val: r.Contract.SecurityType},
-		{fct: writeString, val: r.Contract.Expiry},
-		{fct: writeFloat, val: r.Contract.Strike},
-		{fct: writeString, val: r.Contract.Right},
-		{fct: writeString, val: r.Contract.Multiplier},
-		{fct: writeString, val: r.Contract.Exchange},
-		{fct: writeString, val: r.Contract.PrimaryExchange},
-		{fct: writeString, val: r.Contract.Currency},
-		{fct: writeString, val: r.Contract.LocalSymbol},
-		{fct: writeString, val: r.Contract.TradingClass},
-		{fct: writeInt, val: r.BarSize},
-		{fct: writeString, val: string(r.WhatToShow)},
-		{fct: writeBool, val: r.UseRTH},
+		{val: int64(r.code())},
+		{val: r.version()},
+		{val: r.id},
+		{val: r.Contract.ContractID},
+		{val: r.Contract.Symbol},
+		{val: r.Contract.SecurityType},
+		{val: r.Contract.Expiry},
+		{val: r.Contract.Strike},
+		{val: r.Contract.Right},
+		{val: r.Contract.Multiplier},
+		{val: r.Contract.Exchange},
+		{val: r.Contract.PrimaryExchange},
+		{val: r.Contract.Currency},
+		{val: r.Contract.LocalSymbol},
+		{val: r.Contract.TradingClass},
+		{val: r.BarSize},
+		{val: string(r.WhatToShow)},
+		{val: r.UseRTH},
 	}).Dump(b); err != nil {
 		return err
 	}
@@ -675,23 +683,23 @@ func (r *RequestContractData) code() OutgoingMessageID { return mRequestContract
 func (r *RequestContractData) version() int64          { return 7 }
 func (r *RequestContractData) write(serverVersion int64, b *bytes.Buffer) error {
 	return (writeMapSlice{
-		{fct: writeInt, val: int64(r.code())},
-		{fct: writeInt, val: r.version()},
-		{fct: writeInt, val: r.id},
-		{fct: writeInt, val: r.Contract.ContractID},
-		{fct: writeString, val: r.Contract.Symbol},
-		{fct: writeString, val: r.Contract.SecurityType},
-		{fct: writeString, val: r.Contract.Expiry},
-		{fct: writeFloat, val: r.Contract.Strike},
-		{fct: writeString, val: r.Contract.Right},
-		{fct: writeString, val: r.Contract.Multiplier},
-		{fct: writeString, val: r.Contract.Exchange},
-		{fct: writeString, val: r.Contract.Currency},
-		{fct: writeString, val: r.Contract.LocalSymbol},
-		{fct: writeString, val: r.Contract.TradingClass},
-		{fct: writeBool, val: r.Contract.IncludeExpired},
-		{fct: writeString, val: r.Contract.SecIDType},
-		{fct: writeString, val: r.Contract.SecID},
+		{val: int64(r.code())},
+		{val: r.version()},
+		{val: r.id},
+		{val: r.Contract.ContractID},
+		{val: r.Contract.Symbol},
+		{val: r.Contract.SecurityType},
+		{val: r.Contract.Expiry},
+		{val: r.Contract.Strike},
+		{val: r.Contract.Right},
+		{val: r.Contract.Multiplier},
+		{val: r.Contract.Exchange},
+		{val: r.Contract.Currency},
+		{val: r.Contract.LocalSymbol},
+		{val: r.Contract.TradingClass},
+		{val: r.Contract.IncludeExpired},
+		{val: r.Contract.SecIDType},
+		{val: r.Contract.SecID},
 	}).Dump(b)
 }
 
@@ -712,22 +720,22 @@ func (r *RequestMarketDepth) code() OutgoingMessageID { return mRequestMarketDep
 func (r *RequestMarketDepth) version() int64          { return 5 }
 func (r *RequestMarketDepth) write(serverVersion int64, b *bytes.Buffer) error {
 	return (writeMapSlice{
-		{fct: writeInt, val: int64(r.code())},
-		{fct: writeInt, val: r.version()},
-		{fct: writeInt, val: r.id},
-		{fct: writeInt, val: r.Contract.ContractID},
-		{fct: writeString, val: r.Contract.Symbol},
-		{fct: writeString, val: r.Contract.SecurityType},
-		{fct: writeString, val: r.Contract.Expiry},
-		{fct: writeFloat, val: r.Contract.Strike},
-		{fct: writeString, val: r.Contract.Right},
-		{fct: writeString, val: r.Contract.Multiplier},
-		{fct: writeString, val: r.Contract.Exchange},
-		{fct: writeString, val: r.Contract.Currency},
-		{fct: writeString, val: r.Contract.LocalSymbol},
-		{fct: writeString, val: r.Contract.TradingClass},
-		{fct: writeInt, val: r.NumRows},
-		{fct: writeTagValue, val: r.MarketDepthOptions},
+		{val: int64(r.code())},
+		{val: r.version()},
+		{val: r.id},
+		{val: r.Contract.ContractID},
+		{val: r.Contract.Symbol},
+		{val: r.Contract.SecurityType},
+		{val: r.Contract.Expiry},
+		{val: r.Contract.Strike},
+		{val: r.Contract.Right},
+		{val: r.Contract.Multiplier},
+		{val: r.Contract.Exchange},
+		{val: r.Contract.Currency},
+		{val: r.Contract.LocalSymbol},
+		{val: r.Contract.TradingClass},
+		{val: r.NumRows},
+		{val: r.MarketDepthOptions},
 	}).Dump(b)
 }
 
@@ -745,9 +753,9 @@ func (c *CancelMarketData) code() OutgoingMessageID { return mCancelMarketData }
 func (c *CancelMarketData) version() int64          { return 1 }
 func (c *CancelMarketData) write(serverVersion int64, b *bytes.Buffer) error {
 	return (writeMapSlice{
-		{fct: writeInt, val: int64(c.code())},
-		{fct: writeInt, val: c.version()},
-		{fct: writeInt, val: c.id},
+		{val: int64(c.code())},
+		{val: c.version()},
+		{val: c.id},
 	}).Dump(b)
 }
 
@@ -765,9 +773,9 @@ func (c *CancelMarketDepth) code() OutgoingMessageID { return mCancelMarketDepth
 func (c *CancelMarketDepth) version() int64          { return 1 }
 func (c *CancelMarketDepth) write(serverVersion int64, b *bytes.Buffer) error {
 	return (writeMapSlice{
-		{fct: writeInt, val: int64(c.code())},
-		{fct: writeInt, val: c.version()},
-		{fct: writeInt, val: c.id},
+		{val: int64(c.code())},
+		{val: c.version()},
+		{val: c.id},
 	}).Dump(b)
 }
 
@@ -790,24 +798,24 @@ func (r *ExerciseOptions) code() OutgoingMessageID { return mExerciseOptions }
 func (r *ExerciseOptions) version() int64          { return 2 }
 func (r *ExerciseOptions) write(serverVersion int64, b *bytes.Buffer) error {
 	return (writeMapSlice{
-		{fct: writeInt, val: int64(r.code())},
-		{fct: writeInt, val: r.version()},
-		{fct: writeInt, val: r.id},
-		{fct: writeInt, val: r.Contract.ContractID},
-		{fct: writeString, val: r.Contract.Symbol},
-		{fct: writeString, val: r.Contract.SecurityType},
-		{fct: writeString, val: r.Contract.Expiry},
-		{fct: writeFloat, val: r.Contract.Strike},
-		{fct: writeString, val: r.Contract.Right},
-		{fct: writeString, val: r.Contract.Multiplier},
-		{fct: writeString, val: r.Contract.Exchange},
-		{fct: writeString, val: r.Contract.Currency},
-		{fct: writeString, val: r.Contract.LocalSymbol},
-		{fct: writeString, val: r.Contract.TradingClass},
-		{fct: writeInt, val: r.ExerciseAction},
-		{fct: writeInt, val: r.ExerciseQuantity},
-		{fct: writeString, val: r.Account},
-		{fct: writeInt, val: r.Override},
+		{val: int64(r.code())},
+		{val: r.version()},
+		{val: r.id},
+		{val: r.Contract.ContractID},
+		{val: r.Contract.Symbol},
+		{val: r.Contract.SecurityType},
+		{val: r.Contract.Expiry},
+		{val: r.Contract.Strike},
+		{val: r.Contract.Right},
+		{val: r.Contract.Multiplier},
+		{val: r.Contract.Exchange},
+		{val: r.Contract.Currency},
+		{val: r.Contract.LocalSymbol},
+		{val: r.Contract.TradingClass},
+		{val: r.ExerciseAction},
+		{val: r.ExerciseQuantity},
+		{val: r.Account},
+		{val: r.Override},
 	}).Dump(b)
 }
 
@@ -827,42 +835,42 @@ func (r *PlaceOrder) code() OutgoingMessageID { return mPlaceOrder }
 func (r *PlaceOrder) version() int64          { return 42 }
 func (r *PlaceOrder) write(serverVersion int64, b *bytes.Buffer) error {
 	if err := (writeMapSlice{
-		{fct: writeInt, val: int64(r.code())},
-		{fct: writeInt, val: r.version()},
-		{fct: writeInt, val: r.id},
-		{fct: writeInt, val: r.Contract.ContractID},
-		{fct: writeString, val: r.Contract.Symbol},
-		{fct: writeString, val: r.Contract.SecurityType},
-		{fct: writeString, val: r.Contract.Expiry},
-		{fct: writeFloat, val: r.Contract.Strike},
-		{fct: writeString, val: r.Contract.Right},
-		{fct: writeString, val: r.Contract.Multiplier},
-		{fct: writeString, val: r.Contract.Exchange},
-		{fct: writeString, val: r.Contract.PrimaryExchange},
-		{fct: writeString, val: r.Contract.Currency},
-		{fct: writeString, val: r.Contract.LocalSymbol},
-		{fct: writeString, val: r.Contract.TradingClass},
-		{fct: writeString, val: r.Contract.SecIDType},
-		{fct: writeString, val: r.Contract.SecID},
-		{fct: writeString, val: r.Order.Action},
-		{fct: writeInt, val: r.Order.TotalQty},
-		{fct: writeString, val: r.Order.OrderType},
-		{fct: writeMaxFloat, val: r.Order.LimitPrice},
-		{fct: writeMaxFloat, val: r.Order.AuxPrice},
-		{fct: writeString, val: r.Order.TIF},
-		{fct: writeString, val: r.Order.OCAGroup},
-		{fct: writeString, val: r.Order.Account},
-		{fct: writeString, val: r.Order.OpenClose},
-		{fct: writeInt, val: r.Order.Origin},
-		{fct: writeString, val: r.Order.OrderRef},
-		{fct: writeBool, val: r.Order.Transmit},
-		{fct: writeInt, val: r.Order.ParentID},
-		{fct: writeBool, val: r.Order.BlockOrder},
-		{fct: writeBool, val: r.Order.SweepToFill},
-		{fct: writeInt, val: r.Order.DisplaySize},
-		{fct: writeInt, val: r.Order.TriggerMethod},
-		{fct: writeBool, val: r.Order.OutsideRTH},
-		{fct: writeBool, val: r.Order.Hidden},
+		{val: int64(r.code())},
+		{val: r.version()},
+		{val: r.id},
+		{val: r.Contract.ContractID},
+		{val: r.Contract.Symbol},
+		{val: r.Contract.SecurityType},
+		{val: r.Contract.Expiry},
+		{val: r.Contract.Strike},
+		{val: r.Contract.Right},
+		{val: r.Contract.Multiplier},
+		{val: r.Contract.Exchange},
+		{val: r.Contract.PrimaryExchange},
+		{val: r.Contract.Currency},
+		{val: r.Contract.LocalSymbol},
+		{val: r.Contract.TradingClass},
+		{val: r.Contract.SecIDType},
+		{val: r.Contract.SecID},
+		{val: r.Order.Action},
+		{val: r.Order.TotalQty},
+		{val: r.Order.OrderType},
+		{val: r.Order.LimitPrice, useMax: true},
+		{val: r.Order.AuxPrice, useMax: true},
+		{val: r.Order.TIF},
+		{val: r.Order.OCAGroup},
+		{val: r.Order.Account},
+		{val: r.Order.OpenClose},
+		{val: r.Order.Origin},
+		{val: r.Order.OrderRef},
+		{val: r.Order.Transmit},
+		{val: r.Order.ParentID},
+		{val: r.Order.BlockOrder},
+		{val: r.Order.SweepToFill},
+		{val: r.Order.DisplaySize},
+		{val: r.Order.TriggerMethod},
+		{val: r.Order.OutsideRTH},
+		{val: r.Order.Hidden},
 	}).Dump(b); err != nil {
 		return err
 	}
@@ -877,14 +885,14 @@ func (r *PlaceOrder) write(serverVersion int64, b *bytes.Buffer) error {
 			}
 			for _, cl := range r.Contract.ComboLegs {
 				if err := (writeMapSlice{
-					{fct: writeInt, val: cl.ContractID},
-					{fct: writeInt, val: cl.Ratio},
-					{fct: writeString, val: cl.Action},
-					{fct: writeString, val: cl.Exchange},
-					{fct: writeInt, val: cl.OpenClose},
-					{fct: writeInt, val: cl.ShortSaleSlot},
-					{fct: writeString, val: cl.DesignatedLocation},
-					{fct: writeInt, val: cl.ExemptCode},
+					{val: cl.ContractID},
+					{val: cl.Ratio},
+					{val: cl.Action},
+					{val: cl.Exchange},
+					{val: cl.OpenClose},
+					{val: cl.ShortSaleSlot},
+					{val: cl.DesignatedLocation},
+					{val: cl.ExemptCode},
 				}).Dump(b); err != nil {
 					return err
 				}
@@ -1180,10 +1188,10 @@ func (r *RequestAccountUpdates) code() OutgoingMessageID { return mRequestAccoun
 func (r *RequestAccountUpdates) version() int64          { return 2 }
 func (r *RequestAccountUpdates) write(serverVersion int64, b *bytes.Buffer) error {
 	return (writeMapSlice{
-		{fct: writeInt, val: int64(r.code())},
-		{fct: writeInt, val: r.version()},
-		{fct: writeBool, val: r.Subscribe},
-		{fct: writeString, val: r.AccountCode},
+		{val: int64(r.code())},
+		{val: r.version()},
+		{val: r.Subscribe},
+		{val: r.AccountCode},
 	}).Dump(b)
 }
 
@@ -1202,8 +1210,8 @@ func (r *RequestExecutions) code() OutgoingMessageID { return mRequestExecutions
 func (r *RequestExecutions) version() int64          { return 3 }
 func (r *RequestExecutions) write(serverVersion int64, b *bytes.Buffer) error {
 	if err := (writeMapSlice{
-		{fct: writeInt, val: int64(r.code())},
-		{fct: writeInt, val: r.version()},
+		{val: int64(r.code())},
+		{val: r.version()},
 	}).Dump(b); err != nil {
 		return err
 	}
@@ -1246,9 +1254,9 @@ func (c *CancelOrder) code() OutgoingMessageID { return mCancelOrder }
 func (c *CancelOrder) version() int64          { return 1 }
 func (c *CancelOrder) write(serverVersion int64, b *bytes.Buffer) error {
 	return (writeMapSlice{
-		{fct: writeInt, val: int64(c.code())},
-		{fct: writeInt, val: c.version()},
-		{fct: writeInt, val: c.id},
+		{val: int64(c.code())},
+		{val: c.version()},
+		{val: c.id},
 	}).Dump(b)
 }
 
@@ -1259,8 +1267,8 @@ func (r *RequestOpenOrders) code() OutgoingMessageID { return mRequestOpenOrders
 func (r *RequestOpenOrders) version() int64          { return 1 }
 func (r *RequestOpenOrders) write(serverVersion int64, b *bytes.Buffer) error {
 	return (writeMapSlice{
-		{fct: writeInt, val: int64(r.code())},
-		{fct: writeInt, val: r.version()},
+		{val: int64(r.code())},
+		{val: r.version()},
 	}).Dump(b)
 }
 
@@ -1271,8 +1279,8 @@ func (r *RequestIDs) code() OutgoingMessageID { return mRequestIDs }
 func (r *RequestIDs) version() int64          { return 1 }
 func (r *RequestIDs) write(serverVersion int64, b *bytes.Buffer) error {
 	if err := (writeMapSlice{
-		{fct: writeInt, val: int64(r.code())},
-		{fct: writeInt, val: r.version()},
+		{val: int64(r.code())},
+		{val: r.version()},
 	}).Dump(b); err != nil {
 		return err
 	}
@@ -1289,8 +1297,8 @@ func (r *RequestNewsBulletins) code() OutgoingMessageID { return mRequestNewsBul
 func (r *RequestNewsBulletins) version() int64          { return 1 }
 func (r *RequestNewsBulletins) write(serverVersion int64, b *bytes.Buffer) error {
 	if err := (writeMapSlice{
-		{fct: writeInt, val: int64(r.code())},
-		{fct: writeInt, val: r.version()},
+		{val: int64(r.code())},
+		{val: r.version()},
 	}).Dump(b); err != nil {
 		return err
 	}
@@ -1305,8 +1313,8 @@ func (c *CancelNewsBulletins) code() OutgoingMessageID { return mCancelNewsBulle
 func (c *CancelNewsBulletins) version() int64          { return 1 }
 func (c *CancelNewsBulletins) write(serverVersion int64, b *bytes.Buffer) error {
 	return (writeMapSlice{
-		{fct: writeInt, val: int64(c.code())},
-		{fct: writeInt, val: c.version()},
+		{val: int64(c.code())},
+		{val: c.version()},
 	}).Dump(b)
 }
 
@@ -1319,9 +1327,9 @@ func (s *SetServerLogLevel) code() OutgoingMessageID { return mSetServerLogLevel
 func (s *SetServerLogLevel) version() int64          { return 1 }
 func (s *SetServerLogLevel) write(serverVersion int64, b *bytes.Buffer) error {
 	return (writeMapSlice{
-		{fct: writeInt, val: int64(s.code())},
-		{fct: writeInt, val: s.version()},
-		{fct: writeInt, val: s.LogLevel},
+		{val: int64(s.code())},
+		{val: s.version()},
+		{val: s.LogLevel},
 	}).Dump(b)
 }
 
@@ -1336,9 +1344,9 @@ func (r *RequestAutoOpenOrders) code() OutgoingMessageID   { return mRequestAuto
 func (r *RequestAutoOpenOrders) version() int64            { return 1 }
 func (r *RequestAutoOpenOrders) write(serverVersion int64, b *bytes.Buffer) error {
 	return (writeMapSlice{
-		{fct: writeInt, val: int64(r.code())},
-		{fct: writeInt, val: r.version()},
-		{fct: writeBool, val: r.AutoBind},
+		{val: int64(r.code())},
+		{val: r.version()},
+		{val: r.AutoBind},
 	}).Dump(b)
 }
 
@@ -1349,8 +1357,8 @@ func (r *RequestAllOpenOrders) code() OutgoingMessageID { return mRequestAllOpen
 func (r *RequestAllOpenOrders) version() int64          { return 1 }
 func (r *RequestAllOpenOrders) write(serverVersion int64, b *bytes.Buffer) error {
 	return (writeMapSlice{
-		{fct: writeInt, val: int64(r.code())},
-		{fct: writeInt, val: r.version()},
+		{val: int64(r.code())},
+		{val: r.version()},
 	}).Dump(b)
 }
 
@@ -1361,8 +1369,8 @@ func (r *RequestManagedAccounts) code() OutgoingMessageID { return mRequestManag
 func (r *RequestManagedAccounts) version() int64          { return 1 }
 func (r *RequestManagedAccounts) write(serverVersion int64, b *bytes.Buffer) error {
 	return (writeMapSlice{
-		{fct: writeInt, val: int64(r.code())},
-		{fct: writeInt, val: r.version()},
+		{val: int64(r.code())},
+		{val: r.version()},
 	}).Dump(b)
 }
 
@@ -1375,8 +1383,8 @@ func (r *RequestFA) code() OutgoingMessageID { return mRequestFA }
 func (r *RequestFA) version() int64          { return 1 }
 func (r *RequestFA) write(serverVersion int64, b *bytes.Buffer) error {
 	if err := (writeMapSlice{
-		{fct: writeInt, val: int64(r.code())},
-		{fct: writeInt, val: r.version()},
+		{val: int64(r.code())},
+		{val: r.version()},
 	}).Dump(b); err != nil {
 		return err
 	}
@@ -1394,8 +1402,8 @@ func (r *ReplaceFA) code() OutgoingMessageID { return mReplaceFA }
 func (r *ReplaceFA) version() int64          { return 1 }
 func (r *ReplaceFA) write(serverVersion int64, b *bytes.Buffer) error {
 	if err := (writeMapSlice{
-		{fct: writeInt, val: int64(r.code())},
-		{fct: writeInt, val: r.version()},
+		{val: int64(r.code())},
+		{val: r.version()},
 	}).Dump(b); err != nil {
 		return err
 	}
@@ -1413,8 +1421,8 @@ func (r *RequestCurrentTime) code() OutgoingMessageID { return mRequestCurrentTi
 func (r *RequestCurrentTime) version() int64          { return 1 }
 func (r *RequestCurrentTime) write(serverVersion int64, b *bytes.Buffer) error {
 	return (writeMapSlice{
-		{fct: writeInt, val: int64(r.code())},
-		{fct: writeInt, val: r.version()},
+		{val: int64(r.code())},
+		{val: r.version()},
 	}).Dump(b)
 }
 
@@ -1434,9 +1442,9 @@ func (r *RequestFundamentalData) code() OutgoingMessageID { return mRequestFunda
 func (r *RequestFundamentalData) version() int64          { return 2 }
 func (r *RequestFundamentalData) write(serverVersion int64, b *bytes.Buffer) error {
 	if err := (writeMapSlice{
-		{fct: writeInt, val: int64(r.code())},
-		{fct: writeInt, val: r.version()},
-		{fct: writeInt, val: r.id},
+		{val: int64(r.code())},
+		{val: r.version()},
+		{val: r.id},
 	}).Dump(b); err != nil {
 		return err
 	}
@@ -1478,9 +1486,9 @@ func (c *CancelFundamentalData) code() OutgoingMessageID { return mCancelFundame
 func (c *CancelFundamentalData) version() int64          { return 1 }
 func (c *CancelFundamentalData) write(serverVersion int64, b *bytes.Buffer) error {
 	return (writeMapSlice{
-		{fct: writeInt, val: int64(c.code())},
-		{fct: writeInt, val: c.version()},
-		{fct: writeInt, val: c.id},
+		{val: int64(c.code())},
+		{val: c.version()},
+		{val: c.id},
 	}).Dump(b)
 }
 
@@ -1501,9 +1509,9 @@ func (r *RequestCalcImpliedVol) code() OutgoingMessageID { return mRequestCalcIm
 func (r *RequestCalcImpliedVol) version() int64          { return 2 }
 func (r *RequestCalcImpliedVol) write(serverVersion int64, b *bytes.Buffer) error {
 	if err := (writeMapSlice{
-		{fct: writeInt, val: int64(r.code())},
-		{fct: writeInt, val: r.version()},
-		{fct: writeInt, val: r.id},
+		{val: int64(r.code())},
+		{val: r.version()},
+		{val: r.id},
 	}).Dump(b); err != nil {
 		return err
 	}
@@ -1563,9 +1571,9 @@ func (c *CancelCalcImpliedVol) code() OutgoingMessageID { return mCancelCalcImpl
 func (c *CancelCalcImpliedVol) version() int64          { return 1 }
 func (c *CancelCalcImpliedVol) write(serverVersion int64, b *bytes.Buffer) error {
 	return (writeMapSlice{
-		{fct: writeInt, val: int64(c.code())},
-		{fct: writeInt, val: c.version()},
-		{fct: writeInt, val: c.id},
+		{val: int64(c.code())},
+		{val: c.version()},
+		{val: c.id},
 	}).Dump(b)
 }
 
@@ -1586,9 +1594,9 @@ func (r *RequestCalcOptionPrice) code() OutgoingMessageID { return mRequestCalcO
 func (r *RequestCalcOptionPrice) version() int64          { return 2 }
 func (r *RequestCalcOptionPrice) write(serverVersion int64, b *bytes.Buffer) error {
 	if err := (writeMapSlice{
-		{fct: writeInt, val: int64(r.code())},
-		{fct: writeInt, val: r.version()},
-		{fct: writeInt, val: r.id},
+		{val: int64(r.code())},
+		{val: r.version()},
+		{val: r.id},
 	}).Dump(b); err != nil {
 		return err
 	}
@@ -1648,9 +1656,9 @@ func (c *CancelCalcOptionPrice) code() OutgoingMessageID { return mCancelCalcOpt
 func (c *CancelCalcOptionPrice) version() int64          { return 1 }
 func (c *CancelCalcOptionPrice) write(serverVersion int64, b *bytes.Buffer) error {
 	return (writeMapSlice{
-		{fct: writeInt, val: int64(c.code())},
-		{fct: writeInt, val: c.version()},
-		{fct: writeInt, val: c.id},
+		{val: int64(c.code())},
+		{val: c.version()},
+		{val: c.id},
 	}).Dump(b)
 }
 
@@ -1661,8 +1669,8 @@ func (r *RequestGlobalCancel) code() OutgoingMessageID { return mRequestGlobalCa
 func (r *RequestGlobalCancel) version() int64          { return 1 }
 func (r *RequestGlobalCancel) write(serverVersion int64, b *bytes.Buffer) error {
 	return (writeMapSlice{
-		{fct: writeInt, val: int64(r.code())},
-		{fct: writeInt, val: r.version()},
+		{val: int64(r.code())},
+		{val: r.version()},
 	}).Dump(b)
 }
 
@@ -1675,9 +1683,9 @@ func (r *RequestMarketDataType) code() OutgoingMessageID { return mRequestMarket
 func (r *RequestMarketDataType) version() int64          { return 1 }
 func (r *RequestMarketDataType) write(serverVersion int64, b *bytes.Buffer) error {
 	return (writeMapSlice{
-		{fct: writeInt, val: int64(r.code())},
-		{fct: writeInt, val: r.version()},
-		{fct: writeInt, val: r.MarketDataType},
+		{val: int64(r.code())},
+		{val: r.version()},
+		{val: r.MarketDataType},
 	}).Dump(b)
 }
 
@@ -1688,8 +1696,8 @@ func (r *RequestPositions) code() OutgoingMessageID { return mRequestPositions }
 func (r *RequestPositions) version() int64          { return 1 }
 func (r *RequestPositions) write(serverVersion int64, b *bytes.Buffer) error {
 	return (writeMapSlice{
-		{fct: writeInt, val: int64(r.code())},
-		{fct: writeInt, val: r.version()},
+		{val: int64(r.code())},
+		{val: r.version()},
 	}).Dump(b)
 }
 
@@ -1700,8 +1708,8 @@ func (c *CancelPositions) code() OutgoingMessageID { return mCancelPositions }
 func (c *CancelPositions) version() int64          { return 1 }
 func (c *CancelPositions) write(serverVersion int64, b *bytes.Buffer) error {
 	return (writeMapSlice{
-		{fct: writeInt, val: int64(c.code())},
-		{fct: writeInt, val: c.version()},
+		{val: int64(c.code())},
+		{val: c.version()},
 	}).Dump(b)
 }
 
@@ -1721,11 +1729,11 @@ func (r *RequestAccountSummary) code() OutgoingMessageID { return mRequestAccoun
 func (r *RequestAccountSummary) version() int64          { return 1 }
 func (r *RequestAccountSummary) write(serverVersion int64, b *bytes.Buffer) error {
 	return (writeMapSlice{
-		{fct: writeInt, val: int64(r.code())},
-		{fct: writeInt, val: r.version()},
-		{fct: writeInt, val: r.id},
-		{fct: writeString, val: r.Group},
-		{fct: writeString, val: r.Tags},
+		{val: int64(r.code())},
+		{val: r.version()},
+		{val: r.id},
+		{val: r.Group},
+		{val: r.Tags},
 	}).Dump(b)
 }
 
@@ -1743,9 +1751,9 @@ func (c *CancelAccountSummary) code() OutgoingMessageID { return mCancelAccountS
 func (c *CancelAccountSummary) version() int64          { return 1 }
 func (c *CancelAccountSummary) write(serverVersion int64, b *bytes.Buffer) error {
 	return (writeMapSlice{
-		{fct: writeInt, val: int64(c.code())},
-		{fct: writeInt, val: c.version()},
-		{fct: writeInt, val: c.id},
+		{val: int64(c.code())},
+		{val: c.version()},
+		{val: c.id},
 	}).Dump(b)
 }
 
@@ -1759,10 +1767,10 @@ func (v *VerifyRequest) code() OutgoingMessageID { return mVerifyRequest }
 func (v *VerifyRequest) version() int64          { return 1 }
 func (v *VerifyRequest) write(serverVersion int64, b *bytes.Buffer) error {
 	return (writeMapSlice{
-		{fct: writeInt, val: int64(v.code())},
-		{fct: writeInt, val: v.version()},
-		{fct: writeString, val: v.apiName},
-		{fct: writeString, val: v.apiVersion},
+		{val: int64(v.code())},
+		{val: v.version()},
+		{val: v.apiName},
+		{val: v.apiVersion},
 	}).Dump(b)
 }
 
@@ -1775,9 +1783,9 @@ func (v *VerifyMessage) code() OutgoingMessageID { return mVerifyMessage }
 func (v *VerifyMessage) version() int64          { return 1 }
 func (v *VerifyMessage) write(serverVersion int64, b *bytes.Buffer) error {
 	return (writeMapSlice{
-		{fct: writeInt, val: int64(v.code())},
-		{fct: writeInt, val: v.version()},
-		{fct: writeString, val: v.apiData},
+		{val: int64(v.code())},
+		{val: v.version()},
+		{val: v.apiData},
 	}).Dump(b)
 }
 
@@ -1797,9 +1805,9 @@ func (q *QueryDisplayGroups) code() OutgoingMessageID { return mQueryDisplayGrou
 func (q *QueryDisplayGroups) version() int64          { return 1 }
 func (q *QueryDisplayGroups) write(serverVersion int64, b *bytes.Buffer) error {
 	return (writeMapSlice{
-		{fct: writeInt, val: int64(q.code())},
-		{fct: writeInt, val: q.version()},
-		{fct: writeInt, val: q.id},
+		{val: int64(q.code())},
+		{val: q.version()},
+		{val: q.id},
 	}).Dump(b)
 }
 
@@ -1818,10 +1826,10 @@ func (s *SubscribeToGroupEvents) code() OutgoingMessageID { return mSubscribeToG
 func (s *SubscribeToGroupEvents) version() int64          { return 1 }
 func (s *SubscribeToGroupEvents) write(serverVersion int64, b *bytes.Buffer) error {
 	return (writeMapSlice{
-		{fct: writeInt, val: int64(s.code())},
-		{fct: writeInt, val: s.version()},
-		{fct: writeInt, val: s.id},
-		{fct: writeInt, val: s.groupid},
+		{val: int64(s.code())},
+		{val: s.version()},
+		{val: s.id},
+		{val: s.groupid},
 	}).Dump(b)
 }
 
@@ -1840,10 +1848,10 @@ func (u *UpdateDisplayGroup) code() OutgoingMessageID { return mUpdateDisplayGro
 func (u *UpdateDisplayGroup) version() int64          { return 1 }
 func (u *UpdateDisplayGroup) write(serverVersion int64, b *bytes.Buffer) error {
 	return (writeMapSlice{
-		{fct: writeInt, val: int64(u.code())},
-		{fct: writeInt, val: u.version()},
-		{fct: writeInt, val: u.id},
-		{fct: writeString, val: u.ContractInfo},
+		{val: int64(u.code())},
+		{val: u.version()},
+		{val: u.id},
+		{val: u.ContractInfo},
 	}).Dump(b)
 }
 
@@ -1861,9 +1869,9 @@ func (u *UnsubscribeFromGroupEvents) code() OutgoingMessageID { return mUnsubscr
 func (u *UnsubscribeFromGroupEvents) version() int64          { return 1 }
 func (u *UnsubscribeFromGroupEvents) write(serverVersion int64, b *bytes.Buffer) error {
 	return (writeMapSlice{
-		{fct: writeInt, val: int64(u.code())},
-		{fct: writeInt, val: u.version()},
-		{fct: writeInt, val: u.id},
+		{val: int64(u.code())},
+		{val: u.version()},
+		{val: u.id},
 	}).Dump(b)
 }
 
@@ -1882,8 +1890,8 @@ func (r *ReqMatchingSymbols) code() OutgoingMessageID { return mReqMatchingSymbo
 func (r *ReqMatchingSymbols) version() int64          { return 1 }
 func (r *ReqMatchingSymbols) write(serverVersion int64, b *bytes.Buffer) error {
 	return (writeMapSlice{
-		{fct: writeInt, val: int64(r.code())},
-		{fct: writeInt, val: r.id},
-		{fct: writeString, val: r.Pattern},
+		{val: int64(r.code())},
+		{val: r.id},
+		{val: r.Pattern},
 	}).Dump(b)
 }
