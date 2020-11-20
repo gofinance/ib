@@ -198,10 +198,13 @@ func (a *AbstractManager) Close() {
 // require the final result of a Manager (and have no interest in each update).
 // The Manager is guaranteed to be closed before it returns.
 func SinkManager(m Manager, timeout time.Duration, updateStop int) (updates int, err error) {
+	idleTimer := time.NewTimer(timeout)
+	defer idleTimer.Stop()
 	for {
 		sentClose := false
+		idleTimer.Reset(timeout)
 		select {
-		case <-time.After(timeout):
+		case <-idleTimer.C:
 			m.Close()
 			return updates, fmt.Errorf("SinkManager: no new update in %s", timeout)
 		case _, ok := <-m.Refresh():
