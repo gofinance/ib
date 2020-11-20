@@ -25,9 +25,13 @@ func getGatewayURL() string {
 }
 
 func (e *Engine) expect(t *testing.T, seconds int, ch chan Reply, expected []IncomingMessageID) (Reply, error) {
+	timeout := time.Duration(seconds) * time.Second
+	idleTimer := time.NewTimer(timeout)
+	defer idleTimer.Stop()
 	for {
+		idleTimer.Reset(timeout)
 		select {
-		case <-time.After(time.Duration(seconds) * time.Second):
+		case <-idleTimer.C:
 			return nil, errors.New("Timeout waiting")
 		case v := <-ch:
 			if v.code() == 0 {

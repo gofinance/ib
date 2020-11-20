@@ -234,13 +234,17 @@ func (e *Engine) startMainLoop() {
 		<-e.txErr
 		<-e.rxErr
 
+		timeout := time.Duration(5) * time.Second
+		idleTimer := time.NewTimer(timeout)
+		defer idleTimer.Stop()
 	outer:
 		for _, ob := range e.stObservers {
 			for {
+				idleTimer.Reset(timeout)
 				select {
 				case ob <- e.state:
 					continue outer
-				case <-time.After(5 * time.Second):
+				case <-idleTimer.C:
 					log.Printf("Waited 5 seconds for state channel %v\n", ob)
 				}
 			}
@@ -310,11 +314,15 @@ func (e *Engine) deliverToObservers(r Reply) {
 }
 
 func (e *Engine) deliverToObserver(c chan<- Reply, r Reply) {
+	timeout := time.Duration(5) * time.Second
+	idleTimer := time.NewTimer(timeout)
+	defer idleTimer.Stop()
 	for {
+		idleTimer.Reset(timeout)
 		select {
 		case c <- r:
 			return
-		case <-time.After(time.Duration(5) * time.Second):
+		case <-idleTimer.C:
 			log.Printf("Waited 5 seconds for reply channel %v\n", c)
 		}
 	}
