@@ -696,7 +696,7 @@ func (o *OpenOrder) read(b *bufio.Reader) (err error) {
 	if o.Order.StockRangeUpper, err = readFloat(b); err != nil {
 		return err
 	}
-	if o.Order.DisplaySize, err = readInt(b); err != nil {
+	if o.Order.DisplaySize, err = readIntOrDefaultIfEmpty(b, 0); err != nil {
 		return err
 	}
 	if o.Order.BlockOrder, err = readBool(b); err != nil {

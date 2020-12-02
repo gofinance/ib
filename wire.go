@@ -47,12 +47,16 @@ func readStringList(b *bufio.Reader, sep string) (r []string, err error) {
 }
 
 func readInt(b *bufio.Reader) (int64, error) {
+	return readIntOrDefaultIfEmpty(b,  math.MaxInt64)
+}
+
+func readIntOrDefaultIfEmpty(b *bufio.Reader, defaultIfEmpty int64) (int64, error) {
 	str, err := readString(b)
 	if err != nil {
 		return -1, err
 	}
 	if str == "" {
-		return math.MaxInt64, nil
+		return defaultIfEmpty, nil
 	}
 	i, err := strconv.ParseInt(str, 10, 64)
 	return i, err
