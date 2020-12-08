@@ -97,8 +97,8 @@ func NewAbstractManager(e *Engine) (*AbstractManager, error) {
 }
 
 func (a *AbstractManager) startMainLoop(preLoop func() error, receive func(r Reply) (UpdateStatus, error), preDestroy func()) {
-	errors := make(chan error)
-	preLoopFinished := make(chan bool)
+	preLoopError := make(chan error, 1) // 1 - to guarantee that preLoop won't hang on writing to the channel, if we exit the for/select loop earlier for some reason
+	preLoopFinished := make(chan struct{})
 
 	defer func() {
 		<-preLoopFinished // ensures preLoop goroutine has exited
@@ -110,21 +110,17 @@ func (a *AbstractManager) startMainLoop(preLoop func() error, receive func(r Rep
 
 	go a.eng.SubscribeState(a.engs)
 	go func() {
-		err := preLoop()
-		if err != nil {
-			errors <- err
-		}
-		close(errors)
-		errors = nil
-		preLoopFinished <- true
+		preLoopError <- preLoop()
+		close(preLoopFinished)
 	}()
 
 	for {
 		select {
 		case <-a.exit:
 			return
-		case e, ok := <-errors:
-			if ok {
+		case e := <-preLoopError:
+			preLoopError = nil // ignore listening on the channel
+			if e != nil {
 				a.err = e
 				return
 			}
