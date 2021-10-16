@@ -91,7 +91,8 @@ const (
 	clientVersion    = 66 // http://interactivebrokers.github.io/downloads/twsapi_macunix.976.01.zip
 	minServerVersion = 70
 
-	bagSecType = "BAG"
+	bagSecType        = "BAG"
+	orderTypePegBench = "PEG BENCH"
 
 	FaMsgTypeGroups   FaMsgType = 1
 	FaMsgTypeProfiles           = 2
@@ -893,9 +894,6 @@ func (r *PlaceOrder) code() OutgoingMessageID { return mPlaceOrder }
 func (r *PlaceOrder) version() int64          { return 45 }
 func (r *PlaceOrder) write(serverVersion int64, b *bytes.Buffer) error {
 	var version = r.version()
-	if serverVersion < mMinServerVerNotHeld {
-		version = 27
-	}
 
 	if serverVersion < mMinServerVerScaleOrders {
 		if r.ScaleInitLevelSize != math.MaxInt64 || r.ScalePriceIncrement != math.MaxFloat64 {
@@ -962,193 +960,318 @@ func (r *PlaceOrder) write(serverVersion int64, b *bytes.Buffer) error {
 		}
 	}
 
-	/*
-
-		if (serverVersion < mMinServerVerSshortx) {
-			if (!contract.comboLegs().isEmpty()) {
-				for( ComboLeg comboLeg : contract.comboLegs() ) {
-					if (comboLeg.exemptCode() != -1) {
-						return fmt.Errorf("server does not support exemptCode parameter.");
-					}
+	if serverVersion < mMinServerVerSshortx {
+		if len(r.Contract.ComboLegs) > 0 {
+			for _, comboLeg := range r.Contract.ComboLegs {
+				if comboLeg.ExemptCode != -1 {
+					return fmt.Errorf("server does not support exemptCode parameter.")
 				}
 			}
 		}
+	}
 
-		if (serverVersion < mMinServerVer_HEDGE_ORDERS) {
-			if (!IsEmpty(order.getHedgeType())) {
-				return fmt.Errorf("server does not support hedge orders.");
+	if serverVersion < mMinServerVerHedgeOrders {
+		if r.Order.HedgeType != "" {
+			return fmt.Errorf("server does not support hedge orders.")
+		}
+	}
+
+	if serverVersion < mMinServerVerOptOutSmartRouting {
+		if r.Order.OptOutSmartRouting {
+			return fmt.Errorf("server does not support optOutSmartRouting parameter.")
+		}
+	}
+
+	if serverVersion < mMinServerVerDeltaNeutralConID {
+		if r.Order.DeltaNeutralConID > 0 ||
+			r.Order.DeltaNeutralSettlingFirm != "" ||
+			r.Order.DeltaNeutralClearingAccount != "" ||
+			r.Order.DeltaNeutralClearingIntent != "" {
+			return fmt.Errorf("server does not support deltaNeutral parameters: ConId, SettlingFirm, ClearingAccount, ClearingIntent")
+		}
+	}
+
+	if serverVersion < mMinServerVerDeltaNeutralOpenClose {
+		if r.Order.DeltaNeutralOpenClose != "" ||
+			r.Order.DeltaNeutralShortSale ||
+			r.Order.DeltaNeutralShortSaleSlot > 0 ||
+			r.Order.DeltaNeutralDesignatedLocation != "" {
+			return fmt.Errorf("server does not support deltaNeutral parameters: OpenClose, ShortSale, ShortSaleSlot, DesignatedLocation")
+		}
+	}
+
+	if serverVersion < mMinServerVerScaleOrders3 {
+		if r.Order.ScalePriceIncrement > 0.0 && r.Order.ScalePriceIncrement != math.MaxFloat64 {
+			if r.Order.ScalePriceAdjustValue != math.MaxFloat64 ||
+				r.Order.ScalePriceAdjustInterval != math.MaxInt64 ||
+				r.Order.ScaleProfitOffset != math.MaxFloat64 ||
+				r.Order.ScaleAutoReset ||
+				r.Order.ScaleInitPosition != math.MaxInt64 ||
+				r.Order.ScaleInitFillQty != math.MaxInt64 ||
+				r.Order.ScaleRandomPercent {
+				return fmt.Errorf("server does not support Scale order parameters: PriceAdjustValue, PriceAdjustInterval, ProfitOffset, AutoReset, InitPosition, InitFillQty and RandomPercent")
 			}
 		}
+	}
 
-		if (serverVersion < mMinServerVer_OPT_OUT_SMART_ROUTING) {
-			if (order.optOutSmartRouting()) {
-				return fmt.Errorf("server does not support optOutSmartRouting parameter.");
-			}
-		}
-
-		if (serverVersion < mMinServerVer_DELTA_NEUTRAL_CONID) {
-			if (order.deltaNeutralConId() > 0
-					|| !IsEmpty(order.deltaNeutralSettlingFirm())
-					|| !IsEmpty(order.deltaNeutralClearingAccount())
-					|| !IsEmpty(order.deltaNeutralClearingIntent())
-					) {
-				return fmt.Errorf("server does not support deltaNeutral parameters: ConId, SettlingFirm, ClearingAccount, ClearingIntent");
-			}
-		}
-
-		if (serverVersion < mMinServerVer_DELTA_NEUTRAL_OPEN_CLOSE) {
-			if (!IsEmpty(order.deltaNeutralOpenClose())
-					|| order.deltaNeutralShortSale()
-					|| order.deltaNeutralShortSaleSlot() > 0
-					|| !IsEmpty(order.deltaNeutralDesignatedLocation())
-					) {
-				return fmt.Errorf("server does not support deltaNeutral parameters: OpenClose, ShortSale, ShortSaleSlot, DesignatedLocation");
-			}
-		}
-
-		if (serverVersion < mMinServerVer_SCALE_ORDERS3) {
-			if (order.scalePriceIncrement() > 0 && order.scalePriceIncrement() != Double.MAX_VALUE) {
-				if (order.scalePriceAdjustValue() != Double.MAX_VALUE ||
-					order.scalePriceAdjustInterval() != Integer.MAX_VALUE ||
-					order.scaleProfitOffset() != Double.MAX_VALUE ||
-					order.scaleAutoReset() ||
-					order.scaleInitPosition() != Integer.MAX_VALUE ||
-					order.scaleInitFillQty() != Integer.MAX_VALUE ||
-					order.scaleRandomPercent()) {
-					return fmt.Errorf("server does not support Scale order parameters: PriceAdjustValue, PriceAdjustInterval, ProfitOffset, AutoReset, InitPosition, InitFillQty and RandomPercent");
+	if serverVersion < mMinServerVerOrderComboLegsPrice && r.Contract.SecurityType == bagSecType {
+		if len(r.Order.OrderComboLegs) > 0 {
+			for _, orderComboLeg := range r.Order.OrderComboLegs {
+				if orderComboLeg.Price != math.MaxFloat64 {
+					return fmt.Errorf("server does not support per-leg prices for order combo legs.")
 				}
 			}
 		}
+	}
 
-		if (serverVersion < mMinServerVer_ORDER_COMBO_LEGS_PRICE && SecType.BAG.name().equalsIgnoreCase(contract.getSecType())) {
-			if (!order.orderComboLegs().isEmpty()) {
-				for( OrderComboLeg orderComboLeg : order.orderComboLegs() ) {
-					if (orderComboLeg.price() != Double.MAX_VALUE) {
-					return fmt.Errorf("server does not support per-leg prices for order combo legs.");
-					}
-				}
-			}
+	if serverVersion < mMinServerVerTrailingPercent {
+		if r.Order.TrailingPercent != math.MaxFloat64 {
+			return fmt.Errorf("server does not support trailing percent parameter")
 		}
+	}
 
-		if (serverVersion < mMinServerVer_TRAILING_PERCENT) {
-			if (order.trailingPercent() != Double.MAX_VALUE) {
-				return fmt.Errorf("server does not support trailing percent parameter");
-			}
+	if serverVersion < mMinServerVerTradingClass {
+		if r.Contract.TradingClass != "" {
+			return fmt.Errorf("server does not support tradingClass parameters in placeOrder.")
 		}
+	}
 
-		if (serverVersion < mMinServerVer_TRADING_CLASS) {
-			if (!IsEmpty(contract.tradingClass())) {
-				  return fmt.Errorf("server does not support tradingClass parameters in placeOrder.");
-			}
+	if serverVersion < mMinServerVerAlgoID && r.Order.AlgoID != "" {
+		return fmt.Errorf("server does not support algoId parameter")
+	}
+
+	if serverVersion < mMinServerVerScaleTable {
+		if r.Order.ScaleTable != "" || r.Order.ActiveStartTime != "" || r.Order.ActiveStopTime != "" {
+			return fmt.Errorf("server does not support scaleTable, activeStartTime and activeStopTime parameters.")
 		}
+	}
 
-		if (serverVersion < mMinServerVer_ALGO_ID && !IsEmpty(order.algoId()) ) {
-				  return fmt.Errorf("server does not support algoId parameter");
-			}
-
-		if (serverVersion < mMinServerVer_SCALE_TABLE) {
-			if (!IsEmpty(order.scaleTable()) || !IsEmpty(order.activeStartTime()) || !IsEmpty(order.activeStopTime())) {
-				  return fmt.Errorf("server does not support scaleTable, activeStartTime and activeStopTime parameters.");
-			}
+	if serverVersion < mMinServerVerOrderSolicited {
+		if r.Order.Solicited {
+			return fmt.Errorf("server does not support order solicited parameter.")
 		}
+	}
 
-		if (serverVersion < mMinServerVer_ORDER_SOLICITED) {
-			if (order.solicited()) {
-				return fmt.Errorf("server does not support order solicited parameter.");
-			}
+	if serverVersion < mMinServerVerModelsSupport {
+		if r.Order.ModelCode != "" {
+			return fmt.Errorf("server does not support model code parameter.")
 		}
+	}
 
-		if (serverVersion < mMinServerVer_MODELS_SUPPORT) {
-			if (!IsEmpty(order.modelCode())) {
-				return fmt.Errorf("server does not support model code parameter.");
-			}
+	if serverVersion < mMinServerVerExtOperator && r.Order.ExtOperator != "" {
+		return fmt.Errorf("server does not support ext operator")
+	}
+
+	if serverVersion < mMinServerVerSoftDollarTier &&
+		r.Order.SoftDollarTier.Name != "" || r.Order.SoftDollarTier.Value != "" {
+		return fmt.Errorf("server does not support soft dollar tier")
+	}
+
+	if serverVersion < mMinServerVerCashQty {
+		if r.Order.CashQty != math.MaxFloat64 {
+			return fmt.Errorf("server does not support cash quantity parameter")
 		}
+	}
 
-		if (serverVersion < mMinServerVer_EXT_OPERATOR && !IsEmpty(order.extOperator()) ) {
-			return fmt.Errorf("server does not support ext operator");
-		}
+	if serverVersion < mMinServerVerDecisionMaker && r.Order.Mifid2DecisionMaker != "" || r.Order.Mifid2DecisionAlgo != "" {
+		return fmt.Errorf("server does not support MIFID II decision maker parameters")
+	}
 
-		if (serverVersion < mMinServerVer_SOFT_DOLLAR_TIER &&
-				(!IsEmpty(order.softDollarTier().name()) || !IsEmpty(order.softDollarTier().value()))) {
-			return fmt.Errorf("server does not support soft dollar tier");
-		}
+	if serverVersion < mMinServerVerMifidExecution && (r.Order.Mifid2ExecutionTrader != "" || r.Order.Mifid2ExecutionAlgo != "") {
+		return fmt.Errorf("server does not support MIFID II execution parameters")
+	}
 
+	if serverVersion < mMinServerVerAutoPriceForHedge && r.Order.DontUseAutoPriceForHedge {
+		return fmt.Errorf("server does not support don't use auto price for hedge parameter.")
+	}
 
-		if (serverVersion < mMinServerVer_CASH_QTY) {
-			if (order.cashQty() != Double.MAX_VALUE) {
-				return fmt.Errorf("server does not support cash quantity parameter");
-			}
-		}
+	if serverVersion < mMinServerVerOrderContainer && r.Order.IsOmsContainer {
+		return fmt.Errorf("server does not support oms container parameter.")
+	}
 
-		if (serverVersion < mMinServerVer_DECISION_MAKER && (!IsEmpty(order.mifid2DecisionMaker())
-				|| !IsEmpty(order.mifid2DecisionAlgo()))) {
-			return fmt.Errorf("server does not support MIFID II decision maker parameters");
-		}
+	if serverVersion < mMinServerVerDPegOrders && r.Order.DiscretionaryUpToLimitPrice {
+		return fmt.Errorf("server does not support D-Peg orders.")
+	}
 
-		if (serverVersion < mMinServerVer_MIFID_EXECUTION && (!IsEmpty(order.mifid2ExecutionTrader()) || !IsEmpty(order.mifid2ExecutionAlgo()))) {
-			return fmt.Errorf("server does not support MIFID II execution parameters");
-		}
+	if serverVersion < mMinServerVerPriceMgmtAlgo && r.Order.UsePriceMgmtAlgo {
+		return fmt.Errorf("server does not support price management algo parameter")
+	}
 
-		if (serverVersion < mMinServerVer_AUTO_PRICE_FOR_HEDGE && order.dontUseAutoPriceForHedge()) {
-			return fmt.Errorf("server does not support don't use auto price for hedge parameter.");
-		}
+	if serverVersion < mMinServerVerNotHeld {
+		version = 27
+	}
 
-		if (serverVersion < mMinServerVer_ORDER_CONTAINER && order.isOmsContainer()) {
-			return fmt.Errorf("server does not support oms container parameter.");
-		}
-
-		if (serverVersion < mMinServerVer_D_PEG_ORDERS && order.discretionaryUpToLimitPrice()) {
-			return fmt.Errorf("server does not support D-Peg orders.");
-		}
-
-		if (serverVersion < mMinServerVer_PRICE_MGMT_ALGO && order.usePriceMgmtAlgo() != null) {
-			return fmt.Errorf("server does not support price management algo parameter");
-		}
-	*/
-
-	err := (writeMapSlice{
-		{val: int64(r.code())},
-		{val: version},
-		{val: r.id},
-		{val: r.Contract.ContractID},
-		{val: r.Contract.Symbol},
-		{val: r.Contract.SecurityType},
-		{val: r.Contract.Expiry},
-		{val: r.Contract.Strike},
-		{val: r.Contract.Right},
-		{val: r.Contract.Multiplier},
-		{val: r.Contract.Exchange},
-		{val: r.Contract.PrimaryExchange},
-		{val: r.Contract.Currency},
-		{val: r.Contract.LocalSymbol},
-		{val: r.Contract.TradingClass},
-		{val: r.Contract.SecIDType},
-		{val: r.Contract.SecID},
-		{val: r.Order.Action},
-		{val: r.Order.TotalQty},
-		{val: r.Order.OrderType},
-		{val: r.Order.LimitPrice, useMax: true},
-		{val: r.Order.AuxPrice, useMax: true},
-		{val: r.Order.TIF},
-		{val: r.Order.OCAGroup},
-		{val: r.Order.Account},
-		{val: r.Order.OpenClose},
-		{val: r.Order.Origin},
-		{val: r.Order.OrderRef},
-		{val: r.Order.Transmit},
-		{val: r.Order.ParentID},
-		{val: r.Order.BlockOrder},
-		{val: r.Order.SweepToFill},
-		{val: r.Order.DisplaySize},
-		{val: r.Order.TriggerMethod},
-		{val: r.Order.OutsideRTH},
-		{val: r.Order.Hidden},
-	}).Dump(b)
-	if err != nil {
+	if err := writeInt(b, int64(r.code())); err != nil {
 		return err
 	}
 
-	if r.Contract.SecurityType == bagSecType {
+	if serverVersion < mMinServerVerOrderContainer {
+		if err := writeInt(b, version); err != nil {
+			return err
+		}
+	}
+
+	if err := writeInt(b, r.id); err != nil {
+		return err
+	}
+
+	// send contract field
+	if serverVersion >= mMinServerVerPlaceOrderConID {
+		if err := writeInt(b, r.Contract.ContractID); err != nil {
+			return err
+		}
+	}
+
+	{
+		err := (writeMapSlice{
+			{val: r.Contract.Symbol},
+			{val: r.Contract.SecurityType},
+			{val: r.Contract.Expiry},
+			{val: r.Contract.Strike},
+			{val: r.Contract.Right},
+		}).Dump(b)
+		if err != nil {
+			return err
+		}
+	}
+
+	if serverVersion >= 15 {
+		if err := writeString(b, r.Contract.Multiplier); err != nil {
+			return err
+		}
+	}
+
+	if err := writeString(b, r.Contract.Exchange); err != nil {
+		return err
+	}
+
+	if serverVersion >= 14 {
+		if err := writeString(b, r.Contract.PrimaryExchange); err != nil {
+			return err
+		}
+	}
+
+	if err := writeString(b, r.Contract.Currency); err != nil {
+		return err
+	}
+
+	if serverVersion >= 2 {
+		if err := writeString(b, r.Contract.LocalSymbol); err != nil {
+			return err
+		}
+	}
+
+	if serverVersion >= mMinServerVerTradingClass {
+		if err := writeString(b, r.Contract.TradingClass); err != nil {
+			return err
+		}
+	}
+
+	if serverVersion >= mMinServerVerSecIDType {
+		err := (writeMapSlice{
+			{val: r.Contract.SecIDType},
+			{val: r.Contract.SecID},
+		}).Dump(b)
+		if err != nil {
+			return err
+		}
+	}
+
+	// send main order fields
+	if err := writeString(b, r.Order.Action); err != nil {
+		return err
+	}
+
+	if serverVersion >= mMinServerVerFractionalPositions {
+		err := writeFloat(b, r.Order.TotalQty)
+		if err != nil {
+			return err
+		}
+	} else {
+		err := writeInt(b, int64(r.Order.TotalQty))
+		if err != nil {
+			return err
+		}
+	}
+
+	if err := writeString(b, r.Order.OrderType); err != nil {
+		return err
+	}
+
+	if serverVersion < mMinServerVerOrderComboLegsPrice {
+		if r.Order.LimitPrice == math.MaxFloat64 {
+			if err := writeInt(b, 0); err != nil {
+				return err
+			}
+		} else {
+			if err := writeFloat(b, r.Order.LimitPrice); err != nil {
+				return err
+			}
+		}
+	} else {
+		if err := writeMaxFloat(b, r.Order.LimitPrice); err != nil {
+			return err
+		}
+	}
+
+	if serverVersion < mMinServerVerTrailingPercent {
+		if r.Order.AuxPrice == math.MaxFloat64 {
+			if err := writeInt(b, 0); err != nil {
+				return err
+			}
+		} else {
+			if err := writeFloat(b, r.Order.AuxPrice); err != nil {
+				return err
+			}
+		}
+	} else {
+		if err := writeMaxFloat(b, r.Order.AuxPrice); err != nil {
+			return err
+		}
+	}
+
+	{
+		// send extended order fields
+		err := (writeMapSlice{
+			{val: r.Order.TIF},
+			{val: r.Order.OCAGroup},
+			{val: r.Order.Account},
+			{val: r.Order.OpenClose},
+			{val: r.Order.Origin},
+			{val: r.Order.OrderRef},
+			{val: r.Order.Transmit},
+		}).Dump(b)
+		if err != nil {
+			return err
+		}
+	}
+
+	if serverVersion >= 4 {
+		if err := writeInt(b, r.Order.ParentID); err != nil {
+			return err
+		}
+	}
+
+	if serverVersion >= 5 {
+		err := (writeMapSlice{
+			{val: r.Order.BlockOrder},
+			{val: r.Order.SweepToFill},
+			{val: r.Order.DisplaySize},
+			{val: r.Order.TriggerMethod},
+			{val: r.Order.OutsideRTH},
+		}).Dump(b)
+		if err != nil {
+			return err
+		}
+	}
+
+	if serverVersion >= 7 {
+		if err := writeBool(b, r.Order.Hidden); err != nil {
+			return err
+		}
+	}
+
+	if serverVersion >= 8 && r.Contract.SecurityType == bagSecType {
 		if len(r.Contract.ComboLegs) == 0 {
 			if err := writeInt(b, int64(0)); err != nil {
 				return err
@@ -1164,285 +1287,324 @@ func (r *PlaceOrder) write(serverVersion int64, b *bytes.Buffer) error {
 					{val: cl.Action},
 					{val: cl.Exchange},
 					{val: cl.OpenClose},
-					{val: cl.ShortSaleSlot},
-					{val: cl.DesignatedLocation},
-					{val: cl.ExemptCode},
 				}).Dump(b)
 				if err != nil {
 					return err
 				}
-			}
-		}
-		if len(r.Order.OrderComboLegs) == 0 {
-			if err := writeInt(b, int64(0)); err != nil {
-				return err
-			}
-		} else {
-			if err := writeInt(b, int64(len((r.Order.OrderComboLegs)))); err != nil {
-				return err
-			}
-
-			for _, ocl := range r.OrderComboLegs {
-				if err := writeMaxFloat(b, ocl.Price); err != nil {
-					return err
+				if serverVersion >= mMinServerVerSshortComboLegs {
+					err := (writeMapSlice{
+						{val: cl.ShortSaleSlot},
+						{val: cl.DesignatedLocation},
+					}).Dump(b)
+					if err != nil {
+						return err
+					}
+				}
+				if serverVersion >= mMinServerVerSshortxOld {
+					if err := writeInt(b, int64(cl.ExemptCode)); err != nil {
+						return err
+					}
 				}
 			}
 		}
 
-		if len(r.Order.SmartComboRoutingParams) > 0 {
-			for _, tv := range r.Order.SmartComboRoutingParams {
-				if err := writeString(b, tv.Tag); err != nil {
+		if serverVersion >= mMinServerVerOrderComboLegsPrice {
+			if len(r.Order.OrderComboLegs) == 0 {
+				if err := writeInt(b, int64(0)); err != nil {
 					return err
 				}
-				if err := writeString(b, tv.Value); err != nil {
+			} else {
+				if err := writeInt(b, int64(len((r.Order.OrderComboLegs)))); err != nil {
 					return err
+				}
+
+				for _, ocl := range r.OrderComboLegs {
+					if err := writeMaxFloat(b, ocl.Price); err != nil {
+						return err
+					}
+				}
+			}
+		}
+
+		if serverVersion >= mMinServerVerSmartComboRoutingParams {
+			if len(r.Order.SmartComboRoutingParams) > 0 {
+				for _, tv := range r.Order.SmartComboRoutingParams {
+					if err := writeString(b, tv.Tag); err != nil {
+						return err
+					}
+					if err := writeString(b, tv.Value); err != nil {
+						return err
+					}
 				}
 			}
 		}
 	}
 
 	// send deprecated sharesAllocation field
-	if err := writeString(b, ""); err != nil {
-		return err
+	if serverVersion >= 9 {
+		if err := writeString(b, ""); err != nil {
+			return err
+		}
 	}
 
-	if err := writeFloat(b, r.Order.DiscretionaryAmount); err != nil {
-		return err
+	if serverVersion >= 10 {
+		if err := writeFloat(b, r.Order.DiscretionaryAmount); err != nil {
+			return err
+		}
 	}
-	if err := writeString(b, r.Order.GoodAfterTime); err != nil {
-		return err
+
+	if serverVersion >= 11 {
+		if err := writeString(b, r.Order.GoodAfterTime); err != nil {
+			return err
+		}
 	}
-	if err := writeString(b, r.Order.GoodTillDate); err != nil {
-		return err
+
+	if serverVersion >= 12 {
+		if err := writeString(b, r.Order.GoodTillDate); err != nil {
+			return err
+		}
 	}
-	if err := writeString(b, r.Order.FAGroup); err != nil {
-		return err
+
+	if serverVersion >= 13 {
+		err := (writeMapSlice{
+			{val: r.Order.FAGroup},
+			{val: r.Order.FAMethod},
+			{val: r.Order.FAPercentage},
+			{val: r.Order.FAProfile},
+		}).Dump(b)
+		if err != nil {
+			return err
+		}
 	}
-	if err := writeString(b, r.Order.FAMethod); err != nil {
-		return err
-	}
-	if err := writeString(b, r.Order.FAPercentage); err != nil {
-		return err
-	}
-	if err := writeString(b, r.Order.FAProfile); err != nil {
-		return err
+
+	if serverVersion >= mMinServerVerModelsSupport {
+		if err := writeString(b, r.Order.ModelCode); err != nil {
+			return err
+		}
 	}
 
 	// institutional short sale slot fields.
-	if err := writeInt(b, r.Order.ShortSaleSlot); err != nil { // 0 only for retail, 1 or 2 only for institution.
-		return err
-	}
-	if err := writeString(b, r.Order.DesignatedLocation); err != nil { // only populate whenb, r.Order.m_shortSaleSlot = 2.
-		return err
-	}
-	if err := writeInt(b, r.Order.ExemptCode); err != nil {
-		return err
-	}
-	if err := writeInt(b, r.Order.OCAType); err != nil {
-		return err
-	}
-	if err := writeString(b, r.Order.Rule80A); err != nil {
-		return err
-	}
-	if err := writeString(b, r.Order.SettlingFirm); err != nil {
-		return err
-	}
-	if err := writeBool(b, r.Order.AllOrNone); err != nil {
-		return err
-	}
-	if err := writeMaxInt(b, r.Order.MinQty); err != nil {
-		return err
-	}
-	if err := writeMaxFloat(b, r.Order.PercentOffset); err != nil {
-		return err
-	}
-	if err := writeInt(b, r.Order.ETradeOnly); err != nil {
-		return err
-	}
-	if err := writeBool(b, r.Order.FirmQuoteOnly); err != nil {
-		return err
-	}
-	if err := writeMaxFloat(b, r.Order.NBBOPriceCap); err != nil {
-		return err
-	}
-	if err := writeMaxInt(b, r.Order.AuctionStrategy); err != nil {
-		return err
-	}
-	if err := writeMaxFloat(b, r.Order.StartingPrice); err != nil {
-		return err
-	}
-	if err := writeMaxFloat(b, r.Order.StockRefPrice); err != nil {
-		return err
-	}
-	if err := writeMaxFloat(b, r.Order.Delta); err != nil {
-		return err
-	}
-	if err := writeMaxFloat(b, r.Order.StockRangeLower); err != nil {
-		return err
-	}
-	if err := writeMaxFloat(b, r.Order.StockRangeUpper); err != nil {
-		return err
-	}
-
-	if err := writeBool(b, r.Order.OverridePercentageConstraints); err != nil {
-		return err
-	}
-
-	if err := writeMaxFloat(b, r.Order.Volatility); err != nil {
-		return err
-	}
-	if err := writeMaxInt(b, r.Order.VolatilityType); err != nil {
-		return err
-	}
-
-	if err := writeString(b, r.Order.DeltaNeutralOrderType); err != nil {
-		return err
-	}
-	if err := writeMaxFloat(b, r.Order.DeltaNeutralAuxPrice); err != nil {
-		return err
-	}
-
-	if r.Order.DeltaNeutralOrderType != "" {
-		if err := writeInt(b, r.Order.DeltaNeutralConID); err != nil {
+	if serverVersion >= 18 {
+		if err := writeInt(b, r.Order.ShortSaleSlot); err != nil { // 0 only for retail, 1 or 2 only for institution.
 			return err
 		}
-		if err := writeString(b, r.Order.DeltaNeutralSettlingFirm); err != nil {
-			return err
-		}
-		if err := writeString(b, r.Order.DeltaNeutralClearingAccount); err != nil {
-			return err
-		}
-		if err := writeString(b, r.Order.DeltaNeutralClearingIntent); err != nil {
-			return err
-		}
-		if err := writeString(b, r.Order.DeltaNeutralOpenClose); err != nil {
-			return err
-		}
-		if err := writeBool(b, r.Order.DeltaNeutralShortSale); err != nil {
-			return err
-		}
-		if err := writeInt(b, r.Order.DeltaNeutralShortSaleSlot); err != nil {
-			return err
-		}
-		if err := writeString(b, r.Order.DeltaNeutralDesignatedLocation); err != nil {
+		if err := writeString(b, r.Order.DesignatedLocation); err != nil { // only populate whenb, r.Order.m_shortSaleSlot = 2.
 			return err
 		}
 	}
 
-	if err := writeInt(b, r.Order.ContinuousUpdate); err != nil {
-		return err
-	}
-	if err := writeMaxInt(b, r.Order.ReferencePriceType); err != nil {
-		return err
-	}
-	if err := writeMaxFloat(b, r.Order.TrailStopPrice); err != nil {
-		return err
-	}
-	if err := writeMaxFloat(b, r.Order.TrailingPercent); err != nil {
-		return err
-	}
-
-	if err := writeMaxInt(b, r.Order.ScaleInitLevelSize); err != nil {
-		return err
-	}
-	if err := writeMaxInt(b, r.Order.ScaleSubsLevelSize); err != nil {
-		return err
-	}
-	if err := writeMaxFloat(b, r.Order.ScalePriceIncrement); err != nil {
-		return err
-	}
-
-	if r.Order.ScalePriceIncrement > 0.0 && r.Order.ScalePriceIncrement != math.MaxFloat64 {
-		if err := writeMaxFloat(b, r.Order.ScalePriceAdjustValue); err != nil {
-			return err
-		}
-		if err := writeMaxInt(b, r.Order.ScalePriceAdjustInterval); err != nil {
-			return err
-		}
-		if err := writeMaxFloat(b, r.Order.ScaleProfitOffset); err != nil {
-			return err
-		}
-		if err := writeBool(b, r.Order.ScaleAutoReset); err != nil {
-			return err
-		}
-		if err := writeMaxInt(b, r.Order.ScaleInitPosition); err != nil {
-			return err
-		}
-		if err := writeMaxInt(b, r.Order.ScaleInitFillQty); err != nil {
-			return err
-		}
-		if err := writeBool(b, r.Order.ScaleRandomPercent); err != nil {
+	if serverVersion >= mMinServerVerSshortxOld {
+		if err := writeInt(b, r.Order.ExemptCode); err != nil {
 			return err
 		}
 	}
 
-	if err := writeString(b, r.Order.ScaleTable); err != nil {
-		return err
-	}
-	if err := writeString(b, r.Order.ActiveStartTime); err != nil {
-		return err
-	}
-	if err := writeString(b, r.Order.ActiveStopTime); err != nil {
-		return err
-	}
-
-	if err := writeString(b, r.Order.HedgeType); err != nil {
-		return err
-	}
-	if len(r.Order.HedgeType) > 0 {
-		if err := writeString(b, r.Order.HedgeParam); err != nil {
+	if serverVersion >= 19 {
+		err := (writeMapSlice{
+			{val: r.Order.OCAType},
+			{val: r.Order.Rule80A},
+			{val: r.Order.SettlingFirm},
+			{val: r.Order.AllOrNone},
+			{val: r.Order.MinQty, useMax: true},
+			{val: r.Order.PercentOffset, useMax: true},
+			{val: r.Order.ETradeOnly},
+			{val: r.Order.FirmQuoteOnly},
+			{val: r.Order.NBBOPriceCap, useMax: true},
+			{val: r.Order.AuctionStrategy, useMax: true},
+			{val: r.Order.StartingPrice, useMax: true},
+			{val: r.Order.StockRefPrice, useMax: true},
+			{val: r.Order.Delta, useMax: true},
+			{val: r.Order.StockRangeLower, useMax: true},
+			{val: r.Order.StockRangeUpper, useMax: true},
+		}).Dump(b)
+		if err != nil {
 			return err
 		}
 	}
 
-	if err := writeBool(b, r.Order.OptOutSmartRouting); err != nil {
-		return err
-	}
-
-	if err := writeString(b, r.Order.ClearingAccount); err != nil {
-		return err
-	}
-	if err := writeString(b, r.Order.ClearingIntent); err != nil {
-		return err
-	}
-
-	if err := writeBool(b, r.Order.NotHeld); err != nil {
-		return err
-	}
-
-	if r.Contract.DeltaNeutralContract != nil {
-		if err := writeBool(b, true); err != nil {
-			return err
-		}
-		if err := writeInt(b, r.Contract.DeltaNeutralContract.ContractID); err != nil {
-			return err
-		}
-		if err := writeFloat(b, r.Contract.DeltaNeutralContract.Delta); err != nil {
-			return err
-		}
-		if err := writeFloat(b, r.Contract.DeltaNeutralContract.Price); err != nil {
-			return err
-		}
-	} else {
-		if err := writeBool(b, false); err != nil {
+	if serverVersion >= 22 {
+		if err := writeBool(b, r.Order.OverridePercentageConstraints); err != nil {
 			return err
 		}
 	}
 
-	if err := writeString(b, r.Order.AlgoStrategy); err != nil {
-		return err
-	}
-
-	if len(r.Order.AlgoStrategy) > 0 {
-		if err := writeInt(b, int64(len(r.Order.AlgoParams.Params))); err != nil {
+	// Volatility orders
+	if serverVersion >= 26 {
+		err := (writeMapSlice{
+			{val: r.Order.Volatility, useMax: true},
+			{val: r.Order.VolatilityType, useMax: true},
+			{val: r.Order.DeltaNeutralOrderType},
+			{val: r.Order.DeltaNeutralAuxPrice, useMax: true},
+		}).Dump(b)
+		if err != nil {
 			return err
 		}
-		for _, tv := range r.Order.AlgoParams.Params {
-			if err := writeString(b, tv.Tag); err != nil {
+
+		if r.Order.DeltaNeutralOrderType != "" {
+			if serverVersion >= mMinServerVerDeltaNeutralConID {
+				err := (writeMapSlice{
+					{val: r.Order.DeltaNeutralConID},
+					{val: r.Order.DeltaNeutralSettlingFirm},
+					{val: r.Order.DeltaNeutralClearingAccount},
+					{val: r.Order.DeltaNeutralClearingIntent},
+				}).Dump(b)
+				if err != nil {
+					return err
+				}
+			}
+
+			if serverVersion >= mMinServerVerDeltaNeutralOpenClose {
+				err := (writeMapSlice{
+					{val: r.Order.DeltaNeutralOpenClose},
+					{val: r.Order.DeltaNeutralShortSale},
+					{val: r.Order.DeltaNeutralShortSaleSlot},
+					{val: r.Order.DeltaNeutralDesignatedLocation},
+				}).Dump(b)
+				if err != nil {
+					return err
+				}
+			}
+		}
+
+		if err := writeInt(b, r.Order.ContinuousUpdate); err != nil {
+			return err
+		}
+
+		if err := writeMaxInt(b, r.Order.ReferencePriceType); err != nil {
+			return err
+		}
+	}
+
+	// TRAIL_STOP_LIMIT stop price
+	if serverVersion >= 30 {
+		if err := writeMaxFloat(b, r.Order.TrailStopPrice); err != nil {
+			return err
+		}
+	}
+
+	if serverVersion >= mMinServerVerTrailingPercent {
+		if err := writeMaxFloat(b, r.Order.TrailingPercent); err != nil {
+			return err
+		}
+	}
+
+	if serverVersion >= mMinServerVerScaleOrders {
+		if serverVersion >= mMinServerVerScaleOrders2 {
+			if err := writeMaxInt(b, r.Order.ScaleInitLevelSize); err != nil {
 				return err
 			}
-			if err := writeString(b, tv.Value); err != nil {
+			if err := writeMaxInt(b, r.Order.ScaleSubsLevelSize); err != nil {
 				return err
+			}
+		} else {
+			if err := writeString(b, ""); err != nil {
+				return err
+			}
+			if err := writeMaxInt(b, r.Order.ScaleInitLevelSize); err != nil {
+				return err
+			}
+		}
+		if err := writeMaxFloat(b, r.Order.ScalePriceIncrement); err != nil {
+			return err
+		}
+	}
+
+	if serverVersion >= mMinServerVerScaleOrders3 && r.Order.ScalePriceIncrement > 0.0 && r.Order.ScalePriceIncrement != math.MaxFloat64 {
+		err := (writeMapSlice{
+			{val: r.Order.ScalePriceAdjustValue, useMax: true},
+			{val: r.Order.ScalePriceAdjustInterval, useMax: true},
+			{val: r.Order.ScaleProfitOffset, useMax: true},
+			{val: r.Order.ScaleAutoReset},
+			{val: r.Order.ScaleInitPosition, useMax: true},
+			{val: r.Order.ScaleInitFillQty, useMax: true},
+			{val: r.Order.ScaleRandomPercent, useMax: true},
+		}).Dump(b)
+		if err != nil {
+			return err
+		}
+	}
+
+	if serverVersion >= mMinServerVerScaleTable {
+		err := (writeMapSlice{
+			{val: r.Order.ScaleTable},
+			{val: r.Order.ActiveStartTime},
+			{val: r.Order.ActiveStopTime},
+		}).Dump(b)
+		if err != nil {
+			return err
+		}
+	}
+
+	if serverVersion >= mMinServerVerHedgeOrders {
+		if err := writeString(b, r.Order.HedgeType); err != nil {
+			return err
+		}
+
+		if r.Order.HedgeType != "" {
+			if err := writeString(b, r.Order.HedgeParam); err != nil {
+				return err
+			}
+		}
+	}
+
+	if serverVersion >= mMinServerVerOptOutSmartRouting {
+		if err := writeBool(b, r.Order.OptOutSmartRouting); err != nil {
+			return err
+		}
+	}
+
+	if serverVersion >= mMinServerVerPtaOrders {
+		if err := writeString(b, r.Order.ClearingAccount); err != nil {
+			return err
+		}
+		if err := writeString(b, r.Order.ClearingIntent); err != nil {
+			return err
+		}
+	}
+
+	if serverVersion >= mMinServerVerNotHeld {
+		if err := writeBool(b, r.Order.NotHeld); err != nil {
+			return err
+		}
+	}
+
+	if serverVersion >= mMinServerVerDeltaNeutral {
+		if r.Contract.DeltaNeutralContract != nil {
+			if err := writeBool(b, true); err != nil {
+				return err
+			}
+			if err := writeInt(b, r.Contract.DeltaNeutralContract.ContractID); err != nil {
+				return err
+			}
+			if err := writeFloat(b, r.Contract.DeltaNeutralContract.Delta); err != nil {
+				return err
+			}
+			if err := writeFloat(b, r.Contract.DeltaNeutralContract.Price); err != nil {
+				return err
+			}
+		} else {
+			if err := writeBool(b, false); err != nil {
+				return err
+			}
+		}
+	}
+
+	if serverVersion >= mMinServerVerAlgoOrders {
+		if err := writeString(b, r.Order.AlgoStrategy); err != nil {
+			return err
+		}
+
+		if r.Order.AlgoStrategy != "" {
+			if err := writeInt(b, int64(len(r.Order.AlgoParams.Params))); err != nil {
+				return err
+			}
+			for _, tv := range r.Order.AlgoParams.Params {
+				if err := writeString(b, tv.Tag); err != nil {
+					return err
+				}
+				if err := writeString(b, tv.Value); err != nil {
+					return err
+				}
 			}
 		}
 	}
@@ -1460,6 +1622,136 @@ func (r *PlaceOrder) write(serverVersion int64, b *bytes.Buffer) error {
 
 	if serverVersion >= mMinServerVerLinking {
 		if err := writeTagValue(b, r.Order.OrderMiscOptions); err != nil {
+			return err
+		}
+	}
+
+	if serverVersion >= mMinServerVerOrderSolicited {
+		if err := writeBool(b, r.Order.Solicited); err != nil {
+			return err
+		}
+	}
+
+	if serverVersion >= mMinServerVerRandomizeSizeAndPrice {
+		if err := writeBool(b, r.Order.RandomizeSize); err != nil {
+			return err
+		}
+		if err := writeBool(b, r.Order.RandomizePrice); err != nil {
+			return err
+		}
+	}
+
+	if serverVersion >= mMinServerVerPeggedToBenchmark {
+		if r.Order.OrderType == orderTypePegBench {
+			if err := writeInt(b, r.Order.ReferenceContractID); err != nil {
+				return err
+			}
+			if err := writeBool(b, r.Order.IsPeggedChangeAmountDecrease); err != nil {
+				return err
+			}
+			if err := writeFloat(b, r.Order.PeggedChangeAmount); err != nil {
+				return err
+			}
+			if err := writeFloat(b, r.Order.ReferenceChangeAmount); err != nil {
+				return err
+			}
+			if err := writeString(b, r.Order.ReferenceExchangeID); err != nil {
+				return err
+			}
+		}
+
+		if err := writeInt(b, int64(len((r.Order.Conditions)))); err != nil {
+			return err
+		}
+
+		if len(r.Order.Conditions) > 0 {
+			for _, item := range r.Order.Conditions {
+				if err := writeInt(b, int64(item.Type)); err != nil {
+					return err
+				}
+				// TODO: item.writeTo(b)
+			}
+
+			if err := writeBool(b, r.Order.ConditionsIgnoreRth); err != nil {
+				return err
+			}
+			if err := writeBool(b, r.Order.ConditionsCancelOrder); err != nil {
+				return err
+			}
+		}
+
+		err := (writeMapSlice{
+			{val: r.Order.AdjustedOrderType},
+			{val: r.Order.TriggerPrice},
+			{val: r.Order.LimitPriceOffset},
+			{val: r.Order.AdjustedStopPrice},
+			{val: r.Order.AdjustedStopLimitPrice},
+			{val: r.Order.AdjustedTrailingAmount},
+			{val: r.Order.AdjustableTrailingUnit},
+		}).Dump(b)
+		if err != nil {
+			return err
+		}
+	}
+
+	if serverVersion >= mMinServerVerExtOperator {
+		if err := writeString(b, r.Order.ExtOperator); err != nil {
+			return err
+		}
+	}
+
+	if serverVersion >= mMinServerVerSoftDollarTier {
+		if err := writeString(b, r.Order.SoftDollarTier.Name); err != nil {
+			return err
+		}
+		if err := writeString(b, r.Order.SoftDollarTier.Value); err != nil {
+			return err
+		}
+	}
+
+	if serverVersion >= mMinServerVerCashQty {
+		if err := writeMaxFloat(b, r.Order.CashQty); err != nil {
+			return err
+		}
+	}
+
+	if serverVersion >= mMinServerVerDecisionMaker {
+		if err := writeString(b, r.Order.Mifid2DecisionMaker); err != nil {
+			return err
+		}
+		if err := writeString(b, r.Order.Mifid2DecisionAlgo); err != nil {
+			return err
+		}
+	}
+
+	if serverVersion >= mMinServerVerMifidExecution {
+		if err := writeString(b, r.Order.Mifid2ExecutionTrader); err != nil {
+			return err
+		}
+		if err := writeString(b, r.Order.Mifid2ExecutionAlgo); err != nil {
+			return err
+		}
+	}
+
+	if serverVersion >= mMinServerVerAutoPriceForHedge {
+		if err := writeBool(b, r.Order.DontUseAutoPriceForHedge); err != nil {
+			return err
+		}
+	}
+
+	if serverVersion >= mMinServerVerOrderContainer {
+		if err := writeBool(b, r.Order.IsOmsContainer); err != nil {
+			return err
+		}
+	}
+	if serverVersion >= mMinServerVerDPegOrders {
+		if err := writeBool(b, r.Order.DiscretionaryUpToLimitPrice); err != nil {
+			return err
+		}
+	}
+
+	if serverVersion >= mMinServerVerPriceMgmtAlgo {
+		if err := writeBool(b, r.Order.UsePriceMgmtAlgo); err != nil {
 			return err
 		}
 	}

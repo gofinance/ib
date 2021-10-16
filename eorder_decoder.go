@@ -826,21 +826,24 @@ func (eorderdecoder *eOrderDecoder) readConditions() (err error) {
 			return err
 		}
 
-		eorderdecoder.Order.Conditions = make([]OrderCondition, nconditions)
-		for ic := range eorderdecoder.Order.Conditions {
-			var condtype int64
-			if condtype, err = readInt(eorderdecoder.ReadBuf); err != nil {
-				return err
+		if nconditions > 0 {
+			eorderdecoder.Order.Conditions = make([]OrderCondition, nconditions)
+			for ic := range eorderdecoder.Order.Conditions {
+				var condtype int64
+				if condtype, err = readInt(eorderdecoder.ReadBuf); err != nil {
+					return err
+				}
+
+				eorderdecoder.Order.Conditions[ic].Type = OrderConditionType(condtype)
+				// TODO: read conditions body?
 			}
 
-			eorderdecoder.Order.Conditions[ic].Type = OrderConditionType(condtype)
-		}
-
-		if eorderdecoder.Order.ConditionsIgnoreRth, err = readBool(eorderdecoder.ReadBuf); err != nil {
-			return err
-		}
-		if eorderdecoder.Order.ConditionsCancelOrder, err = readBool(eorderdecoder.ReadBuf); err != nil {
-			return err
+			if eorderdecoder.Order.ConditionsIgnoreRth, err = readBool(eorderdecoder.ReadBuf); err != nil {
+				return err
+			}
+			if eorderdecoder.Order.ConditionsCancelOrder, err = readBool(eorderdecoder.ReadBuf); err != nil {
+				return err
+			}
 		}
 	}
 	return
