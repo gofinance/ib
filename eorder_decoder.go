@@ -428,18 +428,18 @@ func (eorderdecoder *eOrderDecoder) readVolOrderParams(readOpenOrderAttribs bool
 				return err
 			}
 			if eorderdecoder.Version >= 27 && eorderdecoder.Order.DeltaNeutralOrderType != "" {
-				if eorderdecoder.Order.DeltaNeutral.ContractID, err = readInt(eorderdecoder.ReadBuf); err != nil {
+				if eorderdecoder.Order.DeltaNeutralConID, err = readInt(eorderdecoder.ReadBuf); err != nil {
 					return err
 				}
 
 				if readOpenOrderAttribs {
-					if eorderdecoder.Order.DeltaNeutral.SettlingFirm, err = readString(eorderdecoder.ReadBuf); err != nil {
+					if eorderdecoder.Order.DeltaNeutralSettlingFirm, err = readString(eorderdecoder.ReadBuf); err != nil {
 						return err
 					}
-					if eorderdecoder.Order.DeltaNeutral.ClearingAccount, err = readString(eorderdecoder.ReadBuf); err != nil {
+					if eorderdecoder.Order.DeltaNeutralClearingAccount, err = readString(eorderdecoder.ReadBuf); err != nil {
 						return err
 					}
-					if eorderdecoder.Order.DeltaNeutral.ClearingIntent, err = readString(eorderdecoder.ReadBuf); err != nil {
+					if eorderdecoder.Order.DeltaNeutralClearingIntent, err = readString(eorderdecoder.ReadBuf); err != nil {
 						return err
 					}
 				}
@@ -447,18 +447,18 @@ func (eorderdecoder *eOrderDecoder) readVolOrderParams(readOpenOrderAttribs bool
 
 			if eorderdecoder.Version >= 31 && eorderdecoder.Order.DeltaNeutralOrderType != "" {
 				if readOpenOrderAttribs {
-					if eorderdecoder.Order.DeltaNeutral.OpenClose, err = readString(eorderdecoder.ReadBuf); err != nil {
+					if eorderdecoder.Order.DeltaNeutralOpenClose, err = readString(eorderdecoder.ReadBuf); err != nil {
 						return err
 					}
 				}
 
-				if eorderdecoder.Order.DeltaNeutral.ShortSale, err = readBool(eorderdecoder.ReadBuf); err != nil {
+				if eorderdecoder.Order.DeltaNeutralShortSale, err = readBool(eorderdecoder.ReadBuf); err != nil {
 					return err
 				}
-				if eorderdecoder.Order.DeltaNeutral.ShortSaleSlot, err = readInt(eorderdecoder.ReadBuf); err != nil {
+				if eorderdecoder.Order.DeltaNeutralShortSaleSlot, err = readInt(eorderdecoder.ReadBuf); err != nil {
 					return err
 				}
-				if eorderdecoder.Order.DeltaNeutral.DesignatedLocation, err = readString(eorderdecoder.ReadBuf); err != nil {
+				if eorderdecoder.Order.DeltaNeutralDesignatedLocation, err = readString(eorderdecoder.ReadBuf); err != nil {
 					return err
 				}
 			}
@@ -677,14 +677,14 @@ func (eorderdecoder *eOrderDecoder) readDeltaNeutral() (err error) {
 			return err
 		}
 		if haveUnderComp {
-			eorderdecoder.Contract.UnderComp = new(UnderComp)
-			if eorderdecoder.Contract.UnderComp.ContractID, err = readInt(eorderdecoder.ReadBuf); err != nil {
+			eorderdecoder.Contract.DeltaNeutralContract = new(DeltaNeutralContract)
+			if eorderdecoder.Contract.DeltaNeutralContract.ContractID, err = readInt(eorderdecoder.ReadBuf); err != nil {
 				return err
 			}
-			if eorderdecoder.Contract.UnderComp.Delta, err = readFloat(eorderdecoder.ReadBuf); err != nil {
+			if eorderdecoder.Contract.DeltaNeutralContract.Delta, err = readFloat(eorderdecoder.ReadBuf); err != nil {
 				return err
 			}
-			if eorderdecoder.Contract.UnderComp.Price, err = readFloat(eorderdecoder.ReadBuf); err != nil {
+			if eorderdecoder.Contract.DeltaNeutralContract.Price, err = readFloat(eorderdecoder.ReadBuf); err != nil {
 				return err
 			}
 		}

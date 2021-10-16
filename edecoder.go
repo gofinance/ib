@@ -2065,8 +2065,8 @@ func (e *ExecutionDataEnd) read(serverVersion int64, b *bufio.Reader) (err error
 
 // DeltaNeutralValidation .
 type DeltaNeutralValidation struct {
-	id        int64
-	UnderComp UnderComp
+	id int64
+	DeltaNeutralContract
 }
 
 // ID .
@@ -2080,13 +2080,13 @@ func (d *DeltaNeutralValidation) read(serverVersion int64, b *bufio.Reader) (err
 	if d.id, err = readInt(b); err != nil {
 		return err
 	}
-	if d.UnderComp.ContractID, err = readInt(b); err != nil {
+	if d.DeltaNeutralContract.ContractID, err = readInt(b); err != nil {
 		return err
 	}
-	if d.UnderComp.Delta, err = readFloat(b); err != nil {
+	if d.DeltaNeutralContract.Delta, err = readFloat(b); err != nil {
 		return err
 	}
-	d.UnderComp.Price, err = readFloat(b)
+	d.DeltaNeutralContract.Price, err = readFloat(b)
 	return err
 }
 
