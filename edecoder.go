@@ -1531,7 +1531,10 @@ type ExecutionData struct {
 func (e *ExecutionData) ID() int64               { return e.id }
 func (e *ExecutionData) code() IncomingMessageID { return mExecutionData }
 func (e *ExecutionData) read(serverVersion int64, b *bufio.Reader) (err error) {
+
 	var version int64
+
+	version = serverVersion
 
 	if serverVersion < mMinServerVerLastLiquidity {
 		if version, err = readInt(b); err != nil {
