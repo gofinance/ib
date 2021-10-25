@@ -8,7 +8,6 @@ import (
 type Request interface {
 	writable
 	code() OutgoingMessageID
-	version() int64
 }
 
 // Reply .

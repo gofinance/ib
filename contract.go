@@ -4,24 +4,22 @@ package ib
 
 // Contract .
 type Contract struct {
-	ContractID      int64
-	Symbol          string
-	SecurityType    string
-	Expiry          string
-	Strike          float64
-	Right           string
-	Multiplier      string
-	Exchange        string
-	PrimaryExchange string
-	Currency        string
-	LocalSymbol     string
-	TradingClass    string
-	SecIDType       string
-	SecID           string
-
-	DeltaNeutralContract *DeltaNeutralContract
+	ContractID           int64
+	Symbol               string
+	SecurityType         string
+	Expiry               string
+	Strike               float64
+	Right                string
+	Multiplier           string
+	Exchange             string
+	Currency             string
+	LocalSymbol          string
+	TradingClass         string
+	PrimaryExchange      string
 	IncludeExpired       bool
-
+	SecIDType            string
+	SecID                string
 	ComboLegsDescription string
 	ComboLegs            []ComboLeg
+	UnderComp            *UnderComp
 }

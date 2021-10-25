@@ -162,12 +162,24 @@ func (a *AdvisorAccountManager) preDestroy() {
 func (a *AdvisorAccountManager) Values() map[AccountSummaryKey]AccountSummary {
 	a.rwm.RLock()
 	defer a.rwm.RUnlock()
-	return a.values
+
+	// Need to return a copy of the map because it can not be mutex locked after function returns
+	tmp := make(map[AccountSummaryKey]AccountSummary)
+	for y, x := range a.values {
+		tmp[y] = x
+	}
+	return tmp
 }
 
 // Portfolio returns the most recent snapshot of account portfolio.
 func (a *AdvisorAccountManager) Portfolio() map[PositionKey]Position {
 	a.rwm.RLock()
 	defer a.rwm.RUnlock()
-	return a.portfolio
+
+	// Need to return a copy of the map because it can not be mutex locked after function returns
+	tmp := make(map[PositionKey]Position)
+	for y, x := range a.portfolio {
+		tmp[y] = x
+	}
+	return tmp
 }

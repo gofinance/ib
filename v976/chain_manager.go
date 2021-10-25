@@ -61,7 +61,7 @@ func (c *ChainManager) receive(r Reply) (UpdateStatus, error) {
 		if _, ok := c.chains[expiry]; !ok {
 			c.chains[expiry] = &OptionChain{
 				Expiry:  expiry,
-				Strikes: map[float64]*OptionStrike{},
+				Strikes: make(map[float64]*OptionStrike),
 			}
 		}
 		c.chains[expiry].update(r)
@@ -76,5 +76,11 @@ func (c *ChainManager) receive(r Reply) (UpdateStatus, error) {
 func (c *ChainManager) Chains() map[time.Time]*OptionChain {
 	c.rwm.RLock()
 	defer c.rwm.RUnlock()
-	return c.chains
+
+	// Need to return a copy of the map because it can not be mutex locked after function returns
+	tmp := make(map[time.Time]*OptionChain)
+	for y, x := range c.chains {
+		tmp[y] = x
+	}
+	return tmp
 }
