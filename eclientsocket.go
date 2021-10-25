@@ -620,6 +620,10 @@ func (c *CancelRealTimeBars) ID() int64               { return c.id }
 func (c *CancelRealTimeBars) code() OutgoingMessageID { return mCancelRealTimeBars }
 func (c *CancelRealTimeBars) version() int64          { return 1 }
 func (c *CancelRealTimeBars) write(serverVersion int64, b *bytes.Buffer) error {
+	if serverVersion < mMinServerVerRealTimeBars {
+		return fmt.Errorf("server does not support realtime bar data query cancellation.")
+	}
+
 	return (writeMapSlice{
 		{val: int64(c.code())},
 		{val: c.version()},
@@ -648,6 +652,10 @@ func (r *RequestHistoricalData) ID() int64               { return r.id }
 func (r *RequestHistoricalData) code() OutgoingMessageID { return mRequestHistoricalData }
 func (r *RequestHistoricalData) version() int64          { return 6 }
 func (r *RequestHistoricalData) write(serverVersion int64, b *bytes.Buffer) error {
+	if serverVersion < 16 {
+		return fmt.Errorf("server  does not support historical data backfill.")
+	}
+
 	if err := (writeMapSlice{
 		{val: int64(r.code())},
 		{val: r.version()},
@@ -1772,7 +1780,7 @@ func (r *RequestAccountUpdates) write(serverVersion int64, b *bytes.Buffer) erro
 		{val: int64(r.code())},
 		{val: r.version()},
 		{val: r.Subscribe},
-		{val: r.AccountCode},
+		{val: r.AccountCode}, // serverVersion >= 9
 	}).Dump(b)
 }
 
@@ -1797,28 +1805,27 @@ func (r *RequestExecutions) write(serverVersion int64, b *bytes.Buffer) error {
 		return err
 	}
 
-	if err := writeInt(b, r.id); err != nil {
-		return err
+	if serverVersion >= mMinServerVerExecutionDataChain {
+		if err := writeInt(b, r.id); err != nil {
+			return err
+		}
 	}
-	if err := writeInt(b, r.Filter.ClientID); err != nil {
-		return err
+
+	if serverVersion >= 9 {
+		if err := (writeMapSlice{
+			{val: r.Filter.ClientID},
+			{val: r.Filter.AccountCode},
+			{val: r.Filter.Time, extra: timeWriteLocalTime},
+			{val: r.Filter.Symbol},
+			{val: r.Filter.SecType},
+			{val: r.Filter.Exchange},
+			{val: r.Filter.Side},
+		}).Dump(b); err != nil {
+			return err
+		}
 	}
-	if err := writeString(b, r.Filter.AccountCode); err != nil {
-		return err
-	}
-	if err := writeTime(b, r.Filter.Time, timeWriteLocalTime); err != nil {
-		return err
-	}
-	if err := writeString(b, r.Filter.Symbol); err != nil {
-		return err
-	}
-	if err := writeString(b, r.Filter.SecType); err != nil {
-		return err
-	}
-	if err := writeString(b, r.Filter.Exchange); err != nil {
-		return err
-	}
-	return writeString(b, r.Filter.Side)
+
+	return nil
 }
 
 // CancelOrder is equivalent of IB API EClientSocket.cancelOrder().
@@ -1992,6 +1999,7 @@ func (r *ReplaceFA) write(serverVersion int64, b *bytes.Buffer) error {
 	if err := writeInt(b, r.faDataType); err != nil {
 		return err
 	}
+
 	return writeString(b, r.xml)
 }
 
@@ -2001,6 +2009,10 @@ type RequestCurrentTime struct{}
 func (r *RequestCurrentTime) code() OutgoingMessageID { return mRequestCurrentTime }
 func (r *RequestCurrentTime) version() int64          { return 1 }
 func (r *RequestCurrentTime) write(serverVersion int64, b *bytes.Buffer) error {
+	if serverVersion <= 33 {
+		return fmt.Errorf("server does not support current time requests.")
+	}
+
 	return (writeMapSlice{
 		{val: int64(r.code())},
 		{val: r.version()},
@@ -2011,7 +2023,8 @@ func (r *RequestCurrentTime) write(serverVersion int64, b *bytes.Buffer) error {
 type RequestFundamentalData struct {
 	id int64
 	Contract
-	ReportType string
+	ReportType             string
+	FundamentalDataOptions []TagValue
 }
 
 // SetID assigns the TWS "tickerId", used for reply correlation and request cancellation.
@@ -2022,6 +2035,15 @@ func (r *RequestFundamentalData) ID() int64               { return r.id }
 func (r *RequestFundamentalData) code() OutgoingMessageID { return mRequestFundamentalData }
 func (r *RequestFundamentalData) version() int64          { return 2 }
 func (r *RequestFundamentalData) write(serverVersion int64, b *bytes.Buffer) error {
+
+	if serverVersion < mMinServerVerFundamentalData {
+		return fmt.Errorf("server does not support fundamental data requests.")
+	}
+
+	if serverVersion < mMinServerVerTradingClass && r.Contract.ContractID > 0 {
+		return fmt.Errorf("server does not support conId parameter in reqFundamentalDatal.")
+	}
+
 	if err := (writeMapSlice{
 		{val: int64(r.code())},
 		{val: r.version()},
@@ -2029,28 +2051,32 @@ func (r *RequestFundamentalData) write(serverVersion int64, b *bytes.Buffer) err
 	}).Dump(b); err != nil {
 		return err
 	}
-	if err := writeInt(b, r.Contract.ContractID); err != nil {
+
+	if serverVersion >= mMinServerVerTradingClass {
+		if err := writeInt(b, r.Contract.ContractID); err != nil {
+			return err
+		}
+	}
+
+	if err := (writeMapSlice{
+		{val: r.Contract.Symbol},
+		{val: r.Contract.SecurityType},
+		{val: r.Contract.Exchange},
+		{val: r.Contract.PrimaryExchange},
+		{val: r.Contract.Currency},
+		{val: r.Contract.LocalSymbol},
+		{val: r.ReportType},
+	}).Dump(b); err != nil {
 		return err
 	}
-	if err := writeString(b, r.Contract.Symbol); err != nil {
-		return err
+
+	if serverVersion >= mMinServerVerLinking {
+		if err := writeTagValue(b, r.FundamentalDataOptions); err != nil {
+			return err
+		}
 	}
-	if err := writeString(b, r.Contract.SecurityType); err != nil {
-		return err
-	}
-	if err := writeString(b, r.Contract.Exchange); err != nil {
-		return err
-	}
-	if err := writeString(b, r.Contract.PrimaryExchange); err != nil {
-		return err
-	}
-	if err := writeString(b, r.Contract.Currency); err != nil {
-		return err
-	}
-	if err := writeString(b, r.Contract.LocalSymbol); err != nil {
-		return err
-	}
-	return writeString(b, r.ReportType)
+
+	return nil
 }
 
 // CancelFundamentalData is equivalent of IB API EClientSocket.cancelFundamentalData().
@@ -2066,6 +2092,10 @@ func (c *CancelFundamentalData) ID() int64               { return c.id }
 func (c *CancelFundamentalData) code() OutgoingMessageID { return mCancelFundamentalData }
 func (c *CancelFundamentalData) version() int64          { return 1 }
 func (c *CancelFundamentalData) write(serverVersion int64, b *bytes.Buffer) error {
+	if serverVersion < mMinServerVerFundamentalData {
+		return fmt.Errorf("server does not support fundamental data requests.")
+	}
+
 	return (writeMapSlice{
 		{val: int64(c.code())},
 		{val: c.version()},
@@ -2077,8 +2107,9 @@ func (c *CancelFundamentalData) write(serverVersion int64, b *bytes.Buffer) erro
 type RequestCalcImpliedVol struct {
 	id int64
 	Contract
-	OptionPrice float64
-	UnderPrice  float64
+	OptionPrice              float64
+	UnderPrice               float64
+	ImpliedVolatilityOptions []TagValue
 }
 
 // SetID assigns the TWS "reqId", which is used for reply correlation and request cancellation.
@@ -2089,6 +2120,17 @@ func (r *RequestCalcImpliedVol) ID() int64               { return r.id }
 func (r *RequestCalcImpliedVol) code() OutgoingMessageID { return mRequestCalcImpliedVol }
 func (r *RequestCalcImpliedVol) version() int64          { return 2 }
 func (r *RequestCalcImpliedVol) write(serverVersion int64, b *bytes.Buffer) error {
+
+	if serverVersion < mMinServerVerReqCalcImpliedVolat {
+		return fmt.Errorf("server does not support calculate implied volatility requests.")
+	}
+
+	if serverVersion < mMinServerVerTradingClass {
+		if r.Contract.TradingClass != "" {
+			return fmt.Errorf("server does not support tradingClass parameter in calculateImpliedVolatility.")
+		}
+	}
+
 	if err := (writeMapSlice{
 		{val: int64(r.code())},
 		{val: r.version()},
@@ -2096,46 +2138,44 @@ func (r *RequestCalcImpliedVol) write(serverVersion int64, b *bytes.Buffer) erro
 	}).Dump(b); err != nil {
 		return err
 	}
-	if err := writeInt(b, r.Contract.ContractID); err != nil {
+
+	if err := (writeMapSlice{
+		{val: r.Contract.ContractID},
+		{val: r.Contract.Symbol},
+		{val: r.Contract.SecurityType},
+		{val: r.Contract.Expiry},
+		{val: r.Contract.Strike},
+		{val: r.Contract.Right},
+		{val: r.Contract.Multiplier},
+		{val: r.Contract.Exchange},
+		{val: r.Contract.PrimaryExchange},
+		{val: r.Contract.Currency},
+		{val: r.Contract.LocalSymbol},
+	}).Dump(b); err != nil {
 		return err
 	}
-	if err := writeString(b, r.Contract.Symbol); err != nil {
-		return err
+
+	if serverVersion >= mMinServerVerTradingClass {
+		if err := writeString(b, r.Contract.TradingClass); err != nil {
+			return err
+		}
 	}
-	if err := writeString(b, r.Contract.SecurityType); err != nil {
-		return err
-	}
-	if err := writeString(b, r.Contract.Expiry); err != nil {
-		return err
-	}
-	if err := writeFloat(b, r.Contract.Strike); err != nil {
-		return err
-	}
-	if err := writeString(b, r.Contract.Right); err != nil {
-		return err
-	}
-	if err := writeString(b, r.Contract.Multiplier); err != nil {
-		return err
-	}
-	if err := writeString(b, r.Contract.Exchange); err != nil {
-		return err
-	}
-	if err := writeString(b, r.Contract.PrimaryExchange); err != nil {
-		return err
-	}
-	if err := writeString(b, r.Contract.Currency); err != nil {
-		return err
-	}
-	if err := writeString(b, r.Contract.LocalSymbol); err != nil {
-		return err
-	}
-	if err := writeString(b, r.Contract.TradingClass); err != nil {
-		return err
-	}
+
 	if err := writeFloat(b, r.OptionPrice); err != nil {
 		return err
 	}
-	return writeFloat(b, r.UnderPrice)
+
+	if err := writeFloat(b, r.UnderPrice); err != nil {
+		return err
+	}
+
+	if serverVersion >= mMinServerVerLinking {
+		if err := writeTagValue(b, r.ImpliedVolatilityOptions); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // CancelCalcImpliedVol is equivalent of IB API EClientSocket.cancelCalculateImpliedVolatility().
@@ -2151,6 +2191,11 @@ func (c *CancelCalcImpliedVol) ID() int64               { return c.id }
 func (c *CancelCalcImpliedVol) code() OutgoingMessageID { return mCancelCalcImpliedVol }
 func (c *CancelCalcImpliedVol) version() int64          { return 1 }
 func (c *CancelCalcImpliedVol) write(serverVersion int64, b *bytes.Buffer) error {
+
+	if serverVersion < mMinServerVerCancelCalcImpliedVolat {
+		return fmt.Errorf("server does not support calculate implied volatility cancellation.")
+	}
+
 	return (writeMapSlice{
 		{val: int64(c.code())},
 		{val: c.version()},
@@ -2162,8 +2207,9 @@ func (c *CancelCalcImpliedVol) write(serverVersion int64, b *bytes.Buffer) error
 type RequestCalcOptionPrice struct {
 	id int64
 	Contract
-	Volatility float64
-	UnderPrice float64
+	Volatility         float64
+	UnderPrice         float64
+	OptionPriceOptions []TagValue
 }
 
 // SetID assigns the TWS "reqId", which is used for reply correlation and request cancellation.
@@ -2174,6 +2220,17 @@ func (r *RequestCalcOptionPrice) ID() int64               { return r.id }
 func (r *RequestCalcOptionPrice) code() OutgoingMessageID { return mRequestCalcOptionPrice }
 func (r *RequestCalcOptionPrice) version() int64          { return 2 }
 func (r *RequestCalcOptionPrice) write(serverVersion int64, b *bytes.Buffer) error {
+
+	if serverVersion < mMinServerVerReqCalcOptionPrice {
+		return fmt.Errorf("server does not support calculate option price requests.")
+	}
+
+	if serverVersion < mMinServerVerTradingClass {
+		if r.Contract.TradingClass != "" {
+			return fmt.Errorf("server does not support tradingClass parameter in calculateOptionPrice.")
+		}
+	}
+
 	if err := (writeMapSlice{
 		{val: int64(r.code())},
 		{val: r.version()},
@@ -2181,46 +2238,44 @@ func (r *RequestCalcOptionPrice) write(serverVersion int64, b *bytes.Buffer) err
 	}).Dump(b); err != nil {
 		return err
 	}
-	if err := writeInt(b, r.Contract.ContractID); err != nil {
+
+	if err := (writeMapSlice{
+		{val: r.Contract.ContractID},
+		{val: r.Contract.Symbol},
+		{val: r.Contract.SecurityType},
+		{val: r.Contract.Expiry},
+		{val: r.Contract.Strike},
+		{val: r.Contract.Right},
+		{val: r.Contract.Multiplier},
+		{val: r.Contract.Exchange},
+		{val: r.Contract.PrimaryExchange},
+		{val: r.Contract.Currency},
+		{val: r.Contract.LocalSymbol},
+	}).Dump(b); err != nil {
 		return err
 	}
-	if err := writeString(b, r.Contract.Symbol); err != nil {
-		return err
+
+	if serverVersion >= mMinServerVerTradingClass {
+		if err := writeString(b, r.Contract.TradingClass); err != nil {
+			return err
+		}
 	}
-	if err := writeString(b, r.Contract.SecurityType); err != nil {
-		return err
-	}
-	if err := writeString(b, r.Contract.Expiry); err != nil {
-		return err
-	}
-	if err := writeFloat(b, r.Contract.Strike); err != nil {
-		return err
-	}
-	if err := writeString(b, r.Contract.Right); err != nil {
-		return err
-	}
-	if err := writeString(b, r.Contract.Multiplier); err != nil {
-		return err
-	}
-	if err := writeString(b, r.Contract.Exchange); err != nil {
-		return err
-	}
-	if err := writeString(b, r.Contract.PrimaryExchange); err != nil {
-		return err
-	}
-	if err := writeString(b, r.Contract.Currency); err != nil {
-		return err
-	}
-	if err := writeString(b, r.Contract.LocalSymbol); err != nil {
-		return err
-	}
-	if err := writeString(b, r.Contract.TradingClass); err != nil {
-		return err
-	}
+
 	if err := writeFloat(b, r.Volatility); err != nil {
 		return err
 	}
-	return writeFloat(b, r.UnderPrice)
+
+	if err := writeFloat(b, r.UnderPrice); err != nil {
+		return err
+	}
+
+	if serverVersion >= mMinServerVerLinking {
+		if err := writeTagValue(b, r.OptionPriceOptions); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // CancelCalcOptionPrice is equivalent of IB API EClientSocket.cancelCalculateOptionPrice().
@@ -2236,6 +2291,11 @@ func (c *CancelCalcOptionPrice) ID() int64               { return c.id }
 func (c *CancelCalcOptionPrice) code() OutgoingMessageID { return mCancelCalcOptionPrice }
 func (c *CancelCalcOptionPrice) version() int64          { return 1 }
 func (c *CancelCalcOptionPrice) write(serverVersion int64, b *bytes.Buffer) error {
+
+	if serverVersion < mMinServerVerCancelCalcOptionPrice {
+		return fmt.Errorf("server does not support calculate option price cancellation.")
+	}
+
 	return (writeMapSlice{
 		{val: int64(c.code())},
 		{val: c.version()},
@@ -2249,6 +2309,11 @@ type RequestGlobalCancel struct{}
 func (r *RequestGlobalCancel) code() OutgoingMessageID { return mRequestGlobalCancel }
 func (r *RequestGlobalCancel) version() int64          { return 1 }
 func (r *RequestGlobalCancel) write(serverVersion int64, b *bytes.Buffer) error {
+
+	if serverVersion < mMinServerVerReqGlobalCancel {
+		return fmt.Errorf("server does not support globalCancel requests.")
+	}
+
 	return (writeMapSlice{
 		{val: int64(r.code())},
 		{val: r.version()},
@@ -2263,6 +2328,11 @@ type RequestMarketDataType struct {
 func (r *RequestMarketDataType) code() OutgoingMessageID { return mRequestMarketDataType }
 func (r *RequestMarketDataType) version() int64          { return 1 }
 func (r *RequestMarketDataType) write(serverVersion int64, b *bytes.Buffer) error {
+
+	if serverVersion < mMinServerVerReqMarketDataType {
+		return fmt.Errorf("server does not support marketDataType requests.")
+	}
+
 	return (writeMapSlice{
 		{val: int64(r.code())},
 		{val: r.version()},
@@ -2276,9 +2346,68 @@ type RequestPositions struct{}
 func (r *RequestPositions) code() OutgoingMessageID { return mRequestPositions }
 func (r *RequestPositions) version() int64          { return 1 }
 func (r *RequestPositions) write(serverVersion int64, b *bytes.Buffer) error {
+
+	if serverVersion < mMinServerVerAcctSummary {
+		return fmt.Errorf("server does not support position requests.")
+	}
+
 	return (writeMapSlice{
 		{val: int64(r.code())},
 		{val: r.version()},
+	}).Dump(b)
+}
+
+// RequestSecurityDefintionOptParams is equivalent of IB API EClientSocket.reqSecDefOptParams()
+type RequestSecurityDefintionOptParams struct {
+	id                   int64
+	UnderlyingSymbol     string
+	FutFopExchange       string
+	UnderlyingSecType    string
+	UnderlyingContractID int64
+}
+
+func (r *RequestSecurityDefintionOptParams) SetID(id int64) { r.id = id }
+
+// ID .
+func (r *RequestSecurityDefintionOptParams) ID() int64               { return r.id }
+func (r *RequestSecurityDefintionOptParams) code() OutgoingMessageID { return mReqSecDefOptParams }
+func (r *RequestSecurityDefintionOptParams) version() int64          { return 1 }
+func (r *RequestSecurityDefintionOptParams) write(serverVersion int64, b *bytes.Buffer) error {
+
+	if serverVersion < mMinServerVerSecDefOptParamsReq {
+		return fmt.Errorf("server does not support security definition option requests.")
+	}
+
+	return (writeMapSlice{
+		{val: int64(r.code())},
+		{val: r.id},
+		{val: r.UnderlyingSymbol},
+		{val: r.FutFopExchange},
+		{val: r.UnderlyingSecType},
+		{val: r.UnderlyingContractID},
+	}).Dump(b)
+}
+
+// RequestSoftDollarTiers is equivalent of IB API EClientSocket.reqSoftDollarTiers()
+type RequestSoftDollarTiers struct {
+	id int64
+}
+
+func (r *RequestSoftDollarTiers) SetID(id int64) { r.id = id }
+
+// ID .
+func (r *RequestSoftDollarTiers) ID() int64               { return r.id }
+func (r *RequestSoftDollarTiers) code() OutgoingMessageID { return mReqSoftDollarTiers }
+func (r *RequestSoftDollarTiers) version() int64          { return 1 }
+func (r *RequestSoftDollarTiers) write(serverVersion int64, b *bytes.Buffer) error {
+
+	if serverVersion < mMinServerVerSoftDollarTier {
+		return fmt.Errorf("server does not support soft dollar tier requests.")
+	}
+
+	return (writeMapSlice{
+		{val: int64(r.code())},
+		{val: r.id},
 	}).Dump(b)
 }
 
@@ -2288,9 +2417,122 @@ type CancelPositions struct{}
 func (c *CancelPositions) code() OutgoingMessageID { return mCancelPositions }
 func (c *CancelPositions) version() int64          { return 1 }
 func (c *CancelPositions) write(serverVersion int64, b *bytes.Buffer) error {
+
+	if serverVersion < mMinServerVerAcctSummary {
+		return fmt.Errorf("server does not support position cancellation.")
+	}
+
 	return (writeMapSlice{
 		{val: int64(c.code())},
 		{val: c.version()},
+	}).Dump(b)
+}
+
+// RequestPositionsMulti is equivalent of IB API EClientSocket.reqPositionsMulti()
+type RequestPositionsMulti struct {
+	id        int64
+	Account   string
+	ModelCode string
+}
+
+// SetID assigns the TWS "reqId", which is used for reply correlation and request cancellation.
+func (r *RequestPositionsMulti) SetID(id int64) { r.id = id }
+
+func (r *RequestPositionsMulti) ID() int64               { return r.id }
+func (r *RequestPositionsMulti) code() OutgoingMessageID { return mReqPositionsMulti }
+func (r *RequestPositionsMulti) version() int64          { return 1 }
+func (r *RequestPositionsMulti) write(serverVersion int64, b *bytes.Buffer) error {
+
+	if serverVersion < mMinServerVerModelsSupport {
+		return fmt.Errorf("server does not support positions multi request.")
+	}
+
+	return (writeMapSlice{
+		{val: int64(r.code())},
+		{val: r.version()},
+		{val: r.id},
+		{val: r.Account},
+		{val: r.ModelCode},
+	}).Dump(b)
+}
+
+// CancelPositionsMulti is equivalent of IB API EClientSocket.cancelPositionsMulti()
+type CancelPositionsMulti struct {
+	id        int64
+	Account   string
+	ModelCode string
+}
+
+// SetID assigns the TWS "reqId", which is used for reply correlation and request cancellation.
+func (c *CancelPositionsMulti) SetID(id int64) { c.id = id }
+
+func (c *CancelPositionsMulti) ID() int64               { return c.id }
+func (c *CancelPositionsMulti) code() OutgoingMessageID { return mCancelPositionsMulti }
+func (c *CancelPositionsMulti) version() int64          { return 1 }
+func (c *CancelPositionsMulti) write(serverVersion int64, b *bytes.Buffer) error {
+
+	if serverVersion < mMinServerVerModelsSupport {
+		return fmt.Errorf("server does not support positions multi cancellation.")
+	}
+
+	return (writeMapSlice{
+		{val: int64(c.code())},
+		{val: c.version()},
+		{val: c.id},
+	}).Dump(b)
+}
+
+// CancelAccountUpdatesMulti is equivalent of IB API EClientSocket.cancelAccountUpdatesMulti()
+type CancelAccountUpdatesMulti struct {
+	id int64
+}
+
+// SetID assigns the TWS "reqId", which is used for reply correlation and request cancellation.
+func (c *CancelAccountUpdatesMulti) SetID(id int64) { c.id = id }
+
+func (c *CancelAccountUpdatesMulti) ID() int64               { return c.id }
+func (c *CancelAccountUpdatesMulti) code() OutgoingMessageID { return mCancelAccountUpdatesMulti }
+func (c *CancelAccountUpdatesMulti) version() int64          { return 1 }
+func (c *CancelAccountUpdatesMulti) write(serverVersion int64, b *bytes.Buffer) error {
+
+	if serverVersion < mMinServerVerModelsSupport {
+		return fmt.Errorf("server does not support account updates multi cancellation.")
+	}
+
+	return (writeMapSlice{
+		{val: int64(c.code())},
+		{val: c.version()},
+		{val: c.id},
+	}).Dump(b)
+}
+
+// RequestAccountUpdatesMulti is equivalent of IB API EClientSocket.reqAccountUpdatesMulti()
+type RequestAccountUpdatesMulti struct {
+	id           int64
+	Account      string
+	ModelCode    string
+	LedgerAndNLV bool
+}
+
+// SetID assigns the TWS "reqId", which is used for reply correlation and request cancellation.
+func (r *RequestAccountUpdatesMulti) SetID(id int64) { r.id = id }
+
+func (r *RequestAccountUpdatesMulti) ID() int64               { return r.id }
+func (r *RequestAccountUpdatesMulti) code() OutgoingMessageID { return mReqAccountUpdatesMulti }
+func (r *RequestAccountUpdatesMulti) version() int64          { return 1 }
+func (r *RequestAccountUpdatesMulti) write(serverVersion int64, b *bytes.Buffer) error {
+
+	if serverVersion < mMinServerVerModelsSupport {
+		return fmt.Errorf("server does not support account updates multi requests.")
+	}
+
+	return (writeMapSlice{
+		{val: int64(r.code())},
+		{val: r.version()},
+		{val: r.id},
+		{val: r.Account},
+		{val: r.ModelCode},
+		{val: r.LedgerAndNLV},
 	}).Dump(b)
 }
 
@@ -2309,6 +2551,11 @@ func (r *RequestAccountSummary) ID() int64               { return r.id }
 func (r *RequestAccountSummary) code() OutgoingMessageID { return mRequestAccountSummary }
 func (r *RequestAccountSummary) version() int64          { return 1 }
 func (r *RequestAccountSummary) write(serverVersion int64, b *bytes.Buffer) error {
+
+	if serverVersion < mMinServerVerAcctSummary {
+		return fmt.Errorf("server does not support account summary requests.")
+	}
+
 	return (writeMapSlice{
 		{val: int64(r.code())},
 		{val: r.version()},
@@ -2331,6 +2578,11 @@ func (c *CancelAccountSummary) ID() int64               { return c.id }
 func (c *CancelAccountSummary) code() OutgoingMessageID { return mCancelAccountSummary }
 func (c *CancelAccountSummary) version() int64          { return 1 }
 func (c *CancelAccountSummary) write(serverVersion int64, b *bytes.Buffer) error {
+
+	if serverVersion < mMinServerVerAcctSummary {
+		return fmt.Errorf("server does not support account summary cancellation.")
+	}
+
 	return (writeMapSlice{
 		{val: int64(c.code())},
 		{val: c.version()},
@@ -2340,33 +2592,89 @@ func (c *CancelAccountSummary) write(serverVersion int64, b *bytes.Buffer) error
 
 // VerifyRequest is equivalent of IB API EClientSocket.verifyRequest()
 type VerifyRequest struct {
-	apiName    string
-	apiVersion string
+	APIName    string
+	APIVersion string
 }
 
 func (v *VerifyRequest) code() OutgoingMessageID { return mVerifyRequest }
 func (v *VerifyRequest) version() int64          { return 1 }
 func (v *VerifyRequest) write(serverVersion int64, b *bytes.Buffer) error {
+
+	if serverVersion < mMinServerVerLinking {
+		return fmt.Errorf("server does not support verification request.")
+	}
+
 	return (writeMapSlice{
 		{val: int64(v.code())},
 		{val: v.version()},
-		{val: v.apiName},
-		{val: v.apiVersion},
+		{val: v.APIName},
+		{val: v.APIVersion},
 	}).Dump(b)
 }
 
 // VerifyMessage is equivalent of IB API EClientSocket.verifyMessage()
 type VerifyMessage struct {
-	apiData string
+	APIData string
 }
 
 func (v *VerifyMessage) code() OutgoingMessageID { return mVerifyMessage }
 func (v *VerifyMessage) version() int64          { return 1 }
 func (v *VerifyMessage) write(serverVersion int64, b *bytes.Buffer) error {
+
+	if serverVersion < mMinServerVerLinking {
+		return fmt.Errorf("server does not support verification message sending.")
+	}
+
 	return (writeMapSlice{
 		{val: int64(v.code())},
 		{val: v.version()},
-		{val: v.apiData},
+		{val: v.APIData},
+	}).Dump(b)
+}
+
+// VerifyAndAuthRequest is equivalent of IB API EClientSocket.verifyAndAuthRequest()
+type VerifyAndAuthRequest struct {
+	APIName      string
+	APIVersion   string
+	OpaqueIsvKey string
+}
+
+func (v *VerifyAndAuthRequest) code() OutgoingMessageID { return mVerifyAndAuthRequest }
+func (v *VerifyAndAuthRequest) version() int64          { return 1 }
+func (v *VerifyAndAuthRequest) write(serverVersion int64, b *bytes.Buffer) error {
+
+	if serverVersion < mMinServerVerLinkingAuth {
+		return fmt.Errorf("server does not support verification request.")
+	}
+
+	return (writeMapSlice{
+		{val: int64(v.code())},
+		{val: v.version()},
+		{val: v.APIName},
+		{val: v.APIVersion},
+		{val: v.OpaqueIsvKey},
+	}).Dump(b)
+}
+
+// VerifyAndAuthMessage is equivalent of IB API EClientSocket.verifyAndAuthMessage()
+type VerifyAndAuthMessage struct {
+	APIData     string
+	XYZResponse string
+}
+
+func (v *VerifyAndAuthMessage) code() OutgoingMessageID { return mVerifyAndAuthMessage }
+func (v *VerifyAndAuthMessage) version() int64          { return 1 }
+func (v *VerifyAndAuthMessage) write(serverVersion int64, b *bytes.Buffer) error {
+
+	if serverVersion < mMinServerVerLinkingAuth {
+		return fmt.Errorf("server does not support verification message sending.")
+	}
+
+	return (writeMapSlice{
+		{val: int64(v.code())},
+		{val: v.version()},
+		{val: v.APIData},
+		{val: v.XYZResponse},
 	}).Dump(b)
 }
 
@@ -2376,15 +2684,18 @@ type QueryDisplayGroups struct {
 }
 
 // SetID assigns the TWS "reqId", which was nominated at request time.
-func (q *QueryDisplayGroups) SetID(id int64) {
-	q.id = id
-}
+func (q *QueryDisplayGroups) SetID(id int64) { q.id = id }
 
 // ID .
 func (q *QueryDisplayGroups) ID() int64               { return q.id }
 func (q *QueryDisplayGroups) code() OutgoingMessageID { return mQueryDisplayGroups }
 func (q *QueryDisplayGroups) version() int64          { return 1 }
 func (q *QueryDisplayGroups) write(serverVersion int64, b *bytes.Buffer) error {
+
+	if serverVersion < mMinServerVerLinking {
+		return fmt.Errorf("server does not support queryDisplayGroups request.")
+	}
+
 	return (writeMapSlice{
 		{val: int64(q.code())},
 		{val: q.version()},
@@ -2395,7 +2706,7 @@ func (q *QueryDisplayGroups) write(serverVersion int64, b *bytes.Buffer) error {
 // SubscribeToGroupEvents is equivalent of IB API EClientSocket.subscribeToGroupEvents()
 type SubscribeToGroupEvents struct {
 	id      int64
-	groupid int64
+	GroupID int64
 }
 
 // SetID assigns the TWS "reqId", which was nominated at request time.
@@ -2406,11 +2717,16 @@ func (s *SubscribeToGroupEvents) ID() int64               { return s.id }
 func (s *SubscribeToGroupEvents) code() OutgoingMessageID { return mSubscribeToGroupEvents }
 func (s *SubscribeToGroupEvents) version() int64          { return 1 }
 func (s *SubscribeToGroupEvents) write(serverVersion int64, b *bytes.Buffer) error {
+
+	if serverVersion < mMinServerVerLinking {
+		return fmt.Errorf("server does not support subscribeToGroupEvents request.")
+	}
+
 	return (writeMapSlice{
 		{val: int64(s.code())},
 		{val: s.version()},
 		{val: s.id},
-		{val: s.groupid},
+		{val: s.GroupID},
 	}).Dump(b)
 }
 
@@ -2428,6 +2744,11 @@ func (u *UpdateDisplayGroup) ID() int64               { return u.id }
 func (u *UpdateDisplayGroup) code() OutgoingMessageID { return mUpdateDisplayGroup }
 func (u *UpdateDisplayGroup) version() int64          { return 1 }
 func (u *UpdateDisplayGroup) write(serverVersion int64, b *bytes.Buffer) error {
+
+	if serverVersion < mMinServerVerLinking {
+		return fmt.Errorf("server does not support updateDisplayGroup request.")
+	}
+
 	return (writeMapSlice{
 		{val: int64(u.code())},
 		{val: u.version()},
@@ -2449,6 +2770,11 @@ func (u *UnsubscribeFromGroupEvents) ID() int64               { return u.id }
 func (u *UnsubscribeFromGroupEvents) code() OutgoingMessageID { return mUnsubscribeFromGroupEvents }
 func (u *UnsubscribeFromGroupEvents) version() int64          { return 1 }
 func (u *UnsubscribeFromGroupEvents) write(serverVersion int64, b *bytes.Buffer) error {
+
+	if serverVersion < mMinServerVerLinking {
+		return fmt.Errorf("server does not support unsubscribeFromGroupEvents request.")
+	}
+
 	return (writeMapSlice{
 		{val: int64(u.code())},
 		{val: u.version()},
@@ -2470,6 +2796,11 @@ func (r *ReqMatchingSymbols) ID() int64               { return r.id }
 func (r *ReqMatchingSymbols) code() OutgoingMessageID { return mReqMatchingSymbols }
 func (r *ReqMatchingSymbols) version() int64          { return 1 }
 func (r *ReqMatchingSymbols) write(serverVersion int64, b *bytes.Buffer) error {
+
+	if serverVersion < mMinServerVerReqMatchingSymbols {
+		return fmt.Errorf("server does not support matching symbols request.")
+	}
+
 	return (writeMapSlice{
 		{val: int64(r.code())},
 		{val: r.id},
